@@ -4,10 +4,11 @@ Local Windows development checks, 28 October 2026. These are development results
 
 ## 0.13 artwork and renderer revision — 1 November 2026
 
-- [Windows CI](https://github.com/nqtexd/astral/actions/runs/41326513531) passed on `bc3e334`, including the new native artwork MCP check. Local `cargo test --workspace --locked`: 159 tests passed; strict workspace/all-target Clippy and formatting passed. Coverage includes image-sequence painting isolation, undo/storage sharing, PSD composite/error rollback, editable mouth cues, shaped text fitting, tracking proposals, and original legacy pose timing.
+- [Windows CI](https://github.com/nqtexd/astral/actions/runs/41328893873) passed on `271aeac`, including the new native artwork MCP check. Local `cargo test --workspace --locked`: 159 tests passed; strict workspace/all-target Clippy and formatting passed. Coverage includes image-sequence painting isolation, undo/storage sharing, PSD composite/error rollback, editable mouth cues, shaped text fitting, tracking proposals, and original legacy pose timing.
 - Physical RTX 4050: offscreen GPU alpha/interior-colour checks passed. No GPU timing or artistic-quality inference is made from a test pass.
 - Real stdio MCP: 50 tools overall, 46 animation-profile tools and 15 project-profile tools. The existing external workflow, feedback/preview/assembly checks and profile handoff passed. New artwork calls verified imported image sequences, small inspection payloads, independent painting, stale-revision rejection, save/reopen and resized PNG output with FFmpeg deliberately unavailable.
 - Live Windows editor: opened the raster study, selected Artwork, inspected controls and source-paint layout. The sidebar was refined after this check. Microphone WAV formatting is tested with synthetic stereo data; physical microphone/disconnect testing remains unfinished.
+- Local MCP also extracted four frames from a native MP4 into a new raster sequence, inspected the sources and rendered the imported result. [Measured renderer timings](ASTRAL-RENDER-BENCHMARK.md) record all four benchmark cases and cache hits.
 - Three original editable studies and their real Astral GIF previews are included in the README. The separate showcase ZIP includes full-timing MP4 previews with separate editable audio assets. These are demonstrations, not acting/production certification.
 - Remote Apple build evidence is recorded in [platform checks](ASTRAL-PLATFORM-CHECKS.md). Physical Android/Apple devices, production signing and full edition parity remain unverified.
 

@@ -170,8 +170,8 @@
     },
     {
       "id": "macos_x64",
-      "status": "not_built",
-      "evidence": null
+      "status": "development_build",
+      "evidence": "docs/ASTRAL-PLATFORM-CHECKS.md"
     },
     {
       "id": "android_phone",

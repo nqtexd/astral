@@ -12,7 +12,7 @@
 
 [Download v0.13.0](https://github.com/nqtexd/astral/releases/tag/v0.13.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
 
-> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Mac ARM and Apple simulator development builds have passed CI; physical device validation and production signing remain unfinished. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
+> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Mac ARM/Intel and Apple simulator development builds have passed CI; physical device validation and production signing remain unfinished. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Watch, open, make it yours
 
@@ -65,7 +65,7 @@ Get FFmpeg through the [official download page](https://ffmpeg.org/download.html
 | Customize | Accents, canvas surround, corners, compact controls, stronger contrast, scale, reduced motion, panels, grid, frame-card size and recovery/drawing defaults. |
 | Agents | MCP over stdio, typed commands, revision checks, atomic batches, undo/redo, previews, jobs and cancellation. Live MCP and GUI share the document service. |
 
-[Artwork, recording and GPU workflow](docs/ASTRAL-ARTWORK.md) · [Project/customization guide](docs/ASTRAL-PROJECTS.md) · [Motion, composition and finishing](docs/ASTRAL-FEEDBACK-FIXES.md)
+[Measured render timings](docs/ASTRAL-RENDER-BENCHMARK.md) · [Artwork, recording and GPU workflow](docs/ASTRAL-ARTWORK.md) · [Project/customization guide](docs/ASTRAL-PROJECTS.md) · [Motion, composition and finishing](docs/ASTRAL-FEEDBACK-FIXES.md)
 
 ### Project library
 
@@ -134,7 +134,7 @@ Automated checks do not replace human review, security review or artistic judgme
 
 ## Build from source
 
-Windows prerequisites: Rust **1.95+**, MSVC C++ tools and a graphics driver. Python 3.12+ supports packaging/temporary legacy codecs. Node 24 runs agent acceptance scripts. Install FFmpeg separately for media checks.
+Windows prerequisites: Rust **1.95+**, MSVC C++ tools and a graphics driver. Python 3.12+ supports packaging/temporary legacy codecs. Windows ZIP packaging uses PowerShell 7 (`pwsh`); the app itself does not need PowerShell. Node 24 runs agent acceptance scripts. Install FFmpeg separately for media checks.
 
 ```powershell
 git clone https://github.com/nqtexd/astral.git
@@ -149,14 +149,14 @@ cargo run -p astral -- --workspace C:/AstralProjects studio
 cargo test --workspace --locked
 cargo fmt --all -- --check
 node scripts/check-astral-feedback.mjs
-powershell -File scripts/package-astral.ps1 -SkipBuild
+pwsh -File scripts/package-astral.ps1 -SkipBuild
 ```
 
 Packages include dependency notices and omit encoder binaries by default. Caches, private projects, generated films and old archives stay out of Git. Retained Electron/web sources are upstream compatibility code; Astral's executable is Rust. [Platform build notes](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Current limits
 
-- Windows early access. Mac ARM and Apple simulator development builds passed CI; physical Android/Apple checks and production signing remain unfinished.
+- Windows early access. Mac ARM/Intel and Apple simulator development builds passed CI; physical Android/Apple checks and production signing remain unfinished.
 - Full Moho Debut parity remains unfinished. Basic raster/PSD, deformation pins, capture, mouth cues and local tracking are now available; advanced deformation, pressure brushes, correctives, localization and other gaps remain.
 - Legacy imports retain originals and convert supported authored lines/circles into editable drawing cels. Source rig semantics, tweens, custom shapes, camera, media and effects are not equivalent.
 - Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.

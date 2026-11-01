@@ -1,0 +1,522 @@
+{
+  "version": "astral 0.13.0",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "output": [
+    1920,
+    1080,
+    30
+  ],
+  "repeats": 3,
+  "hardware_encoding": false,
+  "source_sha256": {
+    "contact": "8f1408c5595fc39c547b6a3584a50acdca18a66805c181abb809d23ed1dd8767",
+    "soft": "4c506a045d128507492c60caa123baf18cd3625916cfddcea08bdb2444bb7436",
+    "voice": "c55bba3995f96b4389c87fe6f5a0f469de8c639ba8d6e86374e58d85f15eacce",
+    "raster-stress": "b1ab8f4c1a28002d347fc2e9a6cc27b9ffd695f9bf82deb06cc04ac73f9cd16a"
+  },
+  "summary": [
+    {
+      "scene": "contact",
+      "cpu_seconds": 2.0517366,
+      "gpu_seconds": 3.1669014,
+      "cpu_over_gpu_ratio": 0.6478687969256005
+    },
+    {
+      "scene": "soft",
+      "cpu_seconds": 1.9710361,
+      "gpu_seconds": 2.8197823,
+      "cpu_over_gpu_ratio": 0.6990029336661913
+    },
+    {
+      "scene": "voice",
+      "cpu_seconds": 2.4010922,
+      "gpu_seconds": 3.159694,
+      "cpu_over_gpu_ratio": 0.7599128902988707
+    },
+    {
+      "scene": "raster-stress",
+      "cpu_seconds": 10.5533609,
+      "gpu_seconds": 5.8379329,
+      "cpu_over_gpu_ratio": 1.807722199068098
+    }
+  ],
+  "runs": [
+    {
+      "scene": "contact",
+      "renderer": "cpu",
+      "repeat": 0,
+      "wall_seconds": 2.166429800010519,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.6012763000000005,
+        "frames": 180,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 3.020202299999998,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 50,
+        "total_seconds": 2.0021498
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "contact",
+      "renderer": "gpu",
+      "repeat": 0,
+      "wall_seconds": 3.523404599982314,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.6585258999999999,
+        "frames": 180,
+        "gpu_readback_seconds": 0.6734491,
+        "render_seconds": 1.0463325,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 53,
+        "total_seconds": 3.2652849
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "soft",
+      "renderer": "cpu",
+      "repeat": 0,
+      "wall_seconds": 2.176560200023232,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 0.5539556000000001,
+        "frames": 120,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 6.352350600000003,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 1.9791925
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "soft",
+      "renderer": "gpu",
+      "repeat": 0,
+      "wall_seconds": 2.9036582999979146,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.2892107,
+        "frames": 120,
+        "gpu_readback_seconds": 0.7072443999999999,
+        "render_seconds": 1.0552152,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 2.6959044
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "voice",
+      "renderer": "cpu",
+      "repeat": 0,
+      "wall_seconds": 2.5545839999977034,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.8586673000000005,
+        "frames": 219,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 4.143067199999997,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 109,
+        "total_seconds": 2.4205083
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "voice",
+      "renderer": "gpu",
+      "repeat": 0,
+      "wall_seconds": 3.2141966999915894,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 1.2331664000000004,
+        "frames": 219,
+        "gpu_readback_seconds": 0.23687399999999995,
+        "render_seconds": 0.4578015999999998,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 176,
+        "total_seconds": 3.0270835
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "cpu",
+      "repeat": 0,
+      "wall_seconds": 10.751617299974896,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.0492595000000002,
+        "frames": 300,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 40.155919700000005,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 10.5842337
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "gpu",
+      "repeat": 0,
+      "wall_seconds": 6.257477700011805,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.8328054000000005,
+        "frames": 300,
+        "gpu_readback_seconds": 2.4871612,
+        "render_seconds": 3.5821320999999995,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 6.0216631
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "contact",
+      "renderer": "gpu",
+      "repeat": 1,
+      "wall_seconds": 3.407918300013989,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.6875890000000001,
+        "frames": 180,
+        "gpu_readback_seconds": 0.7331996000000002,
+        "render_seconds": 1.1427713999999998,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 53,
+        "total_seconds": 3.1669014
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "contact",
+      "renderer": "cpu",
+      "repeat": 1,
+      "wall_seconds": 2.450576599978376,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.8834719999999996,
+        "frames": 180,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 3.6700779,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 50,
+        "total_seconds": 2.2931397000000002
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "soft",
+      "renderer": "gpu",
+      "repeat": 1,
+      "wall_seconds": 3.3076400000136346,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.2992532000000001,
+        "frames": 120,
+        "gpu_readback_seconds": 0.7588449999999998,
+        "render_seconds": 1.1369841,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 3.0577919
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "soft",
+      "renderer": "cpu",
+      "repeat": 1,
+      "wall_seconds": 2.1830710000067484,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 0.5143031000000001,
+        "frames": 120,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 6.427260900000003,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 1.9710361
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "voice",
+      "renderer": "gpu",
+      "repeat": 1,
+      "wall_seconds": 3.5124769000103697,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 1.2039990000000003,
+        "frames": 219,
+        "gpu_readback_seconds": 0.27310359999999995,
+        "render_seconds": 0.5125602000000006,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 176,
+        "total_seconds": 3.3286141000000002
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "voice",
+      "renderer": "cpu",
+      "repeat": 1,
+      "wall_seconds": 2.525629600015236,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.8053790000000014,
+        "frames": 219,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 4.194426800000001,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 109,
+        "total_seconds": 2.4010922
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "gpu",
+      "repeat": 1,
+      "wall_seconds": 6.048705599998357,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.8157166000000003,
+        "frames": 300,
+        "gpu_readback_seconds": 2.4085899999999993,
+        "render_seconds": 3.472127599999999,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 5.8379329
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "cpu",
+      "repeat": 1,
+      "wall_seconds": 10.684630699979607,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.219721599999999,
+        "frames": 300,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 39.63810899999997,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 10.47319
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "contact",
+      "renderer": "cpu",
+      "repeat": 2,
+      "wall_seconds": 2.1944880000082776,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.5753306999999994,
+        "frames": 180,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 3.1066170000000017,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 50,
+        "total_seconds": 2.0517366
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "contact",
+      "renderer": "gpu",
+      "repeat": 2,
+      "wall_seconds": 3.396443999983603,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.6901140000000001,
+        "frames": 180,
+        "gpu_readback_seconds": 0.7337280999999998,
+        "render_seconds": 1.1638165999999996,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 53,
+        "total_seconds": 3.1428228
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "soft",
+      "renderer": "cpu",
+      "repeat": 2,
+      "wall_seconds": 1.9732184000022244,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 0.5756182000000001,
+        "frames": 120,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 6.0430986,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 1.8296478
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "soft",
+      "renderer": "gpu",
+      "repeat": 2,
+      "wall_seconds": 2.984027500002412,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.2728287999999999,
+        "frames": 120,
+        "gpu_readback_seconds": 0.7310244,
+        "render_seconds": 1.0895795999999998,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 2.8197823
+      },
+      "encoder": "libx264",
+      "warnings": [
+        "Composition review found 1 layout warnings; use review_animation for details and inspect moving previews"
+      ]
+    },
+    {
+      "scene": "voice",
+      "renderer": "cpu",
+      "repeat": 2,
+      "wall_seconds": 2.536180900002364,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.7984875999999996,
+        "frames": 219,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 4.085270700000001,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 109,
+        "total_seconds": 2.3648986
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "voice",
+      "renderer": "gpu",
+      "repeat": 2,
+      "wall_seconds": 3.3959459000034258,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 1.2591156999999993,
+        "frames": 219,
+        "gpu_readback_seconds": 0.24653180000000002,
+        "render_seconds": 0.47951839999999973,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 176,
+        "total_seconds": 3.159694
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "cpu",
+      "repeat": 2,
+      "wall_seconds": 10.727195499988738,
+      "metrics": {
+        "adapter": null,
+        "encoder_transfer_seconds": 1.202407799999999,
+        "frames": 300,
+        "gpu_readback_seconds": 0.0,
+        "render_seconds": 40.16024839999999,
+        "render_workers": 4,
+        "renderer": "cpu",
+        "reused_frames": 0,
+        "total_seconds": 10.5533609
+      },
+      "encoder": "libx264",
+      "warnings": []
+    },
+    {
+      "scene": "raster-stress",
+      "renderer": "gpu",
+      "repeat": 2,
+      "wall_seconds": 5.9619120999996085,
+      "metrics": {
+        "adapter": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+        "encoder_transfer_seconds": 0.8102666999999999,
+        "frames": 300,
+        "gpu_readback_seconds": 2.399265900000001,
+        "render_seconds": 3.4570524999999988,
+        "render_workers": 1,
+        "renderer": "gpu",
+        "reused_frames": 0,
+        "total_seconds": 5.7708897
+      },
+      "encoder": "libx264",
+      "warnings": []
+    }
+  ],
+  "limits": "One PC, four short original studies, libx264 matched settings. CPU render_seconds sums workers; GPU render_seconds is serial elapsed. Compare total_seconds. No physical AMD/Apple/mobile measurements.",
+  "hardware": {
+    "cpu": "AMD Ryzen 7 7735HS, 8 cores / 16 threads",
+    "memory_bytes": 16438312960,
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU (Vulkan)",
+    "integrated_amd_measured": false
+  },
+  "code_commit": "271aeacf860d3b2fcbd9aab840a08f3734e5e8e2",
+  "binary_sha256": "f25491d3d7367cd25e9240973c37798456b9f91330e7b13a3da8cc46a6d5a676"
+}
