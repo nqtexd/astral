@@ -17,6 +17,66 @@ pub(super) struct ArtworkState {
     text: String,
 }
 impl Studio {
+    pub(super) fn artwork_browser(&mut self, ui: &mut egui::Ui, p: &Project) {
+        if !self.preferences.left {
+            return;
+        }
+        egui::Panel::left("astral.artwork.layers")
+            .default_size(210.)
+            .min_size(160.)
+            .resizable(true)
+            .show(ui, |ui| {
+                ui.add_space(12.);
+                ui.heading("Layers");
+                ui.add_space(10.);
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    for raster in p.rasters.iter().rev() {
+                        ui.push_id(raster.id, |ui| {
+                            ui.horizontal(|ui| {
+                                if theme::icon_button(
+                                    ui,
+                                    if raster.visible {
+                                        "Hide artwork"
+                                    } else {
+                                        "Show artwork"
+                                    },
+                                    if raster.visible {
+                                        theme::Icon::Eye
+                                    } else {
+                                        theme::Icon::EyeOff
+                                    },
+                                    false,
+                                )
+                                .clicked()
+                                {
+                                    let mut next = raster.clone();
+                                    next.visible = !next.visible;
+                                    self.apply(vec![Command::PutRasterLayer { layer: next }]);
+                                }
+                                let width = ui.available_width();
+                                if ui
+                                    .add_sized(
+                                        [width, 32.],
+                                        egui::Button::new(&raster.name)
+                                            .selected(self.artwork.selected == Some(raster.id))
+                                            .truncate(),
+                                    )
+                                    .clicked()
+                                {
+                                    self.artwork.selected = Some(raster.id);
+                                    self.artwork.paint = false;
+                                }
+                            });
+                        });
+                    }
+                    if p.rasters.is_empty() {
+                        ui.label(
+                            RichText::new("Import artwork in the Inspector to begin.").color(MUTED),
+                        );
+                    }
+                });
+            });
+    }
     fn artwork_request(&mut self, request: ArtworkRequest) {
         if self.artwork.pending.is_some() {
             return;

@@ -300,6 +300,20 @@ fn main() -> Result<()> {
         visible: true,
     });
     p.bitmaps.push(bitmap);
+    let mut stress = p.clone();
+    stress.id = Id::new_v4();
+    stress.name = "Raster coverage benchmark".into();
+    stress.width = 1920;
+    stress.height = 1080;
+    stress.duration = 240;
+    stress.graphics.clear();
+    stress.dialogues.clear();
+    stress.rasters[0].end = 239;
+    stress.rasters[0].size = Point::new(1800., 960.);
+    for key in &mut stress.rasters[0].keys {
+        key.position = Point::new(960., 540.);
+    }
+    save(&service, stress, "raster-stress")?;
     save(&service, p, "soft")?;
     let mut p = Project::new("Voice / 03", 640, 360, 24, 192);
     p.schema = 8;

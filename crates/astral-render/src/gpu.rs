@@ -6,6 +6,11 @@ use std::{
     time::{Duration, Instant},
 };
 use wgpu::util::DeviceExt;
+struct CachedPath {
+    contours: Vec<Vec<Point>>,
+    points: Vec<Point>,
+    indices: Vec<u32>,
+}
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct Vertex {
@@ -33,6 +38,8 @@ pub struct GpuRenderer {
     uniform: wgpu::Buffer,
     sampler: wgpu::Sampler,
     textures: HashMap<usize, Texture>,
+    paths: HashMap<u64, CachedPath>,
+    path_bytes: usize,
     white: Arc<DecodedBitmap>,
     output: wgpu::Texture,
     msaa: wgpu::Texture,
@@ -196,6 +203,8 @@ impl GpuRenderer {
             uniform,
             sampler,
             textures: HashMap::new(),
+            paths: HashMap::new(),
+            path_bytes: 0,
             white: Arc::new(DecodedBitmap {
                 id: Id::nil(),
                 width: 1,
@@ -363,6 +372,53 @@ impl GpuRenderer {
         );
         for primitive in &list.primitives {
             match primitive {
+                Primitive::Path { contours, color } => {
+                    use std::hash::{Hash, Hasher};
+                    let mut hash = std::collections::hash_map::DefaultHasher::new();
+                    for contour in contours {
+                        contour.len().hash(&mut hash);
+                        for point in contour {
+                            point.x.to_bits().hash(&mut hash);
+                            point.y.to_bits().hash(&mut hash);
+                        }
+                    }
+                    let hash = hash.finish();
+                    if !self
+                        .paths
+                        .get(&hash)
+                        .is_some_and(|entry| entry.contours == *contours)
+                    {
+                        let (points, indices) = tessellate(contours)?;
+                        let bytes = contours
+                            .iter()
+                            .map(|c| c.len() * std::mem::size_of::<Point>())
+                            .sum::<usize>()
+                            + points.len() * std::mem::size_of::<Point>()
+                            + indices.len() * 4;
+                        if self.paths.len() >= 512 || self.path_bytes + bytes > 32 * 1024 * 1024 {
+                            self.paths.clear();
+                            self.path_bytes = 0;
+                        }
+                        self.path_bytes += bytes;
+                        self.paths.insert(
+                            hash,
+                            CachedPath {
+                                contours: contours.clone(),
+                                points,
+                                indices,
+                            },
+                        );
+                    }
+                    let entry = &self.paths[&hash];
+                    append(
+                        &entry.points,
+                        None,
+                        &entry.indices,
+                        premult(*color),
+                        white_id,
+                        false,
+                    );
+                }
                 Primitive::Image {
                     bitmap,
                     vertices: v,

@@ -266,15 +266,21 @@ fn run(
     let last = plan.last;
     let started = Instant::now();
     job.check()?;
-    if plan.format == Format::Png
-        && spec.preset == Preset::Original
-        && spec.width.is_none()
-        && spec.height.is_none()
-    {
-        let bytes = astral_render::png(project, first as f64, project.width, project.height)?;
+    if plan.format == Format::Png {
+        astral_render::validate_artwork(project)?;
+        let mut pixels = vec![];
+        let (render_seconds, workers, renderer, adapter, readback) =
+            render_frames(project, spec, plan, job, |_, rgba| {
+                pixels = rgba.to_vec();
+                Ok(())
+            })?;
+        let image = image::RgbaImage::from_raw(plan.width, plan.height, pixels)
+            .context("Invalid rendered PNG dimensions")?;
+        let mut output = std::io::Cursor::new(vec![]);
+        image.write_to(&mut output, image::ImageFormat::Png)?;
         job.check()?;
-        workspace.atomic_write(&spec.path, &bytes)?;
-        job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"seconds":started.elapsed().as_secs_f64()}));
+        workspace.atomic_write(&spec.path, &output.into_inner())?;
+        job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"plan":plan,"revision":project.revision,"metrics":{"render_seconds":render_seconds,"render_workers":workers,"renderer":renderer,"adapter":adapter,"gpu_readback_seconds":readback,"frames":1,"total_seconds":started.elapsed().as_secs_f64()}}));
         return Ok(());
     }
     let target = workspace.path(&spec.path)?;
@@ -540,6 +546,29 @@ fn run(
     Ok(())
 }
 
+// GPU startup/readback can cost more than a small sprite. Reserve Auto for sustained,
+// substantial raster coverage; explicit GPU remains available for comparison.
+fn prefer_gpu(project: &Project, plan: &Plan) -> bool {
+    if plan.frames < 48 {
+        return false;
+    }
+    let frame = plan.first as f64;
+    let scene = evaluate(project, frame);
+    let area: f32 = project
+        .rasters
+        .iter()
+        .filter(|r| r.visible && frame >= r.start as f64 && frame <= r.end as f64)
+        .map(|r| {
+            let key = r.at(frame);
+            if key.opacity < 0.01 {
+                return 0.;
+            }
+            r.size.x * r.size.y * (key.scale.x * key.scale.y).abs() * scene.zoom * scene.zoom
+        })
+        .sum();
+    area > project.width as f32 * project.height as f32 * 0.5
+}
+
 // Each worker has one queued frame. Strided output channels keep frame order
 // deterministic while bounding memory; disconnect all receivers before joining
 // on any encoder failure or cancellation.
@@ -550,9 +579,9 @@ fn render_frames(
     job: &Job,
     mut consume: impl FnMut(u32, &[u8]) -> Result<()>,
 ) -> Result<(f64, usize, String, Option<String>, f64)> {
-    if spec.renderer == RenderBackend::Gpu
-        || (spec.renderer == RenderBackend::Auto && !project.rasters.is_empty())
-    {
+    let try_gpu = spec.renderer == RenderBackend::Gpu
+        || (spec.renderer == RenderBackend::Auto && prefer_gpu(project, plan));
+    if try_gpu {
         match astral_render::gpu::GpuRenderer::new(plan.width, plan.height) {
             Ok(mut gpu) => {
                 let mut seconds = 0.;
@@ -622,12 +651,7 @@ fn render_frames(
             Ok((
                 seconds,
                 workers,
-                if spec.renderer == RenderBackend::Auto && !project.rasters.is_empty() {
-                    "cpu_fallback"
-                } else {
-                    "cpu"
-                }
-                .into(),
+                if try_gpu { "cpu_fallback" } else { "cpu" }.into(),
                 None,
                 0.,
             ))

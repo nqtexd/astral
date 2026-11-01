@@ -293,12 +293,65 @@ fn editable_mouth_cues_keep_schema_and_text_fit_is_non_mutating() {
 }
 
 #[test]
-fn tracking_previews_real_sequence_motion_without_mutating_camera(){
-    let dir=tempfile::tempdir().unwrap();let service=Service::new(dir.path()).unwrap();
-    let result=service.request(Request::CreateProject{name:"Tracking".into(),width:128,height:64,fps:24,duration:12}).unwrap();let project=serde_json::from_value(result["project"].clone()).unwrap();
-    let mut paths=vec![];
-    for frame in 0..3 {let path=format!("frame{frame}.png");let image=image::RgbaImage::from_fn(128,64,|x,y|{let x=x as i32-frame*4;image::Rgba(if (20..48).contains(&x)&&(18..48).contains(&y){let value=((x*73+y as i32*37+x*y as i32)%200+30)as u8;[value,255-value,100,255]}else{[0,0,0,255]})});image.save(dir.path().join(&path)).unwrap();paths.push(path);}
-    wait(&service,service.artwork(ArtworkRequest::Import{project,expected_revision:0,paths,start:0,source_fps:24,looping:false}).unwrap());let p=service.snapshot(project).unwrap();
-    let result=wait(&service,service.artwork(ArtworkRequest::Track{project,expected_revision:p.revision,layer:p.rasters[0].id,start:0,end:2,point:Point::new(32.,32.),apply:false}).unwrap());
-    assert_eq!(service.snapshot(project).unwrap().revision,p.revision);assert_eq!(result["points"][0]["source"]["x"],32.);assert_eq!(result["points"][1]["source"]["x"],36.);assert_eq!(result["points"][2]["source"]["x"],40.);assert_eq!(result["plan"]["commands"].as_array().unwrap().len(),3);
+fn tracking_previews_real_sequence_motion_without_mutating_camera() {
+    let dir = tempfile::tempdir().unwrap();
+    let service = Service::new(dir.path()).unwrap();
+    let result = service
+        .request(Request::CreateProject {
+            name: "Tracking".into(),
+            width: 128,
+            height: 64,
+            fps: 24,
+            duration: 12,
+        })
+        .unwrap();
+    let project = serde_json::from_value(result["project"].clone()).unwrap();
+    let mut paths = vec![];
+    for frame in 0..3 {
+        let path = format!("frame{frame}.png");
+        let image = image::RgbaImage::from_fn(128, 64, |x, y| {
+            let x = x as i32 - frame * 4;
+            image::Rgba(if (20..48).contains(&x) && (18..48).contains(&y) {
+                let value = ((x * 73 + y as i32 * 37 + x * y as i32) % 200 + 30) as u8;
+                [value, 255 - value, 100, 255]
+            } else {
+                [0, 0, 0, 255]
+            })
+        });
+        image.save(dir.path().join(&path)).unwrap();
+        paths.push(path);
+    }
+    wait(
+        &service,
+        service
+            .artwork(ArtworkRequest::Import {
+                project,
+                expected_revision: 0,
+                paths,
+                start: 0,
+                source_fps: 24,
+                looping: false,
+            })
+            .unwrap(),
+    );
+    let p = service.snapshot(project).unwrap();
+    let result = wait(
+        &service,
+        service
+            .artwork(ArtworkRequest::Track {
+                project,
+                expected_revision: p.revision,
+                layer: p.rasters[0].id,
+                start: 0,
+                end: 2,
+                point: Point::new(32., 32.),
+                apply: false,
+            })
+            .unwrap(),
+    );
+    assert_eq!(service.snapshot(project).unwrap().revision, p.revision);
+    assert_eq!(result["points"][0]["source"]["x"], 32.);
+    assert_eq!(result["points"][1]["source"]["x"], 36.);
+    assert_eq!(result["points"][2]["source"]["x"], 40.);
+    assert_eq!(result["plan"]["commands"].as_array().unwrap().len(), 3);
 }

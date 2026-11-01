@@ -720,10 +720,16 @@ fn track(
             std::array::from_fn(|c| first.pixels[offset + c] as f32)
         })
         .collect();
-    let mean = patch.iter().map(|p| p[0] + p[1] + p[2]).sum::<f32>() / patch.len() as f32;
+    let means: [f32; 4] =
+        std::array::from_fn(|c| patch.iter().map(|p| p[c]).sum::<f32>() / patch.len() as f32);
     let variance = patch
         .iter()
-        .map(|p| (p[0] + p[1] + p[2] - mean).powi(2))
+        .map(|p| {
+            p.iter()
+                .zip(means)
+                .map(|(value, mean)| (*value - mean).powi(2))
+                .sum::<f32>()
+        })
         .sum::<f32>()
         / patch.len() as f32;
     ensure!(

@@ -64,3 +64,6 @@ platforms/apple/Generated-Info.plist
 # Source inventory, distinct from generated release archives.
 !platforms/release/
 !platforms/release/readiness.json
+
+/docs/showcase/projects/renders/
+/docs/showcase/projects/.astral-library*

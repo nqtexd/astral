@@ -875,8 +875,9 @@ impl Studio {
                                 self.cel_work = None;
                             }
                         }
-                    } else if theme::icon_button(ui, "Add character", theme::Icon::Character, false)
-                        .clicked()
+                    } else if self.preferences.mode != WorkspaceMode::Artwork
+                        && theme::icon_button(ui, "Add character", theme::Icon::Character, false)
+                            .clicked()
                     {
                         self.add_character();
                     }
@@ -1861,7 +1862,11 @@ impl eframe::App for Studio {
             self.drawing_panel(ui, &p);
             self.draw_stage(ui, &p);
         } else {
-            self.scene_panel(ui, &p);
+            if self.preferences.mode == WorkspaceMode::Artwork {
+                self.artwork_browser(ui, &p);
+            } else {
+                self.scene_panel(ui, &p);
+            }
             self.inspector(ui, &p);
             if self.preferences.mode == WorkspaceMode::Artwork {
                 self.artwork_canvas(ui, &p);

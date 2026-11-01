@@ -634,25 +634,27 @@ impl Studio {
                             let editable = self
                                 .selected_layer
                                 .is_some_and(|id| p.layers.iter().any(|l| l.id == id && !l.locked));
-                            for (action, icon) in [
-                                ("Blank", theme::Icon::Blank),
-                                ("Duplicate", theme::Icon::Duplicate),
-                                ("Copy", theme::Icon::Copy),
-                                ("Paste", theme::Icon::Paste),
-                                ("Clear", theme::Icon::Clear),
-                                ("Delete", theme::Icon::Delete),
-                            ] {
-                                let enabled = if action == "Copy" {
-                                    self.selected_layer.is_some()
-                                } else {
-                                    editable
-                                        && (action != "Paste" || self.frame_clipboard.is_some())
-                                };
-                                if ui
-                                    .add_enabled(enabled, theme::IconButton::new(action, icon))
-                                    .clicked()
-                                {
-                                    self.frame_action(p, action);
+                            if self.preferences.mode != WorkspaceMode::Artwork {
+                                for (action, icon) in [
+                                    ("Blank", theme::Icon::Blank),
+                                    ("Duplicate", theme::Icon::Duplicate),
+                                    ("Copy", theme::Icon::Copy),
+                                    ("Paste", theme::Icon::Paste),
+                                    ("Clear", theme::Icon::Clear),
+                                    ("Delete", theme::Icon::Delete),
+                                ] {
+                                    let enabled = if action == "Copy" {
+                                        self.selected_layer.is_some()
+                                    } else {
+                                        editable
+                                            && (action != "Paste" || self.frame_clipboard.is_some())
+                                    };
+                                    if ui
+                                        .add_enabled(enabled, theme::IconButton::new(action, icon))
+                                        .clicked()
+                                    {
+                                        self.frame_action(p, action);
+                                    }
                                 }
                             }
                             if let Some(cel) = self

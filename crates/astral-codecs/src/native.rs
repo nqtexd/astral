@@ -233,7 +233,7 @@ mod tests {
     use super::*;
     #[test]
     fn authored_lines_keep_parent_geometry_timing_and_independent_editability() {
-        let report = json!({"version":5,"figure_types":[{"figure_type_id":1,"segments":[{"segment_id":1,"parent_id":0,"length":20,"angle_rad":0,"thickness":3,"color_rgb":[100,180,220]},{"segment_id":2,"parent_id":1,"length":10,"angle_rad":0,"thickness":3,"color_rgb":[100,180,220]}]}],"keyframes":[{"duration_raw":3,"objects":[{"figure_type_id":1,"root_x":12,"root_y":15,"scale":1,"angles":[0,1.5707963267948966]}]},{"duration_raw":5,"objects":[{"figure_type_id":1,"root_x":32,"root_y":15,"scale":1,"angles":[0,0]}]}]});
+        let report = json!({"version":5,"figure_types":[{"figure_type_id":1,"segments":[{"segment_id":1,"parent_id":0,"length":20,"angle_rad":0,"thickness":3,"color_rgb":[100,180,220]},{"segment_id":2,"parent_id":1,"length":10,"angle_rad":0,"thickness":3,"color_rgb":[100,180,220]}]}],"keyframes":[{"duration_raw":3,"objects":[{"figure_type_id":1,"root_x":12,"root_y":15,"scale":1,"angles":[0,std::f64::consts::FRAC_PI_2]}]},{"duration_raw":5,"objects":[{"figure_type_id":1,"root_x":32,"root_y":15,"scale":1,"angles":[0,0]}]}]});
         let mut p = Project::new("Source", 64, 64, 24, 300);
         convert(&mut p, &report).unwrap();
         p.validate().unwrap();
@@ -250,7 +250,7 @@ mod tests {
             .apply(Batch {
                 project: session.project.id,
                 expected_revision: 0,
-                commands: vec![Command::SetFrameDrawing {
+                commands: vec![astral_core::Command::SetFrameDrawing {
                     layer,
                     frame: 0,
                     strokes: vec![],

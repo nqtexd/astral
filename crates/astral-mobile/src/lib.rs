@@ -71,11 +71,14 @@ fn touch_load(workspace: &Workspace, path: impl AsRef<std::path::Path>) -> Resul
         "Scene exceeds the touch preview budget; edit this project on desktop"
     );
     anyhow::ensure!(
-        !p.assets
-            .iter()
-            .any(|a| a.kind.to_lowercase().contains("image")
-                || a.kind.to_lowercase().contains("video")),
-        "Image/video assets are not rendered by this preview; the original project is unchanged"
+        p.bitmaps.is_empty()
+            && p.rasters.is_empty()
+            && !p
+                .assets
+                .iter()
+                .any(|a| a.kind.to_lowercase().contains("image")
+                    || a.kind.to_lowercase().contains("video")),
+        "Raster/video authoring is desktop-only in this preview; the original project is unchanged"
     );
     Ok(p)
 }

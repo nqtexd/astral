@@ -30,7 +30,7 @@ Select a character, choose an existing WAV clip and optionally enter a transcrip
 
 Select **Renderer: Auto / CPU / GPU** in Export, use `spec.renderer` through MCP, or `astral export … --renderer gpu`.
 
-- Auto chooses a physical wgpu adapter for raster projects when initialization succeeds. It falls back to bounded CPU workers if unavailable; vector-only scenes stay on CPU.
+- Auto reserves a physical wgpu adapter for at least 48 output frames with substantial raster coverage (over half the source canvas at the first export frame). Short clips, small sprites and vector-only scenes stay on CPU; failed GPU initialization falls back to bounded CPU workers. This conservative heuristic avoids GPU startup overhead for light scenes.
 - GPU uses the shared evaluated display list, textured mesh triangles, premultiplied alpha, 4× MSAA and readback. It rejects a software-only adapter. Device/runtime failures are reported and preserve the previous output.
 - Completion metrics identify the actual renderer, adapter, CPU worker count, render time, GPU readback time, encoder transfer and total time. GPU submission/readback includes synchronization; timings are not a GPU profiler trace.
 - Hardware **encoding** is a separate FFmpeg choice. A GPU renderer does not prove hardware encoding or a universal export speedup. Font-edge coverage can differ slightly between CPU and GPU rasterizers.

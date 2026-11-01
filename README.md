@@ -158,7 +158,7 @@ Packages include dependency notices and omit encoder binaries by default. Caches
 - Full Moho Debut parity remains unfinished. Basic raster/PSD, deformation pins, capture, mouth cues and local tracking are now available; advanced deformation, pressure brushes, correctives, localization and other gaps remain.
 - Legacy imports retain originals and convert supported authored lines/circles into editable drawing cels. Source rig semantics, tweens, custom shapes, camera, media and effects are not equivalent.
 - Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.
-- Auto export uses a physical GPU for raster projects when initialization succeeds, otherwise bounded CPU rendering; light vector scenes default to CPU. Explicit GPU mode reports adapter/readback metrics. Hardware encoding remains separate. Speed depends on the scene and hardware.
+- Auto reserves GPU rendering for longer exports with substantial raster coverage and uses CPU workers for short clips/small sprites. A failed GPU initialization falls back to CPU. Explicit GPU mode reports adapter/readback metrics. Hardware encoding remains separate. Speed depends on the scene and hardware.
 - Review tools cannot certify composition, continuity or realistic acting.
 - The release is unsigned; it is not a store-signed installer.
 
