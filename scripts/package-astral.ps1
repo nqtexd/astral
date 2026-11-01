@@ -55,6 +55,10 @@ try {
     Copy-Item -LiteralPath (Join-Path $astralRoot 'mcp.example.json') -Destination (Join-Path $astralPackage 'mcp-servers.json')
     foreach ($astralDoc in @('AI_PROVENANCE.md','CREDITS.md','THIRD_PARTY_NOTICES.md','CONTRIBUTING.md')) { Copy-Item -LiteralPath (Join-Path $astralRoot $astralDoc) -Destination $astralPackage }
     Copy-Item -LiteralPath (Join-Path $astralRoot 'assets/brand/astral.ico') -Destination $astralPackage
+    $astralBrandDestination = Join-Path $astralPackage 'assets/brand'
+    New-Item -ItemType Directory -Force -Path $astralBrandDestination | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $astralRoot 'assets/brand') -File | Where-Object Extension -In @('.svg','.png','.ico','.txt') | Copy-Item -Destination $astralBrandDestination
+
     $astralNotices = Join-Path $astralPackage 'THIRD_PARTY'
     New-Item -ItemType Directory -Force -Path $astralNotices | Out-Null
     Copy-Item -LiteralPath (Join-Path $astralRoot 'vendor/text/OFL.txt') -Destination (Join-Path $astralNotices 'NotoSans-OFL.txt')
