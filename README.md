@@ -61,7 +61,7 @@ Get FFmpeg through the [official download page](https://ffmpeg.org/download.html
 | Effects & camera | Impact packs, flashes, trails, particles, dust/smoke/sparks, glow/blur, shake and camera keys. Presets vary in sophistication. |
 | Audio | WAV clips, waveforms, gain, trims, fades, loops/mixing and offline Windows text-to-speech, user-initiated microphone recording and editable sound-energy/text-guided mouth cues. |
 | Review | Contact/prop/doorway checks, torso spacing, continuity, layout warnings including raster bounds, shaped-text overflow detection, and fit/placement proposals. These are heuristics, not visual-quality guarantees. |
-| Export & finish | Instagram Reels/Stories/feed, YouTube/Shorts and TikTok presets; MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Choose CPU or physical wgpu GPU rendering; assemble shots with trims and synchronized audio. |
+| Export & finish | Instagram Reels/Stories/feed, YouTube/Shorts and TikTok presets; MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Reuse exact held frames; choose CPU or physical wgpu GPU rendering; assemble shots with trims and synchronized audio. |
 | Customize | Accents, canvas surround, corners, compact controls, stronger contrast, scale, reduced motion, panels, grid, frame-card size and recovery/drawing defaults. |
 | Agents | MCP over stdio, typed commands, revision checks, atomic batches, undo/redo, previews, jobs and cancellation. Live MCP and GUI share the document service. |
 

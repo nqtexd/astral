@@ -269,7 +269,7 @@ fn run(
     if plan.format == Format::Png {
         astral_render::validate_artwork(project)?;
         let mut pixels = vec![];
-        let (render_seconds, workers, renderer, adapter, readback) =
+        let (render_seconds, workers, renderer, adapter, readback, cache_hits) =
             render_frames(project, spec, plan, job, |_, rgba| {
                 pixels = rgba.to_vec();
                 Ok(())
@@ -280,7 +280,7 @@ fn run(
         image.write_to(&mut output, image::ImageFormat::Png)?;
         job.check()?;
         workspace.atomic_write(&spec.path, &output.into_inner())?;
-        job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"plan":plan,"revision":project.revision,"metrics":{"render_seconds":render_seconds,"render_workers":workers,"renderer":renderer,"adapter":adapter,"gpu_readback_seconds":readback,"frames":1,"total_seconds":started.elapsed().as_secs_f64()}}));
+        job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"plan":plan,"revision":project.revision,"metrics":{"render_seconds":render_seconds,"render_workers":workers,"renderer":renderer,"adapter":adapter,"gpu_readback_seconds":readback,"reused_frames":cache_hits,"frames":1,"total_seconds":started.elapsed().as_secs_f64()}}));
         return Ok(());
     }
     let target = workspace.path(&spec.path)?;
@@ -494,7 +494,7 @@ fn run(
     *job.child.lock().unwrap_or_else(|p| p.into_inner()) = Some(child);
     let mut transfer_seconds = 0.;
     astral_render::validate_artwork(project)?;
-    let (render_seconds, render_workers, render_backend, adapter, readback_seconds) =
+    let (render_seconds, render_workers, render_backend, adapter, readback_seconds, cache_hits) =
         render_frames(project, spec, plan, job, |index, rgba| {
             let tick = Instant::now();
             stdin.write_all(rgba).context("Encoder input failed")?;
@@ -542,7 +542,7 @@ fn run(
     job.check()?;
     output.as_file().sync_all()?;
     output.persist(&target).map_err(|e| e.error)?;
-    job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"encoder":encoder,"warnings":warnings,"plan":plan,"metrics":{"render_seconds":render_seconds,"render_workers":render_workers,"renderer":render_backend,"adapter":adapter,"gpu_readback_seconds":readback_seconds,"encoder_transfer_seconds":transfer_seconds,"total_seconds":started.elapsed().as_secs_f64(),"frames":plan.frames},"revision":project.revision}));
+    job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"encoder":encoder,"warnings":warnings,"plan":plan,"metrics":{"render_seconds":render_seconds,"render_workers":render_workers,"renderer":render_backend,"adapter":adapter,"gpu_readback_seconds":readback_seconds,"reused_frames":cache_hits,"encoder_transfer_seconds":transfer_seconds,"total_seconds":started.elapsed().as_secs_f64(),"frames":plan.frames},"revision":project.revision}));
     Ok(())
 }
 
@@ -578,19 +578,26 @@ fn render_frames(
     plan: &Plan,
     job: &Job,
     mut consume: impl FnMut(u32, &[u8]) -> Result<()>,
-) -> Result<(f64, usize, String, Option<String>, f64)> {
+) -> Result<(f64, usize, String, Option<String>, f64, u32)> {
     let try_gpu = spec.renderer == RenderBackend::Gpu
         || (spec.renderer == RenderBackend::Auto && prefer_gpu(project, plan));
     if try_gpu {
         match astral_render::gpu::GpuRenderer::new(plan.width, plan.height) {
             Ok(mut gpu) => {
                 let mut seconds = 0.;
+                let mut cache = astral_render::FrameCache::default();
                 for index in 0..plan.frames {
                     job.check()?;
                     let tick = Instant::now();
                     let list =
                         astral_render::display_list(project, plan.source_frame(project, index));
-                    let rgba = gpu.render(&list, spec.framing == Framing::Fill)?;
+                    let rgba = cache.render(
+                        list,
+                        plan.width,
+                        plan.height,
+                        spec.framing == Framing::Fill,
+                        |list| gpu.render(list, spec.framing == Framing::Fill),
+                    )?;
                     seconds += tick.elapsed().as_secs_f64();
                     consume(index, &rgba)?;
                 }
@@ -600,6 +607,7 @@ fn render_frames(
                     "gpu".into(),
                     Some(gpu.adapter),
                     gpu.readback_seconds,
+                    cache.hits,
                 ));
             }
             Err(error) if spec.renderer == RenderBackend::Gpu => {
@@ -620,16 +628,28 @@ fn render_frames(
             let (tx, rx) = std::sync::mpsc::sync_channel(1);
             receivers.push(rx);
             scope.spawn(move || {
+                let mut cache = astral_render::FrameCache::default();
                 for index in (worker as u32..plan.frames).step_by(workers) {
                     let tick = Instant::now();
                     let image = job.check().and_then(|_| {
-                        astral_render::rgba_framed(
-                            project,
-                            plan.source_frame(project, index),
+                        let list =
+                            astral_render::display_list(project, plan.source_frame(project, index));
+                        let previous_hits = cache.hits;
+                        let pixels = cache.render(
+                            list,
                             plan.width,
                             plan.height,
                             spec.framing == Framing::Fill,
-                        )
+                            |list| {
+                                astral_render::rgba_list_framed(
+                                    list,
+                                    plan.width,
+                                    plan.height,
+                                    spec.framing == Framing::Fill,
+                                )
+                            },
+                        )?;
+                        Ok((pixels, cache.hits > previous_hits))
                     });
                     let failed = image.is_err();
                     if tx.send((image, tick.elapsed().as_secs_f64())).is_err() || failed {
@@ -640,13 +660,16 @@ fn render_frames(
         }
         let result = (|| {
             let mut seconds = 0.;
+            let mut reused = 0;
             for index in 0..plan.frames {
                 job.check()?;
                 let (image, elapsed) = receivers[index as usize % workers]
                     .recv()
                     .context("Frame worker stopped")?;
                 seconds += elapsed;
-                consume(index, &image?)?;
+                let (image, hit) = image?;
+                reused += u32::from(hit);
+                consume(index, &image)?;
             }
             Ok((
                 seconds,
@@ -654,6 +677,7 @@ fn render_frames(
                 if try_gpu { "cpu_fallback" } else { "cpu" }.into(),
                 None,
                 0.,
+                reused,
             ))
         })();
         drop(receivers);

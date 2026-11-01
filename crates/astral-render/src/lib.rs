@@ -8,7 +8,7 @@ pub use raster_images::{
     DecodedBitmap, TextureVertex, decode_bitmap, paint_image, validate_artwork,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Primitive {
     Image {
         bitmap: std::sync::Arc<DecodedBitmap>,
@@ -37,6 +37,7 @@ pub enum Primitive {
         color: Color,
     },
 }
+#[derive(Clone, Debug, PartialEq)]
 pub struct DisplayList {
     pub width: u32,
     pub height: u32,
@@ -515,9 +516,45 @@ pub fn rgba_framed(
     height: u32,
     fill: bool,
 ) -> Result<Vec<u8>> {
-    let pixmap = rasterize_framed(&display_list(project, frame), width, height, fill)?;
-    Ok(straight_rgba(&pixmap))
+    rgba_list_framed(&display_list(project, frame), width, height, fill)
 }
+pub fn rgba_list_framed(
+    list: &DisplayList,
+    width: u32,
+    height: u32,
+    fill: bool,
+) -> Result<Vec<u8>> {
+    Ok(straight_rgba(&rasterize_framed(list, width, height, fill)?))
+}
+/// One exact evaluated frame, not a motion approximation or a cross-project cache.
+#[derive(Default)]
+pub struct FrameCache {
+    previous: Option<DisplayList>,
+    pixels: std::sync::Arc<Vec<u8>>,
+    size: (u32, u32, bool),
+    pub hits: u32,
+}
+impl FrameCache {
+    pub fn render(
+        &mut self,
+        list: DisplayList,
+        width: u32,
+        height: u32,
+        fill: bool,
+        render: impl FnOnce(&DisplayList) -> Result<Vec<u8>>,
+    ) -> Result<std::sync::Arc<Vec<u8>>> {
+        if self.size == (width, height, fill) && self.previous.as_ref() == Some(&list) {
+            self.hits += 1;
+            return Ok(self.pixels.clone());
+        }
+        let pixels = render(&list)?;
+        self.pixels = std::sync::Arc::new(pixels);
+        self.previous = Some(list);
+        self.size = (width, height, fill);
+        Ok(self.pixels.clone())
+    }
+}
+
 fn straight_rgba(pixmap: &tiny_skia::Pixmap) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(pixmap.data().len());
     for p in pixmap.pixels() {

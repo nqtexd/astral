@@ -7,6 +7,7 @@ Artwork, deformation and editable voice studies
 - Import bounded 8-bit RGB PSD layers/composites, preserve the source asset and report unsupported features.
 - Extract short video clips to images; preview local template-tracking camera proposals before accepting.
 - Record a bounded microphone clip on desktop; generate approximate, editable mouth cues from WAV audio and an optional transcript.
+- Reuse unchanged evaluated frames while retaining every video frame/audio cue; invalidate on geometry, image, colour, size or framing changes.
 - Render exports with an offscreen physical wgpu GPU or bounded CPU workers; expose renderer, adapter and readback metrics.
 - Propose motion polish without changing authored/contact anchors; keep review and acceptance explicit.
 - Detect shaped-text overflow, fit/place dialogue and include deformed raster bounds in composition checks.

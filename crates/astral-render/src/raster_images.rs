@@ -4,12 +4,12 @@ use std::{
     collections::HashMap,
     sync::{Arc, Mutex, OnceLock},
 };
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TextureVertex {
     pub position: Point,
     pub uv: Point,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DecodedBitmap {
     pub id: Id,
     pub width: u32,

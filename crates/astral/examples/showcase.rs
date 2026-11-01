@@ -313,6 +313,18 @@ fn main() -> Result<()> {
     for key in &mut stress.rasters[0].keys {
         key.position = Point::new(960., 540.);
     }
+    // Keep this throughput corpus moving for its entire ten seconds; hold reuse
+    // is demonstrated separately by the dialogue study.
+    for key in &mut stress.rasters[0].keys {
+        key.frame = (key.frame as f64 * 239. / 95.).round() as u32;
+    }
+    if let Some(mesh) = &mut stress.rasters[0].mesh {
+        for pin in &mut mesh.pins {
+            for key in &mut pin.keys {
+                key.frame = (key.frame as f64 * 239. / 95.).round() as u32;
+            }
+        }
+    }
     save(&service, stress, "raster-stress")?;
     save(&service, p, "soft")?;
     let mut p = Project::new("Voice / 03", 640, 360, 24, 192);
