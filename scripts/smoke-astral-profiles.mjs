@@ -17,10 +17,10 @@ async function connect(profile){
   child.stdin.write(JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})+'\n');
   return {rpc,close:()=>child.stdin.end(),tool:async(name,args={})=>{const r=await rpc('tools/call',{name,arguments:args});assert.ok(!r.isError,JSON.stringify(r));return r.structuredContent??JSON.parse(r.content.find(c=>c.type==='text').text);}};
 }
-const projects=await connect('projects');let file,createdProject;
+const projects=await connect('projects');let file,createdProject,projectToolCount;
 try{
   const names=(await projects.rpc('tools/list')).tools.map(t=>t.name);
-  assert.equal(names.length,11);assert.ok(names.includes("storyboard"));assert.ok(names.includes('create_managed_project'));assert.ok(!names.includes('animate_character'));
+  projectToolCount=names.length;assert.deepEqual(new Set(names),new Set(["storyboard","list_projects","create_project","create_managed_project","open_project","save_project","inspect_project","recover_project","close_project","list_saved_projects","history","project_activity","rename_project","trash_project","restore_project"]));assert.ok(names.includes("storyboard"));assert.ok(names.includes('create_managed_project'));assert.ok(!names.includes('animate_character'));
   const p=await projects.tool('create_managed_project',{name:'Profile handoff',width:640,height:360,fps:24,duration:120,path:`${Date.now()}/Film.astral`});file=p.path;createdProject=p;
   const saved=await projects.tool('list_saved_projects');assert.ok(saved.files.length>0);
   if(!live)await projects.tool('close_project',{project:p.project,expected_revision:p.revision});
@@ -40,6 +40,6 @@ try{
   assert.equal((await animation.tool('inspect_project',{project:p.project})).document.revision,a.revision);
 
   await animation.tool('save_project',{project:p.project,path:'Film.astral'});
-  const report={project_profile_tools:11,animation_profile_tools:names.length,headless_saved_file_handoff:!live,live_shared_document:live,motion_tool_preview:true};
+  const report={project_profile_tools:projectToolCount,animation_profile_tools:names.length,headless_saved_file_handoff:!live,live_shared_document:live,motion_tool_preview:true};
   await writeFile(path.join(workspace,'report.json'),JSON.stringify(report,null,2));console.log(report);
 }finally{animation.close();}

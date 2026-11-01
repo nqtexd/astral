@@ -2,6 +2,7 @@ name: Astral native checks
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
   pull_request:
     paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
@@ -37,6 +38,8 @@ jobs:
         run: node scripts/check-astral-feedback.mjs
       - name: External MCP acceptance
         run: node scripts/smoke-astral.mjs
+      - name: MCP profile contracts
+        run: node scripts/smoke-astral-profiles.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: astral-agent-acceptance
