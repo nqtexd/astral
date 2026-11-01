@@ -28,7 +28,7 @@ def main():
     for target in targets:command+=['-library',str(ROOT/f'target/{target}/release/libastral_mobile.a'),'-headers',str(ROOT/'platforms/apple/include')]
     run(*command,'-output',framework)
     run('xcodegen','generate','--spec','project.yml',cwd=ROOT/'platforms/apple')
-    run('xcodebuild','-project',ROOT/'platforms/apple/AstralPreview.xcodeproj','-scheme','AstralPreview','-sdk','iphonesimulator','-configuration','Debug','-destination','generic/platform=iOS Simulator','-derivedDataPath',out/'DerivedData','CODE_SIGNING_ALLOWED=NO','build')
+    run('xcodebuild','-project',ROOT/'platforms/apple/AstralPreview.xcodeproj','-scheme','AstralPreview','-sdk','iphonesimulator','-configuration','Debug','-destination','generic/platform=iOS Simulator','-derivedDataPath',out/'DerivedData','CODE_SIGNING_ALLOWED=NO',f'ARCHS={"arm64" if simulator.startswith("aarch64") else "x86_64"}','ONLY_ACTIVE_ARCH=YES','build')
     report={'status':'unsigned-simulator-build','physical_device_tested':False,'store_signed':False,'feature_parity':False,'simulator_target':simulator,'app':'build/apple/DerivedData/Build/Products/Debug-iphonesimulator/AstralPreview.app'}
     (out/'build-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))

@@ -38,6 +38,10 @@ jobs:
         run: node scripts/check-astral-feedback.mjs
       - name: External MCP acceptance
         run: node scripts/smoke-astral.mjs
+      - name: Native artwork MCP acceptance (PNG without encoder)
+        env:
+          ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
+        run: node scripts/check-astral-artwork.mjs
       - name: MCP profile contracts
         run: node scripts/smoke-astral-profiles.mjs
       - uses: actions/upload-artifact@v4

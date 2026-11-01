@@ -1,4 +1,38 @@
 use astral_core::*;
+
+#[test]
+fn shared_bitmap_storage_does_not_consume_the_undo_budget_per_edit() {
+    let mut project = Project::new("Shared artwork", 64, 64, 24, 48);
+    project.schema = 8;
+    // Core validates metadata; image decoding is independently tested in the renderer.
+    project.bitmaps.push(Bitmap {
+        id: Id::new_v4(),
+        name: "Shared payload budget fixture".into(),
+        width: 1,
+        height: 1,
+        png: std::sync::Arc::from("A".repeat(2 * 1024 * 1024)),
+    });
+    let mut session = Session::new(project).unwrap();
+    for i in 0..40 {
+        session
+            .apply(Batch {
+                project: session.project.id,
+                expected_revision: session.project.revision,
+                commands: vec![Command::SetProject {
+                    name: Some(format!("Edit {i}")),
+                    duration: None,
+                    background: None,
+                }],
+            })
+            .unwrap();
+    }
+    for _ in 0..40 {
+        session
+            .undo(session.project.id, session.project.revision)
+            .unwrap();
+    }
+    assert_eq!(session.project.name, "Shared artwork");
+}
 use std::collections::BTreeMap;
 
 fn session() -> Session {

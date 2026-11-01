@@ -312,8 +312,8 @@ impl Session {
             .checked_add(1)
             .ok_or_else(|| anyhow::anyhow!("Revision overflow"))?;
         let old = std::mem::replace(&mut self.project, next);
-        self.push_history(old);
         self.redo.clear();
+        self.push_history(old);
         Ok(self.receipt(created))
     }
     pub fn undo(&mut self, id: Id, revision: u64) -> Result<Receipt> {
@@ -322,9 +322,7 @@ impl Session {
             .undo
             .pop_back()
             .ok_or_else(|| anyhow::anyhow!("Nothing to undo"))?;
-        self.history_bytes = self
-            .history_bytes
-            .saturating_sub(serde_json::to_vec(&previous)?.len());
+        self.history_bytes = self.history_bytes.saturating_sub(snapshot_bytes(&previous));
         previous.revision = self.project.revision + 1;
         self.redo
             .push(std::mem::replace(&mut self.project, previous));
@@ -342,17 +340,32 @@ impl Session {
         Ok(self.receipt(vec![]))
     }
     fn push_history(&mut self, p: Project) {
-        self.history_bytes += serde_json::to_vec(&p).map_or(0, |v| v.len());
+        self.history_bytes += snapshot_bytes(&p);
         self.undo.push_back(p);
-        while self.undo.len() > 100 || self.history_bytes > 64 * 1024 * 1024 {
+        while self.undo.len() > 100
+            || self.history_bytes + self.retired_bitmap_bytes() > 64 * 1024 * 1024
+        {
             if let Some(p) = self.undo.pop_front() {
-                self.history_bytes = self
-                    .history_bytes
-                    .saturating_sub(serde_json::to_vec(&p).map_or(0, |v| v.len()));
+                self.history_bytes = self.history_bytes.saturating_sub(snapshot_bytes(&p));
             } else {
                 break;
             }
         }
+    }
+    fn retired_bitmap_bytes(&self) -> usize {
+        let mut pointers: std::collections::HashSet<_> = self
+            .project
+            .bitmaps
+            .iter()
+            .map(|b| b.png.as_ptr() as usize)
+            .collect();
+        self.undo
+            .iter()
+            .chain(self.redo.iter())
+            .flat_map(|p| &p.bitmaps)
+            .filter(|b| pointers.insert(b.png.as_ptr() as usize))
+            .map(|b| b.png.len())
+            .sum()
     }
     fn check(&self, id: Id, revision: u64) -> Result<()> {
         ensure!(id == self.project.id, "Project handle does not match");
@@ -371,6 +384,28 @@ impl Session {
             warnings: vec![],
         }
     }
+}
+
+// PNG blobs are immutable shared allocations: count their retained storage once,
+// rather than serializing the same base64 payload after every brush stroke.
+fn snapshot_bytes(project: &Project) -> usize {
+    let mut light = project.clone();
+    for bitmap in &mut light.bitmaps {
+        bitmap.png = "".into();
+    }
+    struct Counter(usize);
+    impl std::io::Write for Counter {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0 += bytes.len();
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut count = Counter(0);
+    let _ = serde_json::to_writer(&mut count, &light);
+    count.0
 }
 
 fn editable(p: &mut Project, id: Id) -> Result<&mut Character> {
