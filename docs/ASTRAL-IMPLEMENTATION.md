@@ -1,6 +1,6 @@
 # Astral implementation status
 
-This document distinguishes implemented functionality from the larger migration plan. Astral 0.5 adds project/animation MCP profiles, reversible completion, a trained stick-pose prior, reviewed image-to-rig mapping and offline voice, alongside learned inbetweens, vector dialogue and motion graphics; it does not replace the full legacy application yet.
+Astral 0.13 adds self-contained raster/image sequences, independent bitmap cels, basic PSD layers, animated deformation pins, bounded video extraction/template tracking, microphone capture, editable mouth cues and offscreen wgpu GPU exports. It retains the earlier project, storyboard, rig, drawing, audio and MCP tools. Full legacy/edition parity remains incomplete. [Artwork workflow and precise limits](ASTRAL-ARTWORK.md).
 
 ## Architecture
 
@@ -8,9 +8,9 @@ This document distinguishes implemented functionality from the larger migration 
 - `astral-assist`: synthetic masked-pose MLP, reproducible CPU training, bounded PNG/JPEG stickman mapping, geometric stroke suggestions and cel trajectory learning.
 - `astral-ml`: bounded multi-output RBF kernel-ridge training/inference from authored pose/stroke examples; all coefficients and sources persist with the project.
 - `astral-storage`: bounded checksummed ASTL containers, zlib payload, atomic replace, workspace confinement and recovery files.
-- `astral-render`: deterministic display lists consumed by the GPU-backed egui canvas and tiny-skia offscreen rasterization. Offscreen GPU rendering is pending.
+- `astral-render`: deterministic display lists consumed by the GPU-backed egui canvas and tiny-skia offscreen rasterization. Offscreen wgpu exports share the same display list, with bounded texture/path caches, 4× MSAA, alpha-preserving readback and CPU fallback.
 - `astral-audio`: mono/stereo WAV decode, resampling, gain, source trims, fades, looping, stereo mixing and peak extraction.
-- `astral-codecs`: read-only adapters to existing Python and JS codecs, with original bytes and complete decoded documents archived in project metadata. Native conversion is pending.
+- `astral-codecs`: read-only adapters to existing Python and JS codecs, with original bytes and complete decoded documents archived in project metadata; supported authored strokes/circles also become editable drawing cels. Native conversion is pending.
 - `astral`: desktop UI, CLI, MCP adapter, Windows named-pipe service, background render jobs and FFmpeg encoding.
 
 Cargo.lock pins the dependency graph. Rust UI uses eframe 0.37.0, with its wgpu renderer and AccessKit. MCP uses official rmcp 3.8.0. The small bundled stick-pose model runs locally; no external model or API key is required.
@@ -19,7 +19,7 @@ Cargo.lock pins the dependency graph. Rust UI uses eframe 0.37.0, with its wgpu 
 
 Documents use zero-based integer frame keys and deterministic fractional-frame evaluation. Pose commands target the visible pose and remove current additive motion before storing a base key. Named poses map joints by name; selected joints can be blended or mirrored. Actions expose timing, travel, direction, intensity and named markers. Contacts solve two-bone chains; all other joint targets use direct positioning.
 
-Transactions clone and validate the candidate document before publication, so a failed command leaves document, revision and history intact. History is bounded to 100 snapshots and a 64 MiB serialized undo budget. This is a correctness-first implementation; sparse deltas are still needed for large-project performance.
+Transactions clone and validate the candidate document before publication, so a failed command leaves document, revision and history intact. History is bounded to 100 snapshots and a 64 MiB structural/retired-artwork budget. Immutable embedded PNG allocations are shared and counted once, not reserialized after every stroke. This is a correctness-first implementation; sparse deltas are still needed for large-project performance.
 
 Retime maps keys, actions, contacts, effects, camera keys, drawings and audio cue starts. It preserves audio pitch/source duration, rejects key collisions, and requires callers to extend project duration before shifting content beyond its end.
 
@@ -35,8 +35,8 @@ MP4 export snapshots the document, renders exact ticks into bounded per-frame bu
 
 ## Outstanding migration work
 
-1. Native conversion and differential parity for legacy geometry, layer sheets, nested movieclips, sprites, text, drawing tiles, constraints and VFX. Archived originals can be recovered unchanged; they are not native editable conversions.
-2. Real compositing filters for glow/blur, legacy stacking/alpha/color semantics, image rendering and offscreen wgpu export. Current glow/blur presets are radial overlays.
+1. Native conversion and differential parity for legacy geometry, layer sheets, nested movieclips, sprites, text, drawing tiles, constraints and VFX. Archived originals can be recovered unchanged; supported authored strokes/circles convert to drawing cels, while semantic source rigs and complex features remain unsupported.
+2. Real compositing filters for glow/blur, legacy stacking/alpha/color semantics, advanced source image/compositing semantics. Native raster/image sequences and offscreen wgpu export are implemented. Current glow/blur presets are radial overlays.
 3. Full property graph editor, motion-path editing, rig-length-aware retargeting, advanced drawing brushes and authored rig control editing UI.
 4. Audio timeline trim/fade/gain handles, cached waveform presentation, additional media decoders and sound-library search UI. The underlying WAV operations are implemented.
 5. Arbitrary docking/floating panels, multiple named layout presets, shortcut remapping, localization and a complete keyboard/accessibility audit.

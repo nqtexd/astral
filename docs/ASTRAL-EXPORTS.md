@@ -30,7 +30,7 @@ Instagram portrait and square are composition choices. Current publishing routes
 - `.zip`: PNG sequence under `frames/frame_000000.png`, a `manifest.json` with dimensions, fps, range, document ID and revision, and a separate mixed `audio.wav` when sound is present. ZIP uses stored compression because PNG is already compressed.
 - `.wav`: the selected range's stereo 48 kHz audio mix, including silence where no clips play.
 
-Frame-rate conversion evaluates the editable animation at fractional source times. The selected final source frame is held when needed. Output frame count rounds up to cover the selected duration, so video length may exceed the source range by less than one output frame. Audio is mixed on the source timeline. WebM currently uses opaque 4:2:0 output. H.264/WebM/GIF/sequence and resized still-image outputs require FFmpeg; original-size PNG uses the native renderer directly. Offscreen drawing is CPU rasterized before encoding.
+Frame-rate conversion evaluates the editable animation at fractional source times. The selected final source frame is held when needed. Output frame count rounds up to cover the selected duration, so video length may exceed the source range by less than one output frame. Audio is mixed on the source timeline. WebM currently uses opaque 4:2:0 output. H.264/WebM/GIF/sequence and JPEG outputs require FFmpeg; PNG at original or custom dimensions uses the native renderer without FFmpeg. Choose Auto/CPU/GPU rasterization separately from the hardware encoder. See [renderer selection and limits](ASTRAL-ARTWORK.md#cpu-and-gpu-export).
 
 ## CLI and agents
 

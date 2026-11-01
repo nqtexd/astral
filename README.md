@@ -12,7 +12,7 @@
 
 [Download v0.13.0](https://github.com/nqtexd/astral/releases/tag/v0.13.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
 
-> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has an earlier development preview. Apple build sources exist but are unverified on Apple hardware. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
+> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Mac ARM and Apple simulator development builds have passed CI; physical device validation and production signing remain unfinished. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Watch, open, make it yours
 
@@ -36,6 +36,8 @@ GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes 
 4. Choose **New project**, set the canvas, FPS and duration, then create it.
 5. Draw on frame 1, then select frame 2 for a different drawing. Independent single-frame drawing is the default; onion skins are previews, not copied ink. Use exposure controls for holds.
 6. Save your `.astral` project and reopen it from the library or file picker.
+
+An **Android touch preview** is also attached to this release as `Astral-0.13.0-android-preview.apk` (ARM64 and x86-64). It is a subset with a development test signature, not desktop parity or a store release. Mac/iPhone/iPad development-build evidence and remaining device/signing gates are listed in [platform checks](docs/ASTRAL-PLATFORM-CHECKS.md).
 
 Manual editing needs no account or paid generation service. An external AI client may have its own account, network and pricing requirements.
 
@@ -154,7 +156,7 @@ Packages include dependency notices and omit encoder binaries by default. Caches
 
 ## Current limits
 
-- Windows early access; physical Android checks and Apple builds/signing are unfinished.
+- Windows early access. Mac ARM and Apple simulator development builds passed CI; physical Android/Apple checks and production signing remain unfinished.
 - Full Moho Debut parity remains unfinished. Basic raster/PSD, deformation pins, capture, mouth cues and local tracking are now available; advanced deformation, pressure brushes, correctives, localization and other gaps remain.
 - Legacy imports retain originals and convert supported authored lines/circles into editable drawing cels. Source rig semantics, tweens, custom shapes, camera, media and effects are not equivalent.
 - Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.

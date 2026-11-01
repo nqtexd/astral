@@ -40,7 +40,15 @@ try {
     New-Item -ItemType Directory -Force -Path (Join-Path $astralPackage 'scripts') | Out-Null
     foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
 
-    Get-ChildItem -LiteralPath (Join-Path $astralRoot 'docs') -Filter 'ASTRAL-*.md' -File | Copy-Item -Destination (Join-Path $astralPackage 'docs')
+    Get-ChildItem -LiteralPath (Join-Path $astralRoot 'docs') -Filter 'ASTRAL-*' -File | Where-Object Extension -In @('.md','.json') | Copy-Item -Destination (Join-Path $astralPackage 'docs')
+    # Offline README gallery and editable studies, excluding runtime history and benchmark outputs.
+    $astralShowcase = Join-Path $astralRoot 'docs/showcase'
+    Get-ChildItem -LiteralPath $astralShowcase -Recurse -File | Where-Object { $_.Extension -in @('.md','.astral','.gif','.png','.wav') -and $_.FullName -notmatch '[\\/](recovery|renders|\.astral-history)[\\/]' } | ForEach-Object {
+        $astralDemoRelative = [System.IO.Path]::GetRelativePath($astralShowcase, $_.FullName)
+        $astralDemoTarget = Join-Path $astralPackage (Join-Path 'docs/showcase' $astralDemoRelative)
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $astralDemoTarget) | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $astralDemoTarget
+    }
     $astralModels = Join-Path $astralPackage 'models'
     New-Item -ItemType Directory -Force -Path $astralModels | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $astralRoot 'models') -File | Copy-Item -Destination $astralModels

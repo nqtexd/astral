@@ -2,7 +2,6 @@ import {spawn} from 'node:child_process';
 import {writeFile,readFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import {randomUUID,createHash} from 'node:crypto';
 const root=path.resolve(import.meta.dirname,'..');
 const workspace=path.join(root,'artifacts','astral-artwork-check');
 const executable=process.env.ASTRAL_BINARY??path.join(root,'target','release','astral.exe');

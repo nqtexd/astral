@@ -165,8 +165,8 @@
     },
     {
       "id": "macos_arm64",
-      "status": "not_built",
-      "evidence": null
+      "status": "development_build",
+      "evidence": "docs/ASTRAL-PLATFORM-CHECKS.md"
     },
     {
       "id": "macos_x64",
@@ -185,13 +185,13 @@
     },
     {
       "id": "iphone",
-      "status": "not_built",
-      "evidence": null
+      "status": "unsigned_simulator_build",
+      "evidence": "docs/ASTRAL-PLATFORM-CHECKS.md"
     },
     {
       "id": "ipad",
-      "status": "not_built",
-      "evidence": null
+      "status": "unsigned_simulator_build",
+      "evidence": "docs/ASTRAL-PLATFORM-CHECKS.md"
     }
   ],
   "publication": {

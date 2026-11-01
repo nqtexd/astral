@@ -1,6 +1,6 @@
 """Build a locally test-signed Android preview; never a store/release signature."""
 from pathlib import Path
-import argparse, hashlib, json, os, shutil, subprocess, sys, zipfile
+import argparse, hashlib, json, os, shutil, subprocess, sys, zipfile, tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 from astral_notices import notices
@@ -61,7 +61,8 @@ def main():
     if not keystore.exists():
         run([keytool,'-genkeypair','-keystore',keystore,'-storepass','android','-keypass','android','-alias','astral-preview','-keyalg','RSA','-keysize','2048','-validity','3650','-dname','CN=Astral Local Preview, O=Astral Development, C=IN'])
     destination=ROOT/'release/preview';destination.mkdir(parents=True,exist_ok=True)
-    output=destination/'Astral-0.12.0-android-preview.apk'
+    version=tomllib.loads((ROOT/'Cargo.toml').read_text(encoding='utf-8'))['workspace']['package']['version']
+    output=destination/f'Astral-{version}-android-preview.apk'
     run([java,'-jar',tools/'lib/apksigner.jar','sign','--ks',keystore,'--ks-pass','pass:android','--key-pass','pass:android','--out',output,aligned])
     run([java,'-jar',tools/'lib/apksigner.jar','verify','--verbose',output])
     report={'artifact':str(output.relative_to(ROOT)),'abis':chosen,'sha256':hashlib.sha256(output.read_bytes()).hexdigest(),'bytes':output.stat().st_size,'signature':'local test key; not a production identity','status':'development-preview','feature_parity':False}

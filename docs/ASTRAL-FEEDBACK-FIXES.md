@@ -40,7 +40,7 @@ Unlocked PNG previews are atomically replaced as before. If another Windows appl
 
 Frame rasterization runs on up to four workers, constrained by output size and a 192 MiB frame-buffer budget per export. Bounded queues retain exact frame order and stop on cancellation or encoder failure. Encoding still uses the existing encoder choices. Full-canvas and fill exports avoid a redundant full-resolution clip mask; letterboxed exports retain clipping.
 
-Metrics distinguish aggregate worker render time from encoder transfer time and total wall time; `render_seconds` is summed CPU-worker time and can exceed wall time. `render_workers` reports the worker count. Hardware encoding does not make CPU rasterization GPU-accelerated. No universal performance or artistic-quality claim is made.
+Metrics distinguish aggregate worker render time from encoder transfer time and total wall time; `render_seconds` is summed CPU-worker time and can exceed wall time; in GPU mode it is serial render/readback elapsed time. `render_workers` reports the worker count. Select the separate GPU renderer for offscreen wgpu rasterization; hardware encoding remains independent. No universal performance or artistic-quality claim is made.
 
 ## Assemble rendered shots
 

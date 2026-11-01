@@ -332,6 +332,9 @@ impl Studio {
             } else if !p.characters.is_empty() {
                 self.preferences.mode = WorkspaceMode::Animate;
                 self.preferences.advanced_timeline = true;
+            } else if !p.rasters.is_empty() {
+                self.preferences.mode = WorkspaceMode::Artwork;
+                self.preferences.advanced_timeline = false;
             }
         }
         self.export_panel.open = false;
@@ -1598,7 +1601,7 @@ impl Studio {
                 }
                 if response.drag_stopped(){if let (Some(pose),Some(character))=(self.drag_pose.take(),self.selected){self.apply(vec![Command::SetBoneConstraints{character,enabled:self.motion.last_drag_constrained},Command::SetPose{character,frame:self.frame as u32,pose,easing:Easing::Smooth}]);}self.drag_origin=None;self.drag_joint=None;}
             }
-            if p.characters.is_empty()&&p.drawings.is_empty()&&p.rasters.is_empty(){painter.text(rect.center(),egui::Align2::CENTER_CENTER,if p.metadata.contains_key("legacy"){ "Legacy source archived | Native conversion pending\nOpen the original in the legacy editor" }else{"Add a character to animate"},egui::FontId::proportional(18.),MUTED);}
+            if p.characters.is_empty()&&p.drawings.is_empty()&&p.rasters.is_empty()&&p.cels.is_empty()&&p.graphics.is_empty()&&p.dialogues.is_empty(){painter.text(rect.center(),egui::Align2::CENTER_CENTER,if p.metadata.contains_key("legacy"){ "Legacy source archived | Native conversion pending\nOpen the original in the legacy editor" }else{"Add a character to animate"},egui::FontId::proportional(18.),MUTED);}
             ui.painter().text(Pos2::new(area.center().x,area.bottom()-1.),egui::Align2::CENTER_BOTTOM,"Space: play    Drag: move    Rig: pose",egui::FontId::proportional(10.),Color32::from_gray(100));
         });
     }
