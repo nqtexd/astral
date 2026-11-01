@@ -1,0 +1,44 @@
+[package]
+name = "astral"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "astral"
+
+[[bin]]
+name = "astral-studio"
+path = "src/bin/astral-studio.rs"
+required-features = ["desktop"]
+
+[features]
+default = ["desktop"]
+desktop = ["dep:eframe", "dep:rfd", "dep:rodio"]
+
+[dependencies]
+astral-core.workspace = true
+astral-storage.workspace = true
+astral-render.workspace = true
+astral-audio.workspace = true
+astral-codecs.workspace = true
+astral-assist.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+uuid.workspace = true
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std", "io-util", "net", "sync", "time"] }
+rmcp = { version = "=3.8.0", features = ["server", "macros", "transport-io"] }
+base64 = "0.22"
+tempfile = "3"
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
+image = {version="0.25",default-features=false,features=["png","jpeg"]}
+eframe = { version = "=0.37.0", optional = true, default-features = false, features = ["wgpu", "default_fonts", "accesskit", "persistence", "clipboard", "x11", "wayland"] }
+rfd = { version = "0.15", optional = true }
+rodio = { version = "0.21", optional = true, default-features = false, features = ["playback", "wav"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version="0.62",features=["Media_SpeechSynthesis","Media_Core","Storage_Streams","Foundation","Win32_System_WinRT"] }
+
+[dev-dependencies]
+hound = "3.5"

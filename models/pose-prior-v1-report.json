@@ -1,0 +1,21 @@
+{
+  "architecture": [
+    33,
+    64,
+    22
+  ],
+  "epochs": 100,
+  "held_out_samples": 1024,
+  "missing_joint_mse": 0.009695544005579412,
+  "model": "masked_pose_mlp_v1",
+  "observed_joint_drift": 0,
+  "parameters": 3606,
+  "relative_mse_reduction": 0.8524185560940489,
+  "rest_pose_baseline_mse": 0.06569622676789957,
+  "scope": "canonical 2D stick-rig missing-joint completion; not raster image generation",
+  "seed": 71826152767820,
+  "split": "disjoint_whole_trajectory_seeds",
+  "training_data": "procedurally generated Astral action poses; no external images",
+  "training_samples": 8192,
+  "training_seconds": 4.8139997
+}

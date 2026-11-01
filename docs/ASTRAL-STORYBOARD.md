@@ -1,0 +1,25 @@
+# Storyboard, contact and continuity — Astral 0.8
+
+Choose **Storyboard** in the workspace menu, or **File → Storyboard**. Characters holds the cast bible: role, appearance, motivation and optional rig assignment. Shots holds ordered frame ranges, locations, action, camera/audio intent, transitions and per-character entry/exit position, facing, condition and props. Expand a cast member only when editing their blocking. A shot preview uses the actual scene at its first frame; **Animate shot** opens that timeline position. Planning a shot does not automatically generate its animation.
+
+**Apply plan** writes one undoable document revision. Ctrl+S and Save As also apply a valid draft before saving. A stale draft cannot overwrite concurrent agent edits; reload it or resolve the conflict. The board lives in project metadata (`astral.storyboard.v1`) and travels with saves, recovery and undo. Project retiming updates shot ranges and contact frames. Old projects start with an empty board.
+
+The interface uses aligned fields, a restrained accent, a persistent shot sidebar, grouped controls and expandable detail. These choices follow Apple's [Layout](https://developer.apple.com/design/human-interface-guidelines/layout) and [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars) guidance. This is a native Windows egui interface, without Apple's proprietary materials or system components.
+
+## Agent workflow
+
+1. `inspect_project`: get the current revision, canvas, named rigs and timeline.
+2. `storyboard {project, expected_revision}`: read the board. Provide `board` to replace it in one validated transaction. Required board fields are `logline`, `characters`, and `shots`; inspect the generated tool schema for the full typed structure. Character IDs are story identities; `rig` links them to scene entities. Shots must be ordered, non-overlapping and within the document duration. Facing is -1 or 1. Use unique IDs for new enemies; do not revive a defeated character merely to reuse an asset.
+3. Author one short shot. `motion_tools` Fight now solves named hand/foot contacts onto the target's chest, holds the hit briefly, and starts recoil afterward. Dodge and knockback beats receive motion markers without fake contact cues or impact packs. Unreachable strikes are rejected. Fight proposals still require explicit commit, as before.
+4. Bind costume graphics to the rig. Use the atomic `set_graphic_bindings` command with `bindings: [{graphic, character, joint, to_joint}]`. A null `to_joint` follows one joint. Two named joints place the graphic at the bone midpoint and align its vertical axis to the bone. Graphic keys become local position/rotation offsets. Replace the entire binding list to edit it. Live bindings require project schema 6, assigned automatically by the command service; Astral 0.7 cannot open these projects. Hiding a character hides its bound graphics. Removing it removes the bound graphics; undo restores both.
+5. Declare meaningful impacts using `set_contact_cues {cues:[{name, frame, attacker, target, effector, target_joint, tolerance}]}` through `apply_commands`. Use target joints that are anatomically reachable: a waist kick can target hips; a punch can target chest. Effects and sound should share these exact frames. Fight generation adds cues automatically.
+6. `review_animation {project, start, end, step}`: read exact contact distances and sampled torso-envelope overlaps. Declared impact frames are included even if they fall between samples. Run per shot; at most 4097 regular samples and 64 rigs. A stride of 1 checks every frame. This tool never changes the project. It also returns continuity notes from the storyboard. These are geometric and rule-based checks, not a physics simulation, semantic story model or artistic quality verdict.
+7. Inspect anticipation, contact and recovery with `render_preview`. Export a **moving short preview** with `export_media {project,spec:{path:"shot-preview.mp4",start:0,end:119,width:960,height:540,fps:60}}`, poll `job_status`, and watch it. Do not judge motion from a single image. Fix issues, then render the complete film. A successful encode/decode only verifies file integrity.
+
+## Locomotion
+
+Walk/run actions now derive stride phase from distance travelled and rig size. During the stance phase a support foot cancels root motion; during swing it lifts and returns, using two-bone IK. Arms counter-swing. Very large strides, vertical terrain and bespoke stylization still need authored keys/contacts; this is not terrain-aware locomotion. A zero-distance action remains stationary.
+
+## Validation
+
+`cargo test --workspace --release` covers transaction rollback, contact distance, torso overlap, continuity warnings, rig binding validation, planted stance feet, bone lengths, storyboard undo/save and compact storyboard layouts. `node scripts/check-last-bell.mjs` exercises the actual stdio MCP tools and reviews the film shot by shot. Its `MOTION-REVIEW.json` records geometric findings; review moving previews as well.

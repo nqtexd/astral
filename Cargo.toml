@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = ["crates/astral-assist", "crates/astral-ml", "crates/astral-core", "crates/astral-storage", "crates/astral-render", "crates/astral-audio", "crates/astral-codecs", "crates/astral", "crates/astral-mobile"]
+
+[workspace.package]
+version = "0.12.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+rust-version = "1.95"
+
+[workspace.dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = {version="1",features=["float_roundtrip"]}
+schemars = { version = "1", features = ["uuid1"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+astral-core = { path = "crates/astral-core" }
+astral-ml = { path = "crates/astral-ml" }
+astral-storage = { path = "crates/astral-storage" }
+astral-render = { path = "crates/astral-render" }
+astral-audio = { path = "crates/astral-audio" }
+astral-codecs = { path = "crates/astral-codecs" }
+astral-assist = { path = "crates/astral-assist" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+# Parallelize the large UI/CLI/schema shell while keeping the evaluation,
+# rendering and audio crates in their existing optimized configuration.
+[profile.release.package.astral]
+codegen-units = 8
+
+# Keep local desktop builds small; full debug symbols and incremental object
+# caches previously accumulated tens of gigabytes across successive builds.
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false
+

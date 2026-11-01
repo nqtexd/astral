@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "astral": {
+      "command": "C:/Apps/Astral/astral.exe",
+      "args": ["--workspace", "C:/Users/YOU/Documents/Astral", "mcp"]
+    }
+  }
+}

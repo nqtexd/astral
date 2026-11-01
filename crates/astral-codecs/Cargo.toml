@@ -1,0 +1,13 @@
+[package]
+name = "astral-codecs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+astral-core.workspace = true
+astral-storage.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+base64 = "0.22"
+

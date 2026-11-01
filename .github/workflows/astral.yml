@@ -1,0 +1,43 @@
+name: Astral native checks
+on:
+  workflow_dispatch:
+  push:
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
+  pull_request:
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Stage the pinned offline encoder
+        run: |
+          python -m pip install imageio-ffmpeg==0.6.0
+          python scripts/stage-video-encoder.py
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Build
+        run: cargo build -p astral --locked
+      - name: Feedback and project-management acceptance
+        env:
+          ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
+        run: node scripts/check-astral-feedback.mjs
+      - name: External MCP acceptance
+        run: node scripts/smoke-astral.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: astral-agent-acceptance
+          path: artifacts/astral-smoke

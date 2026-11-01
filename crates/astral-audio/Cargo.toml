@@ -1,0 +1,12 @@
+[package]
+name = "astral-audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+astral-core.workspace = true
+astral-storage.workspace = true
+anyhow.workspace = true
+hound = "3.5"
+

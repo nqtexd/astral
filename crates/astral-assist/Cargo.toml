@@ -1,0 +1,17 @@
+[package]
+name = "astral-assist"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+astral-core.workspace = true
+astral-ml.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+image = {version="0.25",default-features=false,features=["png","jpeg"]}
+
+[dev-dependencies]
+astral-render.workspace = true

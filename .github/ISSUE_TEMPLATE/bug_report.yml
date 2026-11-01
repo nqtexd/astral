@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible Astral problem.
+title: "[Bug]: "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Astral version
+      placeholder: "0.12.0"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Windows version, GPU, canvas size, FPS and encoder if relevant.
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include expected and actual behavior, frame range, and the smallest project that demonstrates it. Remove private media first.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Preview, errors or job metrics
+      description: A short moving preview helps with motion bugs. Do not include credentials or personal files.

@@ -1,0 +1,34 @@
+"""Package a native macOS development build. No Developer ID/notarization claim."""
+from pathlib import Path
+import hashlib,json,os,platform,plistlib,shutil,subprocess,tarfile
+
+ROOT=Path(__file__).resolve().parents[1]
+from astral_notices import notices
+def main():
+    if platform.system()!='Darwin':raise SystemExit('A native Mac build runner is required; packaging was not attempted.')
+    import tomllib
+    version=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
+    arch=platform.machine();destination=ROOT/f'release/Astral-{version}-macos-{arch}'
+    app=destination/'Astral Preview.app';contents=app/'Contents';binary=contents/'MacOS';resources=contents/'Resources'
+    binary.mkdir(parents=True,exist_ok=True);resources.mkdir(exist_ok=True)
+    for source,target in [('astral-studio','Astral'),('astral','astral')]:
+        shutil.copy2(ROOT/'target/release'/source,binary/target)
+    # The desktop encoder resolver also checks executable-parent/resources.
+    encoder=binary/'resources';encoder.mkdir(exist_ok=True)
+    for source in (ROOT/'build/video-encoder').iterdir():
+        if source.is_file():shutil.copy2(source,encoder/source.name)
+    for directory in ['models','docs']:
+        shutil.copytree(ROOT/directory,resources/directory,dirs_exist_ok=True)
+    for source in ['COPYING','README.md']:shutil.copy2(ROOT/source,resources/source)
+    for name,data in notices(ROOT).items():
+        file=resources/'THIRD_PARTY'/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(data)
+    plist={'CFBundleExecutable':'Astral','CFBundleIdentifier':'org.astral.studio.preview','CFBundleName':'Astral Preview','CFBundleDisplayName':'Astral Preview','CFBundleShortVersionString':'0.11.0','CFBundleVersion':'1100','CFBundlePackageType':'APPL','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True}
+    (contents/'Info.plist').write_bytes(plistlib.dumps(plist))
+    subprocess.run(['codesign','--force','--deep','--sign','-',str(app)],check=True)
+    # Ad-hoc signing supports local testing; Gatekeeper acceptance is not claimed.
+    subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
+    archive=destination.with_name(destination.name+'.tar.gz')
+    with tarfile.open(archive,'w:gz')as tar:tar.add(destination,arcname=destination.name)
+    report={'status':'development-preview','architecture':arch,'signature':'ad-hoc only','notarized':False,'feature_parity':False,'archive':archive.name,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest()}
+    (destination/'build-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8');print(json.dumps(report,indent=2))
+if __name__=='__main__':main()

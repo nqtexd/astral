@@ -1,0 +1,57 @@
+name: AstralPreview
+options:
+  bundleIdPrefix: org.astral.studio
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  AstralPreview:
+    type: application
+    platform: iOS
+    sources:
+      - main.m
+      - path: PrivacyInfo.xcprivacy
+        buildPhase: resources
+    info:
+      path: Generated-Info.plist
+      properties:
+        CFBundleDisplayName: Astral Preview
+        CFBundleShortVersionString: "0.12.0"
+        CFBundleVersion: "1200"
+        UILaunchScreen: {}
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.astral.studio.preview
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_BITCODE: NO
+        OTHER_LDFLAGS: ["$(inherited)", "-lc++", "-lz", "-liconv"]
+    dependencies:
+      - framework: ../../build/apple/AstralEngine.xcframework
+        embed: false
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+      - sdk: Metal.framework
+      - sdk: MetalKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: CoreGraphics.framework
+      - sdk: CoreText.framework
+      - sdk: CoreFoundation.framework
+      - sdk: IOSurface.framework
+      - sdk: Security.framework
+      - sdk: GameController.framework
+schemes:
+  AstralPreview:
+    build:
+      targets:
+        AstralPreview: all
