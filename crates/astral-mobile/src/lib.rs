@@ -829,6 +829,14 @@ fn paint(
     let pos = |p: Point| Pos2::new(rect.left() + p.x * scale, rect.top() + p.y * scale);
     for p in &list.primitives {
         match p {
+            astral_render::Primitive::Image {
+                bitmap,
+                vertices,
+                indices,
+                opacity,
+            } => astral_render::paint_image(
+                painter, bitmap, vertices, indices, *opacity, rect, scale,
+            ),
             astral_render::Primitive::Path { contours, color } => {
                 if let Ok((v, i)) = astral_render::tessellate(contours) {
                     painter.add(egui::Shape::mesh(egui::Mesh {

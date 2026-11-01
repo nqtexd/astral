@@ -7,6 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 mod choreography;
 mod coaching;
 mod library;
+mod polish;
 mod timing;
 pub use coaching::*;
 pub use library::*;
@@ -57,6 +58,12 @@ pub enum RigTemplate {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "task", rename_all = "snake_case")]
 pub enum StudioOperation {
+    PolishMotion {
+        character: Id,
+        start: u32,
+        end: u32,
+        strength: f32,
+    },
     LayoutDialogue {
         dialogue: Id,
     },
@@ -267,6 +274,12 @@ impl StudioPlan {
 }
 pub fn plan(p: &Project, operation: StudioOperation) -> Result<StudioPlan> {
     let mut out = match operation {
+        StudioOperation::PolishMotion {
+            character,
+            start,
+            end,
+            strength,
+        } => polish::polish(p, character, start, end, strength)?,
         StudioOperation::LayoutDialogue { dialogue } => {
             let (next, warnings) = crate::composition::place_dialogue(p, dialogue)?;
             StudioPlan {

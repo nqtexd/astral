@@ -630,6 +630,7 @@ impl Studio {
             && ui.button("Preview flowing motion").on_hover_text("Continuous joint arcs through existing pose keys; preserves authored key poses").clicked() {
                 self.motion_plan(p, StudioOperation::FlowMotion {character,start:self.motion.start,end:self.motion.end}, self.frame as u32);
             }
+        if let Some(character)=self.selected && ui.button("Preview motion polish").on_hover_text("Proposes planted feet and subtle body follow-through while preserving authored poses").clicked(){self.motion_plan(p,StudioOperation::PolishMotion{character,start:self.motion.start,end:self.motion.end,strength:0.6},self.frame as u32);}
         if let Some(id) = self.selected {
             ui.horizontal_wrapped(|ui| {
                 if theme::button(ui, "Save pose", theme::Icon::Save, false).clicked() {

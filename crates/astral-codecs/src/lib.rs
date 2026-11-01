@@ -10,6 +10,8 @@ use std::{
     process::{Command, Stdio},
 };
 
+mod native;
+
 pub fn import_legacy(
     workspace: &Workspace,
     path: &str,
@@ -83,9 +85,8 @@ pub fn import_legacy(
         report["fps"].as_u64().unwrap_or(24).clamp(1, 240) as u32,
         300,
     );
-    // Archive complete source and canonical document before any future conversion.
-    project.metadata.insert("legacy".into(),json!({"filename":path,"source_base64":STANDARD.encode(&bytes),"document":report,"conversion":"archive-only"}));
-    let warnings=vec!["Legacy file decoded and archived losslessly. Native conversion of legacy geometry, animation, media and effects is not implemented yet. Continue editing this file in the preserved legacy app; Astral will not display an approximate conversion.".into()];
+    let warnings = native::convert(&mut project, &report)?;
+    project.metadata.insert("legacy".into(),json!({"filename":path,"source_base64":STANDARD.encode(&bytes),"document":report,"conversion":if project.cels.is_empty(){"archive-only"}else{"authored-pose-cels"}}));
     project.validate()?;
     Ok((project, warnings))
 }

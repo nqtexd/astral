@@ -238,7 +238,7 @@ impl Studio {
             {
                 let mut next = d.clone();
                 let mut changed = false;
-                if ui.button("Suggest clear placement").clicked() {
+                if ui.button("Fit text & suggest placement").clicked() {
                     self.motion_plan(
                         p,
                         astral_core::studio::StudioOperation::LayoutDialogue { dialogue: d.id },

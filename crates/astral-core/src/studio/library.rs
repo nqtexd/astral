@@ -76,7 +76,7 @@ pub fn validate_library(p: &Project) -> Result<()> {
             ),
         }
         let mut test = Project::new("Library validation", p.width, p.height, p.fps, e.duration);
-        test.schema = 5;
+        test.schema = test.schema.max(5);
         test.characters = e.figures;
         test.layers = e.layers;
         test.cels = e.cels;
@@ -357,7 +357,7 @@ fn insert_entry(
         let mut remap = BTreeMap::new();
         for source in &e.figures {
             let mut temp = Project::new("Library sampling", p.width, p.height, p.fps, e.duration);
-            temp.schema = 5;
+            temp.schema = temp.schema.max(5);
             temp.characters = vec![source.clone()];
             let target = if let Some(id) = character {
                 editable_character(p, id)?.clone()

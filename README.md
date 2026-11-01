@@ -10,13 +10,27 @@
 
 **Draw it yourself, animate a rig, or ask an external agent to work through MCP. Everything stays editable.**
 
-[Download v0.12.0](https://github.com/nqtexd/astral/releases/tag/v0.12.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
+[Download v0.13.0](https://github.com/nqtexd/astral/releases/tag/v0.13.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
 
 > **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has an earlier development preview. Apple build sources exist but are unverified on Apple hardware. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
 
+## Watch, open, make it yours
+
+Actual Astral renders. The source projects stay editable—poses, raster pins, captions, mouth cues and audio tracks.
+
+![Contact: an original stickman fight study rendered by Astral](docs/showcase/projects/contact.gif)
+
+| Raster deformation | Offline voice and mouth cues |
+| --- | --- |
+| ![Soft: animated raster artwork and deformation pins](docs/showcase/projects/soft.gif) | ![Voice: an editable caption and animated mouth cues](docs/showcase/projects/voice.gif) |
+
+[Download the editable tester scenes](https://github.com/nqtexd/astral/releases/download/v0.13.0/Astral-0.13.0-showcase.zip) · [Open the projects and testing guide](docs/showcase/README.md) · [Reproduce the renders](crates/astral/examples/showcase.rs)
+
+GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes separate impact clips. These are tool demonstrations made with AI coding assistance; they do not promise automatic film-quality acting.
+
 ## Getting started
 
-1. Download **Astral-0.12.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.12.0).
+1. Download **Astral-0.13.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.13.0).
 2. Extract the whole ZIP to a writable folder. Keep its executables, models and notices together.
 3. Run **Astral-Studio.exe**. `astral.exe` is the separate command-line/MCP executable.
 4. Choose **New project**, set the canvas, FPS and duration, then create it.
@@ -37,18 +51,19 @@ Get FFmpeg through the [official download page](https://ffmpeg.org/download.html
 | --- | --- |
 | Projects | Create/open/save/Save As, favorites, search, name/date sorting, edited/opened times, revision numbers, rename, restorable Trash and a local change log. |
 | Draw | Vector strokes, layers, independent cels, holds, blank frames, onion skins, frame copying, bulk operations and reversible completion suggestions. |
-| Rig & animate | Named joints, hand/foot IK, bone constraints, pose mirroring/libraries, action clips, foot contacts, paths, easing and opt-in Flow interpolation. |
+| Artwork | PNG/JPEG/WebP/BMP images, ordered image sequences, bounded video-frame import, 8-bit RGB PSD layers, independent bitmap painting, transform keys and animated deformation pins. |
+| Rig & animate | Named joints, hand/foot IK, bone constraints, pose mirroring/libraries, action clips, foot contacts, paths, easing and opt-in Flow interpolation and reviewed motion-polish proposals. |
 | Motion studio | Editable walk/run/jump/strike presets, fight-beat proposals, motion brush, retiming, coaching and original/proposed previews. |
 | Storyboard | Cast, rig assignments, shot ranges, action intent, locations, entry/exit states, camera/audio intent and continuity notes. |
 | Dialogue & graphics | Editable captions and speech/thought bubbles, typewriter text, font styling, border/corner/color controls, clouds, shapes, vector contours and lower thirds. |
 | Effects & camera | Impact packs, flashes, trails, particles, dust/smoke/sparks, glow/blur, shake and camera keys. Presets vary in sophistication. |
-| Audio | WAV clips, waveforms, gain, trims, fades, loops/mixing and offline Windows text-to-speech using installed voices. |
-| Review | Contact/prop/doorway checks, torso spacing, continuity, layout warnings and dialogue placement proposals. These are heuristics, not visual-quality guarantees. |
-| Export & finish | Instagram Reels/Stories/feed, YouTube/Shorts and TikTok presets; MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Assemble rendered shots with trims and synchronized audio. |
+| Audio | WAV clips, waveforms, gain, trims, fades, loops/mixing and offline Windows text-to-speech, user-initiated microphone recording and editable sound-energy/text-guided mouth cues. |
+| Review | Contact/prop/doorway checks, torso spacing, continuity, layout warnings including raster bounds, shaped-text overflow detection, and fit/placement proposals. These are heuristics, not visual-quality guarantees. |
+| Export & finish | Instagram Reels/Stories/feed, YouTube/Shorts and TikTok presets; MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Choose CPU or physical wgpu GPU rendering; assemble shots with trims and synchronized audio. |
 | Customize | Accents, canvas surround, corners, compact controls, stronger contrast, scale, reduced motion, panels, grid, frame-card size and recovery/drawing defaults. |
 | Agents | MCP over stdio, typed commands, revision checks, atomic batches, undo/redo, previews, jobs and cancellation. Live MCP and GUI share the document service. |
 
-[Project/customization guide](docs/ASTRAL-PROJECTS.md) · [Motion, composition and finishing](docs/ASTRAL-FEEDBACK-FIXES.md)
+[Artwork, recording and GPU workflow](docs/ASTRAL-ARTWORK.md) · [Project/customization guide](docs/ASTRAL-PROJECTS.md) · [Motion, composition and finishing](docs/ASTRAL-FEEDBACK-FIXES.md)
 
 ### Project library
 
@@ -140,10 +155,10 @@ Packages include dependency notices and omit encoder binaries by default. Caches
 ## Current limits
 
 - Windows early access; physical Android checks and Apple builds/signing are unfinished.
-- No Moho Debut parity: PSD/bitmap workflows, advanced deformation, recording/lip sync, tracking and other gaps remain.
-- Legacy imports archive originals and report conversion limits; not all geometry becomes editable native data.
-- General image/video sprite rendering is incomplete. Asset registration does not mean rendering.
-- Exports rasterize on CPU; the viewport uses wgpu. Hardware encoding is separate. Performance varies with scene, resolution, FPS and encoder.
+- Full Moho Debut parity remains unfinished. Basic raster/PSD, deformation pins, capture, mouth cues and local tracking are now available; advanced deformation, pressure brushes, correctives, localization and other gaps remain.
+- Legacy imports retain originals and convert supported authored lines/circles into editable drawing cels. Source rig semantics, tweens, custom shapes, camera, media and effects are not equivalent.
+- Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.
+- Auto export uses a physical GPU for raster projects when initialization succeeds, otherwise bounded CPU rendering; light vector scenes default to CPU. Explicit GPU mode reports adapter/readback metrics. Hardware encoding remains separate. Speed depends on the scene and hardware.
 - Review tools cannot certify composition, continuity or realistic acting.
 - The release is unsigned; it is not a store-signed installer.
 

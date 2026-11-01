@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+serde.workspace = true
 astral-core.workspace = true
 anyhow.workspace = true
 tiny-skia = "0.11"
@@ -12,7 +13,17 @@ ttf-parser = "0.25"
 harfrust = "0.12"
 lyon_tessellation = "1"
 unicode-segmentation = "1"
+base64 = "0.22"
+image = {version="0.25",default-features=false,features=["png","jpeg","gif","bmp","webp"]}
+egui = {version="=0.37.0",default-features=false}
+wgpu = {version="=30.0.1",optional=true}
+pollster = {version="0.4",optional=true}
+bytemuck = {version="1",features=["derive"],optional=true}
+
+[features]
+gpu = ["dep:wgpu","dep:pollster","dep:bytemuck"]
 
 
 [dev-dependencies]
 serde_json.workspace = true
+

@@ -17,3 +17,7 @@ pub fn default_workspace() -> std::path::PathBuf {
 }
 
 pub mod production;
+
+pub mod artwork;
+
+pub mod recording;

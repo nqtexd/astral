@@ -56,3 +56,11 @@ platforms/apple/Generated-Info.plist
 /.github/workflows/ci.yml
 /.github/workflows/desktop-release.yml
 /.github/workflows/web-verify.yml
+
+# Runtime history is not part of the editable public showcase.
+/docs/showcase/**/.astral-history/
+/docs/showcase/**/.astral-recovery/
+
+# Source inventory, distinct from generated release archives.
+!platforms/release/
+!platforms/release/readiness.json

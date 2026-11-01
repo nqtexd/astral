@@ -10,6 +10,7 @@ use std::{
 
 const VIOLET: Color32 = theme::ACCENT;
 const MUTED: Color32 = theme::MUTED;
+mod artwork_panel;
 mod assist;
 mod export_panel;
 mod features;
@@ -22,6 +23,7 @@ mod theme;
 #[derive(Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 enum WorkspaceMode {
     Storyboard,
+    Artwork,
     Animate,
     Rig,
     Draw,
@@ -122,6 +124,7 @@ pub struct Studio {
     context: egui::Context,
     manager: project_manager::ProjectManager,
     assist: assist::AssistState,
+    artwork: artwork_panel::ArtworkState,
     motion: motion::MotionState,
     board: storyboard::BoardState,
     dialogue_formatting: TextFormatting,
@@ -208,6 +211,7 @@ impl Studio {
         Self {
             manager,
             assist: assist::AssistState::new(),
+            artwork: Default::default(),
             motion: motion::MotionState::default(),
             board: storyboard::BoardState::default(),
             dialogue_formatting: Default::default(),
@@ -816,6 +820,7 @@ impl Studio {
                     egui::ComboBox::from_id_salt("editor.mode")
                         .selected_text(match self.preferences.mode {
                             WorkspaceMode::Storyboard => "Storyboard",
+                            WorkspaceMode::Artwork => "Artwork",
                             WorkspaceMode::Draw => "Draw",
                             WorkspaceMode::Animate => "Animate",
                             WorkspaceMode::Rig => "Rig",
@@ -828,6 +833,7 @@ impl Studio {
                         .show_ui(ui, |ui| {
                             for (mode, label) in [
                                 (WorkspaceMode::Storyboard, "Storyboard"),
+                                (WorkspaceMode::Artwork, "Artwork"),
                                 (WorkspaceMode::Draw, "Draw"),
                                 (WorkspaceMode::Animate, "Animate"),
                                 (WorkspaceMode::Rig, "Rig"),
@@ -1070,6 +1076,13 @@ impl Studio {
                 ui.label(RichText::new("REFINE THE DETAILS").size(10.).color(MUTED));
                 ui.add_space(15.);
                 egui::ScrollArea::vertical().show(ui, |ui| {
+                    if self.preferences.mode == WorkspaceMode::Artwork {
+                        self.artwork_panel(ui, p);
+                        return;
+                    }
+                    if self.preferences.mode == WorkspaceMode::Audio {
+                        self.voice_artwork_panel(ui, p);
+                    }
                     if !self.preferences.pro_mode
                         && matches!(
                             self.preferences.mode,
@@ -1584,7 +1597,7 @@ impl Studio {
                 }
                 if response.drag_stopped(){if let (Some(pose),Some(character))=(self.drag_pose.take(),self.selected){self.apply(vec![Command::SetBoneConstraints{character,enabled:self.motion.last_drag_constrained},Command::SetPose{character,frame:self.frame as u32,pose,easing:Easing::Smooth}]);}self.drag_origin=None;self.drag_joint=None;}
             }
-            if p.characters.is_empty()&&p.drawings.is_empty(){painter.text(rect.center(),egui::Align2::CENTER_CENTER,if p.metadata.contains_key("legacy"){ "Legacy source archived | Native conversion pending\nOpen the original in the legacy editor" }else{"Add a character to animate"},egui::FontId::proportional(18.),MUTED);}
+            if p.characters.is_empty()&&p.drawings.is_empty()&&p.rasters.is_empty(){painter.text(rect.center(),egui::Align2::CENTER_CENTER,if p.metadata.contains_key("legacy"){ "Legacy source archived | Native conversion pending\nOpen the original in the legacy editor" }else{"Add a character to animate"},egui::FontId::proportional(18.),MUTED);}
             ui.painter().text(Pos2::new(area.center().x,area.bottom()-1.),egui::Align2::CENTER_BOTTOM,"Space: play    Drag: move    Rig: pose",egui::FontId::proportional(10.),Color32::from_gray(100));
         });
     }
@@ -1795,6 +1808,7 @@ impl eframe::App for Studio {
             return;
         };
         let ctx = ui.ctx().clone();
+        self.poll_artwork(&ctx);
         self.assist_windows(&ctx, &p);
         self.motion_windows(&ctx, &p);
         if self.manager.home {
@@ -1849,7 +1863,11 @@ impl eframe::App for Studio {
         } else {
             self.scene_panel(ui, &p);
             self.inspector(ui, &p);
-            self.stage(ui, &p);
+            if self.preferences.mode == WorkspaceMode::Artwork {
+                self.artwork_canvas(ui, &p);
+            } else {
+                self.stage(ui, &p);
+            }
         }
         self.project_dialogs(&ctx);
         if self.palette {
@@ -1995,6 +2013,14 @@ fn paint_list(
     let pos = |p: Point| Pos2::new(rect.left() + p.x * scale, rect.top() + p.y * scale);
     for primitive in &list.primitives {
         match primitive {
+            astral_render::Primitive::Image {
+                bitmap,
+                vertices,
+                indices,
+                opacity,
+            } => astral_render::paint_image(
+                painter, bitmap, vertices, indices, *opacity, rect, scale,
+            ),
             Primitive::Path { contours, color } => {
                 if let Ok((vertices, indices)) = astral_render::tessellate(contours) {
                     let mesh = egui::Mesh {
@@ -2352,6 +2378,7 @@ mod tests {
     #[test]
     fn inspector_controls_fit_their_panel_in_every_workspace() {
         for mode in [
+            WorkspaceMode::Artwork,
             WorkspaceMode::Animate,
             WorkspaceMode::Rig,
             WorkspaceMode::Effects,

@@ -98,6 +98,7 @@ impl ExportPanel {
                     if previous!=self.format{self.path(p);}
                     ui.horizontal(|ui|{ui.selectable_value(&mut self.spec.framing,Framing::Fit,"Fit - keep scene");ui.selectable_value(&mut self.spec.framing,Framing::Fill,"Fill - crop edges");});
                     ui.horizontal(|ui|{ui.label("Quality");for (quality,label) in [(Quality::Draft,"Draft"),(Quality::Standard,"Standard"),(Quality::High,"High")] {ui.selectable_value(&mut self.spec.quality,quality,label);}});
+                    ui.horizontal(|ui|{ui.label("Renderer");for (backend,label) in [(crate::export::RenderBackend::Auto,"Auto"),(crate::export::RenderBackend::Cpu,"CPU"),(crate::export::RenderBackend::Gpu,"GPU")] {ui.selectable_value(&mut self.spec.renderer,backend,label);}});
                     if self.format==Format::Mp4{ui.checkbox(&mut self.spec.hardware,"Use hardware encoder when available");}
                 });
                 ui.vertical(|ui|{

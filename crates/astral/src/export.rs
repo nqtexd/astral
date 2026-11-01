@@ -19,9 +19,21 @@ pub use assembly::*;
 mod presets;
 pub use presets::*;
 
+#[derive(
+    Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize, JsonSchema, clap::ValueEnum,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum RenderBackend {
+    #[default]
+    Auto,
+    Cpu,
+    Gpu,
+}
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ExportSpec {
     pub path: String,
+    #[serde(default)]
+    pub renderer: RenderBackend,
     #[serde(default)]
     pub hardware: bool,
     #[serde(default)]
@@ -45,7 +57,7 @@ pub struct Job {
     pub id: Id,
     pub cancelled: AtomicBool,
     state: Mutex<Value>,
-    child: Mutex<Option<Child>>,
+    pub(crate) child: Mutex<Option<Child>>,
     done: AtomicBool,
 }
 impl Job {
@@ -475,19 +487,15 @@ fn run(
     });
     *job.child.lock().unwrap_or_else(|p| p.into_inner()) = Some(child);
     let mut transfer_seconds = 0.;
-    let (render_seconds, render_workers) = render_frames(
-        project,
-        spec,
-        plan,
-        job,
-        |index, rgba| {
+    astral_render::validate_artwork(project)?;
+    let (render_seconds, render_workers, render_backend, adapter, readback_seconds) =
+        render_frames(project, spec, plan, job, |index, rgba| {
             let tick = Instant::now();
             stdin.write_all(rgba).context("Encoder input failed")?;
             transfer_seconds += tick.elapsed().as_secs_f64();
             job.update(json!({"job":job.id,"state":"rendering","progress":(index+1) as f64/plan.frames as f64,"frame":plan.source_frame(project,index),"encoder":encoder,"warnings":warnings,"plan":plan}));
             Ok(())
-        },
-    )?;
+        })?;
     drop(stdin);
     loop {
         job.check()?;
@@ -528,7 +536,7 @@ fn run(
     job.check()?;
     output.as_file().sync_all()?;
     output.persist(&target).map_err(|e| e.error)?;
-    job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"encoder":encoder,"warnings":warnings,"plan":plan,"metrics":{"render_seconds":render_seconds,"render_workers":render_workers,"encoder_transfer_seconds":transfer_seconds,"total_seconds":started.elapsed().as_secs_f64(),"frames":plan.frames},"revision":project.revision}));
+    job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"encoder":encoder,"warnings":warnings,"plan":plan,"metrics":{"render_seconds":render_seconds,"render_workers":render_workers,"renderer":render_backend,"adapter":adapter,"gpu_readback_seconds":readback_seconds,"encoder_transfer_seconds":transfer_seconds,"total_seconds":started.elapsed().as_secs_f64(),"frames":plan.frames},"revision":project.revision}));
     Ok(())
 }
 
@@ -541,7 +549,36 @@ fn render_frames(
     plan: &Plan,
     job: &Job,
     mut consume: impl FnMut(u32, &[u8]) -> Result<()>,
-) -> Result<(f64, usize)> {
+) -> Result<(f64, usize, String, Option<String>, f64)> {
+    if spec.renderer == RenderBackend::Gpu
+        || (spec.renderer == RenderBackend::Auto && !project.rasters.is_empty())
+    {
+        match astral_render::gpu::GpuRenderer::new(plan.width, plan.height) {
+            Ok(mut gpu) => {
+                let mut seconds = 0.;
+                for index in 0..plan.frames {
+                    job.check()?;
+                    let tick = Instant::now();
+                    let list =
+                        astral_render::display_list(project, plan.source_frame(project, index));
+                    let rgba = gpu.render(&list, spec.framing == Framing::Fill)?;
+                    seconds += tick.elapsed().as_secs_f64();
+                    consume(index, &rgba)?;
+                }
+                return Ok((
+                    seconds,
+                    1,
+                    "gpu".into(),
+                    Some(gpu.adapter),
+                    gpu.readback_seconds,
+                ));
+            }
+            Err(error) if spec.renderer == RenderBackend::Gpu => {
+                return Err(error.context("Requested GPU renderer unavailable; choose CPU or Auto"));
+            }
+            Err(_) => {} // Auto uses bounded CPU workers if no physical GPU is available.
+        }
+    }
     let bytes = plan.width as usize * plan.height as usize * 4;
     let workers = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
@@ -582,9 +619,71 @@ fn render_frames(
                 seconds += elapsed;
                 consume(index, &image?)?;
             }
-            Ok((seconds, workers))
+            Ok((
+                seconds,
+                workers,
+                if spec.renderer == RenderBackend::Auto && !project.rasters.is_empty() {
+                    "cpu_fallback"
+                } else {
+                    "cpu"
+                }
+                .into(),
+                None,
+                0.,
+            ))
         })();
         drop(receivers);
         result
     })
+}
+
+/// Run a bounded, internally constructed encoder/decode command with cancellation.
+pub(crate) fn run_encoder(job: &Job, mut command: Command) -> Result<()> {
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
+    let mut child = hidden(&mut command)
+        .spawn()
+        .context("FFmpeg unavailable; configure an installed encoder")?;
+    let stderr = child.stderr.take().context("Missing encoder diagnostics")?;
+    *job.child.lock().unwrap_or_else(|p| p.into_inner()) = Some(child);
+    let reader = std::thread::spawn(move || {
+        let mut source = stderr;
+        let mut out = vec![];
+        let mut chunk = [0; 4096];
+        while let Ok(n) = source.read(&mut chunk) {
+            if n == 0 {
+                break;
+            }
+            let budget = (64 * 1024usize).saturating_sub(out.len());
+            out.extend_from_slice(&chunk[..n.min(budget)]);
+        }
+        String::from_utf8_lossy(&out).into_owned()
+    });
+    let result = (|| -> Result<_> {
+        loop {
+            job.check()?;
+            let state = job
+                .child
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_mut()
+                .context("Encoder stopped")?
+                .try_wait()?;
+            if let Some(status) = state {
+                return Ok(status);
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    })();
+    if result.is_err()
+        && let Some(child) = job.child.lock().unwrap_or_else(|p| p.into_inner()).as_mut()
+    {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+    let detail = reader.join().unwrap_or_default();
+    ensure!(result?.success(), "Media decoding failed: {detail}");
+    Ok(())
 }

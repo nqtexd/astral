@@ -180,8 +180,15 @@ pub struct ActivityEntry {
     pub changes: Vec<String>,
 }
 fn changed_sections(before: &Project, after: &Project) -> Vec<String> {
-    let a = serde_json::to_value(before).unwrap_or_default();
-    let b = serde_json::to_value(after).unwrap_or_default();
+    let summarize = |p: &Project| {
+        let mut light = p.clone();
+        for b in &mut light.bitmaps {
+            b.png = "".into();
+        }
+        serde_json::to_value(light).unwrap_or_default()
+    };
+    let a = summarize(before);
+    let b = summarize(after);
     [
         "name",
         "width",
@@ -201,6 +208,9 @@ fn changed_sections(before: &Project, after: &Project) -> Vec<String> {
         "poses",
         "dialogues",
         "graphics",
+        "bitmaps",
+        "rasters",
+        "mouths",
         "metadata",
     ]
     .into_iter()

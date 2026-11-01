@@ -151,6 +151,40 @@ fn obstacles(p: &Project, s: &EvaluatedScene, frame: u32) -> Vec<(Id, &'static s
             bounds,
         ));
     }
+    for raster in &p.rasters {
+        if !raster.visible
+            || frame < raster.start
+            || frame > raster.end
+            || raster.at(frame as f64).opacity < 0.05
+        {
+            continue;
+        }
+        let columns = raster.mesh.as_ref().map_or(1, |m| m.columns);
+        let rows = raster.mesh.as_ref().map_or(1, |m| m.rows);
+        let mut bounds = Bounds {
+            min: Point::new(f32::INFINITY, f32::INFINITY),
+            max: Point::new(f32::NEG_INFINITY, f32::NEG_INFINITY),
+        };
+        for y in 0..=rows {
+            for x in 0..=columns {
+                let q = raster.world_point(
+                    Point::new(x as f32 / columns as f32, y as f32 / rows as f32),
+                    frame as f64,
+                );
+                bounds.min.x = bounds.min.x.min(q.x);
+                bounds.min.y = bounds.min.y.min(q.y);
+                bounds.max.x = bounds.max.x.max(q.x);
+                bounds.max.y = bounds.max.y.max(q.y);
+            }
+        }
+        if raster.layer == GraphicLayer::Background
+            && (bounds.max.x - bounds.min.x) * (bounds.max.y - bounds.min.y)
+                > p.width as f32 * p.height as f32 * 0.45
+        {
+            continue;
+        }
+        out.push((raster.id, "raster_artwork", bounds));
+    }
     out
 }
 pub fn review(p: &Project, start: u32, end: u32, step: u32) -> Result<Vec<LayoutIssue>> {

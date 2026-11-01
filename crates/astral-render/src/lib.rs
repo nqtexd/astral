@@ -2,10 +2,20 @@
 use anyhow::{Context, Result, ensure};
 use astral_core::*;
 mod presentation;
+mod raster_images;
 mod text;
+pub use raster_images::{
+    DecodedBitmap, TextureVertex, decode_bitmap, paint_image, validate_artwork,
+};
 
 #[derive(Clone, Debug)]
 pub enum Primitive {
+    Image {
+        bitmap: std::sync::Arc<DecodedBitmap>,
+        vertices: Vec<TextureVertex>,
+        indices: Vec<u32>,
+        opacity: f32,
+    },
     Path {
         contours: Vec<Vec<Point>>,
         color: Color,
@@ -48,6 +58,7 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
             (p.y - scene.center.y) * scene.zoom + project.height as f32 / 2.,
         )
     };
+    raster_images::append(&mut out, project, &scene, frame, GraphicLayer::Background);
     presentation::append_graphics(&mut out, project, &scene, frame, GraphicLayer::Background);
     for d in &project.drawings {
         let learned = project
@@ -257,6 +268,8 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
         }
     }
     presentation::append_graphics(&mut out, project, &scene, frame, GraphicLayer::Foreground);
+    raster_images::append(&mut out, project, &scene, frame, GraphicLayer::Foreground);
+    raster_images::mouths(&mut out, project, &scene, frame);
     presentation::append_dialogues(&mut out, project, &scene, frame);
     out
 }
@@ -352,6 +365,20 @@ fn rasterize_with_framing(
             ..Default::default()
         };
         match primitive {
+            Primitive::Image {
+                bitmap,
+                vertices,
+                indices,
+                opacity,
+            } => raster_images::draw(
+                &mut pixmap,
+                bitmap,
+                vertices,
+                indices,
+                *opacity,
+                scale,
+                mask.as_ref(),
+            ),
             Primitive::Path { contours, color: c } => {
                 paint.set_color(color(*c));
                 let mut builder = tiny_skia::PathBuilder::new();
@@ -469,6 +496,7 @@ pub fn tessellate(contours: &[Vec<Point>]) -> Result<(Vec<Point>, Vec<u32>)> {
 }
 pub fn png(project: &Project, frame: f64, width: u32, height: u32) -> Result<Vec<u8>> {
     project.validate()?;
+    validate_artwork(project)?;
     ensure!(
         frame.is_finite() && frame >= 0. && frame < project.duration as f64,
         "Frame must be inside the project"
@@ -581,3 +609,9 @@ mod tests {
         assert!(png(&p, 0., 9000, 10).is_err());
     }
 }
+
+#[cfg(feature = "gpu")]
+pub mod gpu;
+
+mod text_review;
+pub use text_review::{TextIssue, fit_and_place, review_text};

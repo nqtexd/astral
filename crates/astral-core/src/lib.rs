@@ -25,3 +25,6 @@ pub mod director;
 pub mod locomotion;
 
 pub mod composition;
+
+pub mod raster;
+pub use raster::*;

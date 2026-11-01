@@ -246,6 +246,12 @@ pub struct NamedPose {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Project {
+    #[serde(default)]
+    pub bitmaps: Vec<crate::Bitmap>,
+    #[serde(default)]
+    pub rasters: Vec<crate::RasterLayer>,
+    #[serde(default)]
+    pub mouths: Vec<crate::MouthTrack>,
     pub schema: u32,
     pub id: Id,
     pub revision: u64,
@@ -287,6 +293,9 @@ impl Project {
     pub fn new(name: impl Into<String>, width: u32, height: u32, fps: u32, duration: u32) -> Self {
         Self {
             schema: 2,
+            bitmaps: vec![],
+            rasters: vec![],
+            mouths: vec![],
             id: Id::new_v4(),
             revision: 0,
             name: name.into(),
@@ -316,7 +325,7 @@ impl Project {
     }
     pub fn validate(&self) -> Result<()> {
         ensure!(
-            matches!(self.schema, 1..=7),
+            matches!(self.schema, 1..=8),
             "Unsupported Astral schema {}",
             self.schema
         );
@@ -372,6 +381,7 @@ impl Project {
         crate::storyboard::validate(self, &crate::storyboard::read(self)?)?;
         crate::staging::validate_cues(self, &crate::staging::cues(self)?)?;
         crate::interactions::validate(self, &crate::interactions::read(self)?)?;
+        crate::raster::validate(self)?;
         let mut ids = BTreeSet::new();
         if !self.layers.is_empty() || !self.cels.is_empty() {
             ensure!(
@@ -392,6 +402,9 @@ impl Project {
             .chain(self.layers.iter().map(|v| v.id))
             .chain(self.cels.iter().map(|v| v.id))
             .chain(self.poses.iter().map(|v| v.id))
+            .chain(self.bitmaps.iter().map(|v| v.id))
+            .chain(self.rasters.iter().map(|v| v.id))
+            .chain(self.mouths.iter().map(|v| v.id))
             .chain(self.graphics.iter().map(|v| v.id))
             .chain(self.dialogues.iter().map(|v| v.id))
             .chain(self.learned_motions.iter().map(|v| v.id))

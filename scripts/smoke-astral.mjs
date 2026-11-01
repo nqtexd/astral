@@ -77,7 +77,7 @@ try{
   const legacyPacked=deflateSync(legacyRaw);const header=Buffer.alloc(56);
   header.write('STYK');header[4]=1;header[5]=1;header.writeBigUInt64LE(BigInt(legacyRaw.length),8);header.writeBigUInt64LE(BigInt(legacyPacked.length),16);createHash('sha256').update(legacyRaw).digest().copy(header,24);
   const legacyFile=Buffer.concat([header,legacyPacked]);await writeFile(path.join(workspace,'legacy.styk'),legacyFile);
-  const legacy=await tool('import_legacy',{path:'legacy.styk'});assert.ok(legacy.warnings.some(w=>w.includes('not implemented')));
+  const legacy=await tool('import_legacy',{path:'legacy.styk'});assert.ok(legacy.warnings.some(w=>w.includes('not reproduced')));
   const archived=(await tool('inspect_project',{project:legacy.project})).document;
   assert.deepEqual(Buffer.from(archived.metadata.legacy.source_base64,'base64'),legacyFile);
   assert.deepEqual(archived.metadata.legacy.document.figure_types,JSON.parse(legacyRaw).figure_types);

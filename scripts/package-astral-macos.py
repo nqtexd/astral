@@ -1,10 +1,11 @@
 """Package a native macOS development build. No Developer ID/notarization claim."""
 from pathlib import Path
-import hashlib,json,os,platform,plistlib,shutil,subprocess,tarfile
+import argparse,hashlib,json,os,platform,plistlib,shutil,subprocess,tarfile
 
 ROOT=Path(__file__).resolve().parents[1]
 from astral_notices import notices
 def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--include-encoder',action='store_true');args=parser.parse_args()
     if platform.system()!='Darwin':raise SystemExit('A native Mac build runner is required; packaging was not attempted.')
     import tomllib
     version=tomllib.loads((ROOT/'Cargo.toml').read_text())['workspace']['package']['version']
@@ -15,14 +16,15 @@ def main():
         shutil.copy2(ROOT/'target/release'/source,binary/target)
     # The desktop encoder resolver also checks executable-parent/resources.
     encoder=binary/'resources';encoder.mkdir(exist_ok=True)
-    for source in (ROOT/'build/video-encoder').iterdir():
-        if source.is_file():shutil.copy2(source,encoder/source.name)
+    if args.include_encoder:
+        for source in (ROOT/'build/video-encoder').iterdir():
+            if source.is_file():shutil.copy2(source,encoder/source.name)
     for directory in ['models','docs']:
         shutil.copytree(ROOT/directory,resources/directory,dirs_exist_ok=True)
     for source in ['COPYING','README.md']:shutil.copy2(ROOT/source,resources/source)
     for name,data in notices(ROOT).items():
         file=resources/'THIRD_PARTY'/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(data)
-    plist={'CFBundleExecutable':'Astral','CFBundleIdentifier':'org.astral.studio.preview','CFBundleName':'Astral Preview','CFBundleDisplayName':'Astral Preview','CFBundleShortVersionString':'0.11.0','CFBundleVersion':'1100','CFBundlePackageType':'APPL','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True}
+    plist={'CFBundleExecutable':'Astral','CFBundleIdentifier':'org.astral.studio.preview','CFBundleName':'Astral Preview','CFBundleDisplayName':'Astral Preview','CFBundleShortVersionString':version,'CFBundleVersion':''.join(version.split('.'))+'0','NSMicrophoneUsageDescription':'Record a voice clip locally when you press Record in Astral.','CFBundlePackageType':'APPL','LSMinimumSystemVersion':'13.0','NSHighResolutionCapable':True}
     (contents/'Info.plist').write_bytes(plistlib.dumps(plist))
     subprocess.run(['codesign','--force','--deep','--sign','-',str(app)],check=True)
     # Ad-hoc signing supports local testing; Gatekeeper acceptance is not claimed.

@@ -231,9 +231,11 @@ impl Service {
                 step,
             } => {
                 let p = self.snapshot(project)?;
-                Ok(serde_json::to_value(astral_core::staging::review(
-                    &p, start, end, step,
-                )?)?)
+                let mut result =
+                    serde_json::to_value(astral_core::staging::review(&p, start, end, step)?)?;
+                result["text_review"] =
+                    serde_json::to_value(astral_render::review_text(&p, start, end))?;
+                Ok(result)
             }
 
             ProductionRequest::Edit {
@@ -248,7 +250,17 @@ impl Service {
                     p.revision == expected_revision,
                     "Stale revision: inspect the document before editing"
                 );
-                let plan = plan(&p, tool)?;
+                let plan = if let StudioOperation::LayoutDialogue { dialogue } = tool {
+                    let (dialogue, warnings) = astral_render::fit_and_place(&p, dialogue)?;
+                    StudioPlan {
+                        name: "Fit and place dialogue".into(),
+                        commands: vec![Command::ReplaceDialogue { dialogue }],
+                        warnings,
+                        ..Default::default()
+                    }
+                } else {
+                    plan(&p, tool)?
+                };
                 let mut value = json!({"project":project,"revision":p.revision,"plan":plan,"preview_frame":preview_frame});
                 let mut preview = p.clone();
                 if !plan.commands.is_empty() {

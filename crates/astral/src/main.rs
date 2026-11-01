@@ -65,6 +65,8 @@ enum Mode {
         output: String,
         #[arg(long)]
         hardware: bool,
+        #[arg(long, value_enum, default_value = "auto")]
+        renderer: astral::export::RenderBackend,
         #[arg(long, value_enum, default_value = "original")]
         preset: astral::export::Preset,
         #[arg(long, value_enum, default_value = "fit")]
@@ -169,6 +171,7 @@ async fn main() -> Result<()> {
             path,
             output,
             hardware,
+            renderer,
             preset,
             framing,
             quality,
@@ -184,6 +187,7 @@ async fn main() -> Result<()> {
                 spec: astral::export::ExportSpec {
                     path: output,
                     hardware,
+                    renderer,
                     start,
                     end,
                     preset,

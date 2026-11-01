@@ -315,6 +315,16 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
+        description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera-key proposals (source-pixel seed, at most 120 frames). Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD text/masks/groups/blends are not native equivalents; warnings describe limits. Use apply_commands PutRasterLayer for transform and mesh-pin edits."
+    )]
+    async fn artwork_tools(
+        &self,
+        Parameters(request): Parameters<crate::artwork::ArtworkRequest>,
+    ) -> CallToolResult {
+        self.dispatch(Request::Artwork { request }).await
+    }
+
+    #[tool(
         description = "Inspect the last 200 local project edits, changed document sections, revision numbers and timestamps. This is an activity log, not a complete version backup."
     )]
     async fn project_activity(&self, Parameters(a): Parameters<ProjectArgs>) -> CallToolResult {

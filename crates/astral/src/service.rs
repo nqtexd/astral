@@ -15,6 +15,9 @@ use std::{
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 pub enum Request {
+    Artwork {
+        request: crate::artwork::ArtworkRequest,
+    },
     Production {
         request: crate::production::ProductionRequest,
     },
@@ -197,6 +200,7 @@ impl Service {
     }
     pub fn request(&self, request: Request) -> Result<Value> {
         match request {
+            Request::Artwork { request } => self.artwork(request),
             Request::ProjectActivity { project } => Ok(
                 json!({"project":project,"entries":self.project_activity(project)?,"note":"Local activity log: last 200 edits; not a version-control backup"}),
             ),
@@ -315,8 +319,24 @@ impl Service {
             Request::InspectProject { project, frame } => {
                 let p = self.snapshot(project)?;
                 ensure!(frame.is_none_or(f64::is_finite), "Frame must be finite");
+                let mut light = p.clone();
+                for bitmap in &mut light.bitmaps {
+                    bitmap.png = std::sync::Arc::from("");
+                }
+                let mut document = serde_json::to_value(&light)?;
+                if let Some(bitmaps) = document["bitmaps"].as_array_mut() {
+                    for bitmap in bitmaps {
+                        let len = p
+                            .bitmaps
+                            .iter()
+                            .find(|b| json!(b.id) == bitmap["id"])
+                            .map_or(0, |b| b.png.len());
+                        bitmap.as_object_mut().unwrap().remove("png");
+                        bitmap["encoded_bytes"] = json!(len);
+                    }
+                }
                 Ok(
-                    json!({"document":p,"scene":frame.map(|f|evaluate(&p,f)),"capabilities":capabilities()}),
+                    json!({"document":document,"scene":frame.map(|f|evaluate(&p,f)),"capabilities":capabilities()}),
                 )
             }
             Request::ApplyCommands { batch } => {
@@ -423,7 +443,7 @@ impl Service {
                     warnings = saved.1;
                 }
                 Ok(
-                    json!({"project":project,"revision":p.revision,"frame":frame,"mime_type":"image/png","image_base64":STANDARD.encode(bytes),"path":actual_path,"requested_path":path,"warnings":warnings,"layout_review":layout_review}),
+                    json!({"project":project,"revision":p.revision,"frame":frame,"mime_type":"image/png","image_base64":STANDARD.encode(bytes),"path":actual_path,"requested_path":path,"warnings":warnings,"text_review":astral_render::review_text(&p,review_frame,review_frame),"layout_review":layout_review}),
                 )
             }
             Request::ListPresets => Ok(
@@ -599,5 +619,5 @@ pub fn summary(p: &Project) -> Value {
     json!({"project":p.id,"revision":p.revision,"name":p.name,"width":p.width,"height":p.height,"fps":p.fps,"duration":p.duration})
 }
 pub fn capabilities() -> Value {
-    json!({"single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"lossless_archive_only","legacy_native_editing":false,"image_asset_rendering":false,"audio":"PCM_WAV","glow_blur":"stylized_overlays_not_filters","export":"CPU_rasterization_FFmpeg_hardware_encoding_optional"})
+    json!({"single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"archived_original_and_supported_authored_pose_cels","legacy_native_editing":"supported_lines_and_circles_as_drawing_cels","image_asset_rendering":true,"raster_artwork":"embedded_PNG_JPEG_PSD_layers_sequences_per_frame_paint_mesh_pins","lip_sync":"editable_envelope_text_guided_cues","tracking":"bounded_local_template_camera_proposals","microphone":"user_initiated_60_seconds","audio":"PCM_WAV","glow_blur":"stylized_overlays_not_filters","export":"CPU_or_physical_wgpu_GPU_rasterization_FFmpeg_hardware_encoding_optional"})
 }

@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "product": "Astral",
+  "version": "0.13.0",
+  "requested_release": "Moho Debut-equivalent features plus Astral tools on desktop, phones and tablets",
+  "inventory_complete": false,
+  "reference_scope": "Minimum confirmed requirements from the official Debut product page and the 14.5 announcement; an exhaustive edition-by-edition comparison remains required.",
+  "sources": [
+    "https://moho.lostmarble.com/products/moho-debut-14",
+    "https://moho.lostmarble.com/blogs/news/moho-14-5-showtime-design-rig-and-animate-characters-live-all-the-power-of-moho-now-live"
+  ],
+  "features": [
+    {
+      "id": "freehand_frames",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/cels.rs"
+    },
+    {
+      "id": "editable_vector_points_curves",
+      "status": "partial",
+      "gap": "Custom contours and strokes exist; a full editable Bezier/vector-point toolset is missing."
+    },
+    {
+      "id": "vector_fills_brush_styles",
+      "status": "partial",
+      "gap": "Basic filled graphics and stroke width/color exist; paint-bucket and brush-style equivalents are missing."
+    },
+    {
+      "id": "pen_pressure",
+      "status": "missing"
+    },
+    {
+      "id": "bitmap_layers",
+      "status": "implemented",
+      "evidence": "crates/astral/tests/artwork.rs"
+    },
+    {
+      "id": "layered_psd_import",
+      "status": "partial",
+      "evidence": "crates/astral/tests/artwork.rs",
+      "gap": "8-bit RGB layers/composite only; PSD text, masks, blend groups, ZIP compression, PSB and high-bit-depth equivalence remain unsupported."
+    },
+    {
+      "id": "pin_deformation",
+      "status": "implemented",
+      "evidence": "crates/astral-core/src/raster.rs"
+    },
+    {
+      "id": "rigging_ik_fk",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/studio.rs"
+    },
+    {
+      "id": "rig_driven_correctives",
+      "status": "missing"
+    },
+    {
+      "id": "mesh_curve_deformation",
+      "status": "partial",
+      "evidence": "crates/astral-core/src/raster.rs",
+      "gap": "Animated raster grid/pins exist; advanced curve cages, ARAP/rig-driven deformation parity is not implemented."
+    },
+    {
+      "id": "keyframe_timeline",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/transactions.rs"
+    },
+    {
+      "id": "multi_layer_editing",
+      "status": "partial",
+      "gap": "Batch tools operate on one layer/rig at a time."
+    },
+    {
+      "id": "editable_content_library",
+      "status": "partial",
+      "gap": "Original editable tester scenes supplied; a broad licensed content pack is unfinished.",
+      "evidence": "docs/showcase/README.md"
+    },
+    {
+      "id": "audio_recording",
+      "status": "partial",
+      "evidence": "crates/astral/src/recording.rs",
+      "gap": "User-initiated bounded desktop capture implemented; synthetic WAV tests pass. Physical microphone/device interruption checks remain."
+    },
+    {
+      "id": "audio_formats_pitch_sequencing",
+      "status": "partial",
+      "gap": "WAV, gain, fades and cues exist; complete input-format and clip-pitch parity is unverified."
+    },
+    {
+      "id": "automatic_lipsync",
+      "status": "partial",
+      "evidence": "crates/astral/tests/artwork.rs",
+      "gap": "Editable envelope/text-guided mouth cues; not phoneme recognition or language-complete lip sync."
+    },
+    {
+      "id": "object_follow_path",
+      "status": "partial",
+      "gap": "Rig motion paths exist; general object/path deformation parity is missing."
+    },
+    {
+      "id": "video_import_tracking",
+      "status": "partial",
+      "evidence": "crates/astral/src/artwork.rs",
+      "gap": "Bounded video image-sequence import and local template tracking; long-form decoding, occlusion recovery and general object tracking remain."
+    },
+    {
+      "id": "video_still_export_formats",
+      "status": "partial",
+      "gap": "Several desktop exports work; MOV/AVI parity and native mobile video encoding are incomplete."
+    },
+    {
+      "id": "multiple_documents",
+      "status": "implemented",
+      "evidence": "crates/astral/tests/projects.rs"
+    },
+    {
+      "id": "shortcut_editor",
+      "status": "missing"
+    },
+    {
+      "id": "live_model_playback_streaming",
+      "status": "missing"
+    },
+    {
+      "id": "localization",
+      "status": "missing"
+    },
+    {
+      "id": "astral_storyboard",
+      "status": "implemented",
+      "evidence": "crates/astral-core/src/storyboard.rs"
+    },
+    {
+      "id": "astral_mcp_revision_history",
+      "status": "implemented",
+      "evidence": "scripts/check-astral-director.mjs"
+    },
+    {
+      "id": "astral_frame_learning",
+      "status": "implemented",
+      "evidence": "crates/astral-assist/tests/assistance.rs"
+    },
+    {
+      "id": "astral_stick_image_rig_mapping",
+      "status": "implemented",
+      "evidence": "crates/astral-assist/tests/assistance.rs"
+    },
+    {
+      "id": "astral_contact_prop_review",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/interactions.rs"
+    },
+    {
+      "id": "astral_seeded_director",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/director.rs"
+    }
+  ],
+  "platforms": [
+    {
+      "id": "windows_x64",
+      "status": "development",
+      "evidence": null
+    },
+    {
+      "id": "macos_arm64",
+      "status": "not_built",
+      "evidence": null
+    },
+    {
+      "id": "macos_x64",
+      "status": "not_built",
+      "evidence": null
+    },
+    {
+      "id": "android_phone",
+      "status": "in_development",
+      "evidence": null
+    },
+    {
+      "id": "android_tablet",
+      "status": "in_development",
+      "evidence": null
+    },
+    {
+      "id": "iphone",
+      "status": "not_built",
+      "evidence": null
+    },
+    {
+      "id": "ipad",
+      "status": "not_built",
+      "evidence": null
+    }
+  ],
+  "publication": {
+    "license_provenance_reviewed": false,
+    "corresponding_source_verified": false,
+    "app_store_distribution_rights_cleared": false,
+    "privacy_api_inventory_reviewed": false,
+    "store_accounts_configured": false,
+    "production_signing_configured": false
+  }
+}

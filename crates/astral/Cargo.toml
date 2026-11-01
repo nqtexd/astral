@@ -17,7 +17,7 @@ desktop = ["dep:eframe", "dep:rfd", "dep:rodio"]
 [dependencies]
 astral-core.workspace = true
 astral-storage.workspace = true
-astral-render.workspace = true
+astral-render = {workspace=true,features=["gpu"]}
 astral-audio.workspace = true
 astral-codecs.workspace = true
 astral-assist.workspace = true
@@ -32,7 +32,10 @@ rmcp = { version = "=3.8.0", features = ["server", "macros", "transport-io"] }
 base64 = "0.22"
 tempfile = "3"
 zip = { version = "2.4", default-features = false, features = ["deflate"] }
-image = {version="0.25",default-features=false,features=["png","jpeg"]}
+image = {version="0.25",default-features=false,features=["png","jpeg","gif","bmp","webp"]}
+psd = "=0.3.5"
+hound = "3.5"
+cpal = "0.16"
 eframe = { version = "=0.37.0", optional = true, default-features = false, features = ["wgpu", "default_fonts", "accesskit", "persistence", "clipboard", "x11", "wayland"] }
 rfd = { version = "0.15", optional = true }
 rodio = { version = "0.21", optional = true, default-features = false, features = ["playback", "wav"] }
@@ -41,4 +44,3 @@ rodio = { version = "0.21", optional = true, default-features = false, features 
 windows = { version="0.62",features=["Media_SpeechSynthesis","Media_Core","Storage_Streams","Foundation","Win32_System_WinRT"] }
 
 [dev-dependencies]
-hound = "3.5"

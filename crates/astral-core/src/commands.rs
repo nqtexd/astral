@@ -7,6 +7,15 @@ use std::collections::VecDeque;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
+    AddBitmap {
+        bitmap: Bitmap,
+    },
+    PutRasterLayer {
+        layer: RasterLayer,
+    },
+    PutMouthTrack {
+        track: MouthTrack,
+    },
     SetDirectorHistory {
         seeds: Vec<u64>,
     },
@@ -259,17 +268,17 @@ impl Session {
             || !next.learned_motions.is_empty()
             || !next.drawing_motions.is_empty()
         {
-            next.schema = 2;
+            next.schema = next.schema.max(2);
         }
         if !next.layers.is_empty() || !next.cels.is_empty() {
-            next.schema = 3;
+            next.schema = next.schema.max(3);
         }
         if next
             .dialogues
             .iter()
             .any(|d| d.formatting != TextFormatting::default())
         {
-            next.schema = 4;
+            next.schema = next.schema.max(4);
         }
         if next.characters.iter().any(|c| c.preserve_bones)
             || next.effects.iter().any(|e| {
@@ -282,16 +291,19 @@ impl Session {
                 )
             })
         {
-            next.schema = 5;
+            next.schema = next.schema.max(5);
         }
         if !next.markers.is_empty() {
-            next.schema = 5;
+            next.schema = next.schema.max(5);
         }
         if !next.bindings.is_empty() {
-            next.schema = 6;
+            next.schema = next.schema.max(6);
         }
         if next.graphics.iter().any(|g| !g.contours.is_empty()) {
-            next.schema = 7;
+            next.schema = next.schema.max(7);
+        }
+        if !next.bitmaps.is_empty() || !next.rasters.is_empty() || !next.mouths.is_empty() {
+            next.schema = next.schema.max(8);
         }
         next.validate()?;
         next.revision = self
@@ -380,6 +392,29 @@ fn set_key(c: &mut Character, key: PoseKey) {
 }
 fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<()> {
     match command {
+        Command::AddBitmap { bitmap } => {
+            p.schema = p.schema.max(8);
+            created.push(bitmap.id);
+            p.bitmaps.push(bitmap);
+        }
+        Command::PutRasterLayer { layer } => {
+            p.schema = p.schema.max(8);
+            if let Some(old) = p.rasters.iter_mut().find(|r| r.id == layer.id) {
+                *old = layer;
+            } else {
+                created.push(layer.id);
+                p.rasters.push(layer);
+            }
+        }
+        Command::PutMouthTrack { track } => {
+            p.schema = p.schema.max(8);
+            if let Some(old) = p.mouths.iter_mut().find(|m| m.id == track.id) {
+                *old = track;
+            } else {
+                created.push(track.id);
+                p.mouths.push(track);
+            }
+        }
         Command::SetDirectorHistory { seeds } => {
             ensure!(seeds.len() <= 16, "Keep at most 16 recent director seeds");
             p.metadata.insert(
@@ -687,6 +722,31 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
                 e.start = map(e.start)?;
                 e.end = map(e.end)?
             }
+            for r in &mut p.rasters {
+                r.start = map(r.start)?;
+                r.end = map(r.end)?;
+                for k in &mut r.keys {
+                    k.frame = map(k.frame)?;
+                }
+                for c in &mut r.cels {
+                    c.frame = map(c.frame)?;
+                }
+                if let Some(mesh) = &mut r.mesh {
+                    for pin in &mut mesh.pins {
+                        for k in &mut pin.keys {
+                            k.frame = map(k.frame)?;
+                        }
+                    }
+                }
+            }
+            for m in &mut p.mouths {
+                m.start = map(m.start)?;
+                m.end = map(m.end)?;
+                for k in &mut m.keys {
+                    k.frame = map(k.frame)?;
+                }
+            }
+
             if p.metadata.contains_key(crate::storyboard::KEY) {
                 let mut board = crate::storyboard::read(p)?;
                 for shot in &mut board.shots {
@@ -780,7 +840,29 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
                 + p.learned_motions.len()
                 + p.drawing_motions.len()
                 + p.layers.len()
-                + p.cels.len();
+                + p.cels.len()
+                + p.rasters.len()
+                + p.mouths.len()
+                + p.bitmaps.len();
+            let retired: Vec<_> = p
+                .rasters
+                .iter()
+                .filter(|r| r.id == id)
+                .flat_map(|r| {
+                    r.sources
+                        .iter()
+                        .copied()
+                        .chain(r.cels.iter().filter_map(|c| c.bitmap))
+                })
+                .collect();
+            p.rasters.retain(|r| r.id != id);
+            p.mouths.retain(|m| m.id != id && m.character != id);
+            p.bitmaps.retain(|b| {
+                let used = p.rasters.iter().any(|r| {
+                    r.sources.contains(&b.id) || r.cels.iter().any(|c| c.bitmap == Some(b.id))
+                });
+                used || (b.id != id && !retired.contains(&b.id))
+            });
             if p.character(id).is_some() {
                 editable(p, id)?;
                 p.actions.retain(|a| a.character != id);
@@ -847,7 +929,10 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
                 + p.learned_motions.len()
                 + p.drawing_motions.len()
                 + p.layers.len()
-                + p.cels.len();
+                + p.cels.len()
+                + p.rasters.len()
+                + p.mouths.len()
+                + p.bitmaps.len();
             ensure!(after < count, "Entity not found");
         }
         Command::SetCels { layer, cels } => {

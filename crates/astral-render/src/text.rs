@@ -13,6 +13,7 @@ struct Glyph {
 }
 struct Layout {
     glyphs: Vec<Glyph>,
+    truncated: bool,
 }
 #[derive(Default)]
 struct TextCache {
@@ -134,6 +135,7 @@ fn layout(text: &str, size: f32, width: f32, height: f32, format: &TextFormattin
     }
     let line_height = size * format.line_height;
     let max_lines = (height / line_height).floor().max(0.) as usize;
+    let truncated = lines.len() > max_lines || lines.iter().any(|line| measure(line) > width + 0.1);
     if lines.len() > max_lines && max_lines > 0 {
         lines.truncate(max_lines);
         let last = lines.last_mut().unwrap();
@@ -176,7 +178,7 @@ fn layout(text: &str, size: f32, width: f32, height: f32, format: &TextFormattin
         }
         prior += line.graphemes(true).count() + 1;
     }
-    Layout { glyphs }
+    Layout { glyphs, truncated }
 }
 struct Outline {
     contours: Contours,
@@ -242,4 +244,9 @@ impl ttf_parser::OutlineBuilder for Outline {
     fn close(&mut self) {
         self.finish();
     }
+}
+
+/// Uses exactly the same shaping and wrapping as the exported glyph outlines.
+pub fn overflows(text: &str, size: f32, width: f32, height: f32, format: &TextFormatting) -> bool {
+    width <= 0. || height <= 0. || layout(text, size, width, height, format).truncated
 }

@@ -164,7 +164,7 @@ pub(super) fn foot_lock(
         .find(|c| c.id == character)
         .unwrap()
         .preserve_bones = true;
-    source.schema = 5;
+    source.schema = source.schema.max(5);
     let poses: Vec<_> = (start..=end)
         .map(|f| pose_at(&source, character, f))
         .collect::<Result<_>>()?;

@@ -357,7 +357,7 @@ dependencies = [
 
 [[package]]
 name = "astral"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-assist",
@@ -368,9 +368,11 @@ dependencies = [
  "astral-storage",
  "base64 0.22.1",
  "clap",
+ "cpal",
  "eframe",
  "hound",
  "image",
+ "psd",
  "rfd",
  "rmcp",
  "rodio",
@@ -386,7 +388,7 @@ dependencies = [
 
 [[package]]
 name = "astral-assist"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-core",
@@ -400,7 +402,7 @@ dependencies = [
 
 [[package]]
 name = "astral-audio"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-core",
@@ -410,7 +412,7 @@ dependencies = [
 
 [[package]]
 name = "astral-codecs"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-core",
@@ -421,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "astral-core"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-ml",
@@ -433,7 +435,7 @@ dependencies = [
 
 [[package]]
 name = "astral-ml"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "schemars",
@@ -442,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "astral-mobile"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "android-activity",
  "android_logger",
@@ -459,21 +461,28 @@ dependencies = [
 
 [[package]]
 name = "astral-render"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-core",
+ "base64 0.22.1",
+ "bytemuck",
+ "egui",
  "harfrust",
+ "image",
  "lyon_tessellation",
+ "pollster 0.4.0",
+ "serde",
  "serde_json",
  "tiny-skia",
  "ttf-parser",
  "unicode-segmentation",
+ "wgpu",
 ]
 
 [[package]]
 name = "astral-storage"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "astral-core",
@@ -974,6 +983,12 @@ checksum = "2ec7c5eb7a16992b1904d76c517d170ab353b0e0b3d5a0c81a8a0cd1037893cf"
 dependencies = [
  "bytemuck",
 ]
+
+[[package]]
+name = "color_quant"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
 name = "colorchoice"
@@ -1815,6 +1830,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gif"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8cfcc411d9adbbaba82fb72661cc1bcca13e8bba98b364e62b2dba8f960159"
+dependencies = [
+ "color_quant",
+ "weezl",
+]
+
+[[package]]
 name = "gl_generator"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2161,12 +2186,25 @@ checksum = "85ab80394333c02fe689eaf900ab500fbd0c2213da414687ebf995a65d5a6104"
 dependencies = [
  "bytemuck",
  "byteorder-lite",
+ "color_quant",
+ "gif",
+ "image-webp",
  "moxcms",
  "num-traits",
  "png 0.18.1",
  "tiff",
  "zune-core",
  "zune-jpeg",
+]
+
+[[package]]
+name = "image-webp"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "525e9ff3e1a4be2fbea1fdf0e98686a6d98b4d8f937e1bf7402245af1909e8c3"
+dependencies = [
+ "byteorder-lite",
+ "quick-error",
 ]
 
 [[package]]
@@ -3358,6 +3396,15 @@ name = "profiling"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d595e54a326bc53c1c197b32d295e14b169e3cfeaa8dc82b529f947fba6bcf5"
+
+[[package]]
+name = "psd"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a25f9b8cfffd65d911baf31a033239f7a0facb755faa2481575b70db5dc9195"
+dependencies = [
+ "thiserror 1.0.69",
+]
 
 [[package]]
 name = "pxfm"

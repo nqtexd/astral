@@ -2,11 +2,13 @@
 
 ## Astral and upstream code
 
-GPL-3.0-or-later; the complete license is in [COPYING](COPYING). Original StykAnimate attribution is retained. [Credits](CREDITS.md) identify the upstream repository. Source for this Astral release is the v0.12.0 tag and its attached source archive.
+GPL-3.0-or-later; the complete license is in [COPYING](COPYING). Original StykAnimate attribution is retained. [Credits](CREDITS.md) identify the upstream repository. Source for this Astral release is the v0.13.0 tag and its attached source archive.
 
 ## Rust dependencies
 
 Cargo.lock records exact versions. The Windows ZIP includes THIRD_PARTY/dependencies.json and license files collected from dependency packages. egui/eframe and wgpu are dual MIT/Apache-2.0; other packages retain the declarations and notices shipped with them. These notices do not relicense those components.
+
+The raster importer uses image (MIT/Apache-2.0) and psd (MIT/Apache-2.0); microphone capture uses cpal (Apache-2.0), and WAV writing uses hound (Apache-2.0). Exact license declarations and texts are collected with the release dependencies. The PNG artwork studies and synthetic impact samples in `docs/showcase` are original project examples under the repository license. The voice study uses an installed Windows system voice; no voice engine or voice dataset is redistributed.
 
 ## Fonts and retained web components
 
@@ -21,7 +23,7 @@ Retained web/Electron sources and vendored helpers are compatibility code. Prese
 
 ## External FFmpeg
 
-The public v0.12.0 Windows package does not include FFmpeg. Obtain it separately through [the official download page](https://ffmpeg.org/download.html) and retain that distribution's licenses. Its license depends on build configuration/components. Developer staging scripts record provenance for local tests; that is not a completed corresponding-source audit for redistributing a third-party binary.
+The public v0.13.0 Windows package does not include FFmpeg. Obtain it separately through [the official download page](https://ffmpeg.org/download.html) and retain that distribution's licenses. Its license depends on build configuration/components. Developer staging scripts record provenance for local tests; that is not a completed corresponding-source audit for redistributing a third-party binary.
 
 ## Scope
 
