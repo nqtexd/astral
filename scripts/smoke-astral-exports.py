@@ -3,6 +3,7 @@
 Requires Pillow for decoded-image assertions. ASTRAL_BINARY can select a package.
 """
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -85,4 +86,5 @@ assert report["plan"]["frames"] == 8
 result = subprocess.run([str(FFMPEG), "-v", "error", "-i", str(WORK / "retimed.mp4"), "-f", "rawvideo", "-pix_fmt", "rgba", "pipe:1"], capture_output=True, timeout=60)
 assert result.returncode == 0 and len(result.stdout) == 320 * 180 * 4 * 8
 (WORK / "report.json").write_text(json.dumps(reports, indent=2), encoding="utf-8")
+(WORK / "report-provenance.json").write_text(json.dumps({"binary_sha256":hashlib.sha256(EXE.read_bytes()).hexdigest(),"exports":len(reports)},indent=2),encoding="utf-8")
 print(json.dumps({"passed": True, "exports": len(reports), "workspace": str(WORK)}))

@@ -29,6 +29,9 @@ codegen-units = 1
 # Parallelize the large UI/CLI/schema shell while keeping the evaluation,
 # rendering and audio crates in their existing optimized configuration.
 [profile.release.package.astral]
+# The UI/CLI/schema shell benefits little from expensive level-3 passes.
+# Engine, vector/raster rendering and audio dependencies retain level 3.
+opt-level = 2
 codegen-units = 8
 
 # Keep local desktop builds small; full debug symbols and incremental object

@@ -14,7 +14,7 @@ Read [the workflow](ASTRAL-0.15-WORKFLOW.md) for exact controls, API fields and 
 - The full agent/feedback workflows and all 16 previous export cases passed. A separate native AVI check decoded 24 video frames and synchronized stereo PCM for a one-second range while the application encoder path was deliberately unavailable.
 - A 180-second headless stress smoke completed 1,283 edits with no failure; measured private-memory growth was about 1.5 MiB. It does **not** satisfy an eight-hour or desktop/physical-input gate.
 
-Final package/build evidence is added before publication. Local paid voice services were not billed or certified. Headless command timing is not physical drawing latency.
+Final package/build evidence is added before publication. The application control/UI/schema crate uses optimization level 2; animation, rendering and audio dependencies retain level 3 to avoid spending excessive build time optimizing control code. Local paid voice services were not billed or certified. Headless command timing is not physical drawing latency.
 
 ## Production scorecard
 

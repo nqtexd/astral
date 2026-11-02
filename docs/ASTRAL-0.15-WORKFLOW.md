@@ -79,9 +79,9 @@ python scripts/stress-astral.py --binary $env:ASTRAL_BINARY --hours 8
 python scripts/check-astral-readiness.py --binary $env:ASTRAL_BINARY --evidence build/production-evidence.json
 ```
 
-The stress runner records bounded private-memory samples, mutations, undo/redo, saves, rendering, failures and command latency. A short smoke does not satisfy eight hours. Headless command latency is **not physical pen-to-pixel latency** or a desktop playback measurement. The readiness checker fails closed without hash-bound evidence for every gate; `--allow-candidate` prints pending work without declaring production readiness.
+The stress runner records bounded private-memory samples, mutations, undo/redo, saves, rendering, failures and command latency. A short smoke does not satisfy eight hours. Headless command latency is **not physical pen-to-pixel latency** or a desktop playback measurement. After the packaged workflow/export suites pass, `collect-astral-evidence.py` binds their results and the Rust integrity log to the exact binary hash. The readiness checker fails closed without hash-bound evidence for every gate; `--allow-candidate` prints pending work without declaring production readiness.
 
-`platforms/windows/Astral.iss` and `scripts/build-astral-installer.ps1` define user-local install/update/uninstall and optional code signing. Production mode requires an owned certificate. No certificate, clean installer VM, physical tablet lab or Apple signing account is present here; scripts alone do not satisfy those gates. Apple/macOS notarization and device releases remain unfinished. Core English/Spanish/French labels are expanded, but full translation/layout/native-language review remains partial.
+`stage-astral-installer.py` pins the official compiler in private portable mode. `platforms/windows/Astral.iss` and `scripts/build-astral-installer.ps1` define user-local install/update/uninstall and optional code signing. Production mode requires an owned certificate. No certificate, clean installer VM, physical tablet lab or Apple signing account is present here; scripts alone do not satisfy those gates. Apple/macOS notarization and device releases remain unfinished. Core English/Spanish/French labels are expanded, but full translation/layout/native-language review remains partial.
 
 ## Implementation references
 

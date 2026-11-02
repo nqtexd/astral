@@ -41,6 +41,9 @@ try {
     foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs','astral-evaluate-legacy.mjs','astral-decode-container.mjs','astral-source-input.mjs','astral-psd.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
 
     Get-ChildItem -LiteralPath (Join-Path $astralRoot 'docs') -Filter 'ASTRAL-*' -File | Where-Object Extension -In @('.md','.json') | Copy-Item -Destination (Join-Path $astralPackage 'docs')
+    $astralGateFolder = Join-Path $astralPackage 'platforms/release'
+    New-Item -ItemType Directory -Force -Path $astralGateFolder | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $astralRoot 'platforms/release') -Filter '*.json' -File | Copy-Item -Destination $astralGateFolder
     # Offline README gallery and editable studies, excluding runtime history and benchmark outputs.
     $astralShowcase = Join-Path $astralRoot 'docs/showcase'
     Get-ChildItem -LiteralPath $astralShowcase -Recurse -File | Where-Object { $_.Extension -in @('.md','.astral','.gif','.png','.wav') -and $_.FullName -notmatch '[\\/](recovery|renders|\.astral-history)[\\/]' } | ForEach-Object {
@@ -76,6 +79,7 @@ try {
     }
     $astralNotices = Join-Path $astralPackage 'THIRD_PARTY'
     New-Item -ItemType Directory -Force -Path $astralNotices | Out-Null
+    Copy-Item -LiteralPath (Join-Path $astralRoot 'platforms/windows/INNO-LICENSE.txt') -Destination (Join-Path $astralNotices 'InnoSetup-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $astralRoot 'vendor/text/OFL.txt') -Destination (Join-Path $astralNotices 'NotoSans-OFL.txt')
     $astralMetadata.packages | Select-Object name,version,license,source | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $astralNotices 'dependencies.json')
     foreach ($astralDependency in $astralMetadata.packages) {

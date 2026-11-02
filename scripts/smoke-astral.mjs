@@ -89,7 +89,7 @@ try{
   const file=await readFile(path.join(workspace,'preview.png'));assert.equal(file.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   const features=await featureAcceptance(tool,workspace,executable);
   const cels=await celAcceptance(tool,workspace,executable);
-  const report={tools:tools.tools.length,characters:after.characters.length,actions:after.actions.length,effects:after.effects.length,audio:after.audio.length,revision,preview_sha256:createHash('sha256').update(file).digest('hex'),stale_revision_rejected:true,atomic_rollback:true,targeted_revision_preserved_tracks:true,cancel_preserved_previous_output:true,legacy_source_preserved:true,features};
+  const report={binary_sha256:createHash('sha256').update(await readFile(executable)).digest('hex'),tools:tools.tools.length,characters:after.characters.length,actions:after.actions.length,effects:after.effects.length,audio:after.audio.length,revision,preview_sha256:createHash('sha256').update(file).digest('hex'),stale_revision_rejected:true,atomic_rollback:true,targeted_revision_preserved_tracks:true,cancel_preserved_previous_output:true,legacy_source_preserved:true,features};
   report.cels=cels;
   report.assistance=await assistanceAcceptance(tool,workspace);
   report.motion=await motionAcceptance(tool,rpc);

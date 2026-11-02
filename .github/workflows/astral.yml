@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/test_astral*.py', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
   pull_request:
-    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/test_astral*.py', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
 permissions:
   contents: read
 jobs:
@@ -34,6 +34,8 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Legacy source evaluation regression
         run: node --test tests/astral-legacy-evaluation.test.mjs tests/astral-psd.test.mjs
+      - name: Production gate checker regression
+        run: python -m unittest discover -s tests -p test_astral_readiness.py
       - name: Strict lint
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Tests
