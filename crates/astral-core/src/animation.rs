@@ -72,6 +72,7 @@ pub fn evaluate(project: &Project, frame: f64) -> EvaluatedScene {
         .iter()
         .filter(|c| c.visible)
         .map(|c| {
+            let frame = project.layer_frame(c.id, frame);
             let i = c
                 .keys
                 .partition_point(|k| k.frame as f64 <= frame)

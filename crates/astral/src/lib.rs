@@ -30,3 +30,4 @@ pub mod speech;
 pub mod diagnostics;
 
 pub mod assets;
+pub mod comic;

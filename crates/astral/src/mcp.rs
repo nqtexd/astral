@@ -315,6 +315,15 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
+        description = "Create editable comic looks on arbitrary drawing/raster/vector graphics: RGB channel offsets, seeded animated glitch bands and rotated luminance halftone; optional independent 12/24 FPS source cadence. inspect_frame returns actual rendered pixels. refine measures sampled rendered differences and halves strengths in at most three rounds to meet a distortion budget; it does not judge artistic quality. Writes use expected_revision and apply defaults false. Animate strength keys or edit graphs with apply_commands set_compositions; restore cadence using set_layer_frame_rate fps:null. Preview and export share rendering."
+    )]
+    async fn comic_tools(
+        &self,
+        Parameters(request): Parameters<crate::comic::ComicRequest>,
+    ) -> CallToolResult {
+        self.dispatch(Request::ComicTools { request }).await
+    }
+    #[tool(
         description = "Inspect linked media, relink missing audio/source files without changing stable IDs, create verified .astralpack snapshots, or unpack into a new workspace folder. Relink requires current revision; package/unpack return cancellable job IDs. All paths are confined to configured project/workspace roots. Embedded raster pixels remain unchanged by source-file relinking; re-import to replace artwork."
     )]
     async fn asset_tools(
@@ -1073,4 +1082,31 @@ pub async fn run(service: Service, live: bool, profile: Profile) -> anyhow::Resu
         .await?;
     server.waiting().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod comic_contract_tests {
+    use super::*;
+    #[test]
+    fn comic_tool_is_discoverable_with_typed_effects_and_revision_controls() {
+        let router = AstralMcp::tool_router();
+        let tool = router
+            .list_all()
+            .into_iter()
+            .find(|t| t.name == "comic_tools")
+            .expect("Comic tool missing");
+        let schema = serde_json::to_string(&tool.input_schema).unwrap();
+        for field in [
+            "create_look",
+            "inspect_frame",
+            "refine",
+            "rgb_split",
+            "halftone",
+            "glitch",
+            "expected_revision",
+            "max_difference",
+        ] {
+            assert!(schema.contains(field), "Schema missing {field}");
+        }
+    }
 }

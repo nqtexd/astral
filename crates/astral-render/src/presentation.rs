@@ -73,6 +73,7 @@ pub fn append_graphics(
         .iter()
         .filter(|g| g.layer == layer && frame >= g.start as f64 && frame <= g.end as f64)
     {
+        let frame = p.layer_frame(g.id, frame);
         let key = if let Some(binding) = bindings.get(&g.id) {
             let Some(evaluated) = s.characters.iter().find(|c| c.id == binding.character) else {
                 continue;

@@ -287,6 +287,8 @@ pub struct Project {
     pub drawings: Vec<Drawing>,
     #[serde(default)]
     pub layers: Vec<crate::DrawingLayer>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub layer_frame_rates: BTreeMap<Id, u32>,
     #[serde(default)]
     pub cels: Vec<crate::DrawingCel>,
     pub assets: Vec<Asset>,
@@ -369,6 +371,7 @@ impl Project {
             camera: vec![],
             drawings: vec![],
             layers: vec![],
+            layer_frame_rates: BTreeMap::new(),
             cels: vec![],
             assets: vec![],
             poses: vec![],
@@ -382,6 +385,7 @@ impl Project {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        crate::comic::validate(self)?;
         crate::validate_symbols(self)?;
         ensure!(
             self.symbols.is_empty() || self.schema >= 11,
@@ -403,7 +407,7 @@ impl Project {
             );
         }
         ensure!(
-            matches!(self.schema, 1..=11),
+            matches!(self.schema, 1..=12),
             "Unsupported Astral schema {}",
             self.schema
         );

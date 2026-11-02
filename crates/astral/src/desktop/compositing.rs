@@ -16,6 +16,10 @@ impl Studio {
      ui.horizontal(|ui|{let width=(ui.available_width()-34.).max(20.);ui.add_sized([width,24.],egui::Label::new(RichText::new(&n.name).strong()).truncate()).on_hover_text(&n.name);if theme::icon_button(ui,"Set composition output",theme::Icon::Check,next.output==n.id).clicked(){next.output=n.id;changed=true;}});
      let choose=|ui:&mut egui::Ui,label:&str,value:&mut Id|->bool{let mut edit=false;egui::ComboBox::from_id_salt(label).selected_text(format!("{label}: {}",names.iter().find(|(id,_)|id==value).map_or("Missing",|(_,name)|name.as_str()))).width(ui.available_width().min(180.)).show_ui(ui,|ui|{for(id,name)in &names{if *id!=n.id{edit|=ui.selectable_value(value,*id,name).changed();}}});edit};
      match &mut n.op {
+      CompositeOp::Comic{source,style}=>{
+       changed|=choose(ui,"Source",source);
+       changed|=comic_controls(ui,style,self.frame as u32);
+      },
       CompositeOp::Blend{below,above,mode,opacity}|CompositeOp::Clip{below,above,mode,opacity}=>{changed|=choose(ui,"Below",below);changed|=choose(ui,"Above",above);egui::ComboBox::from_id_salt("blend").selected_text(format!("{mode:?}")).show_ui(ui,|ui|{for value in BlendMode::ALL{changed|=ui.selectable_value(mode,value,format!("{value:?}")).changed();}});changed|=ui.add(egui::Slider::new(opacity,0.0..=1.).text("Opacity")).changed();},
       CompositeOp::Mask{source,mask,invert,luminance}=>{changed|=choose(ui,"Source",source);changed|=choose(ui,"Mask",mask);changed|=ui.checkbox(invert,"Invert").changed();changed|=ui.checkbox(luminance,"Luminance").changed();},
       CompositeOp::Blur{source,radius}=>{changed|=choose(ui,"Source",source);changed|=ui.add(egui::Slider::new(radius,0..=32).text(i18n::tr("Blur"))).changed();},
@@ -35,10 +39,106 @@ impl Studio {
     });
     ui.horizontal_wrapped(|ui|{for label in ["Mask","Blend","Clip to base"]{if ui.add_enabled(next.nodes.len()>=2,egui::Button::new(label)).clicked(){let below=next.output;let above=next.nodes.iter().rev().find(|n|n.id!=below).unwrap().id;let id=Id::new_v4();let op=match label{"Mask"=>CompositeOp::Mask{source:below,mask:above,invert:false,luminance:false},"Clip to base"=>CompositeOp::Clip{below,above,mode:BlendMode::Normal,opacity:1.},_=>CompositeOp::Blend{below,above,mode:BlendMode::Normal,opacity:1.}};next.nodes.push(CompositeNode{id,name:label.into(),op});next.output=id;changed=true;}}});
     ui.horizontal_wrapped(|ui|{for label in ["Blur","Color","Gradient fill"]{if ui.button(label).clicked(){let source=next.output;let id=Id::new_v4();let op=match label{"Blur"=>CompositeOp::Blur{source,radius:4},"Color"=>CompositeOp::Color{source,exposure:0.,saturation:1.},_=>{let gradient=Id::new_v4();next.nodes.push(CompositeNode{id:gradient,name:"Gradient".into(),op:CompositeOp::Gradient{start:Point::new(0.,0.),end:Point::new(1.,1.),from:[66,140,230,255],to:[172,93,228,255],radial:false}});CompositeOp::Mask{source:gradient,mask:source,invert:false,luminance:false}}};next.nodes.push(CompositeNode{id,name:label.into(),op});next.output=id;changed=true;}}});
+    ui.horizontal_wrapped(|ui|{for label in ["RGB split","Glitch","Halftone"]{if ui.button(label).clicked(){
+     let style=match label{
+      "RGB split"=>ComicStyle::RgbSplit{offset:Point::new(5.,0.),strength:1.,keys:vec![]},
+      "Glitch"=>ComicStyle::Glitch{displacement:20.,band_height:12,seed:42,rate:12,strength:0.7,keys:vec![]},
+      _=>ComicStyle::Halftone{spacing:8.,angle:0.7853982,ink:[15,12,40,255],strength:0.7,keys:vec![]}
+     };
+     let id=Id::new_v4();next.nodes.push(CompositeNode{id,name:label.into(),op:CompositeOp::Comic{source:next.output,style}});next.output=id;changed=true;
+    }}});
     if changed{let mut compositions=p.compositions.clone();*compositions.iter_mut().find(|g|g.id==graph.id).unwrap()=next;self.apply(vec![Command::SetCompositions{compositions}]);}
     if theme::button(ui,"Remove composition",theme::Icon::Delete,false).clicked(){self.apply(vec![Command::SetCompositions{compositions:p.compositions.iter().filter(|g|g.id!=graph.id).cloned().collect()}]);}
    });});}
+   ui.collapsing("Layer frame rates",|ui|{
+    ui.small("Stepped artwork timing; camera and audio keep the project clock.");
+    let targets:Vec<_>=p.layers.iter().map(|v|(v.id,v.name.clone())).chain(p.rasters.iter().map(|v|(v.id,v.name.clone()))).chain(p.graphics.iter().map(|v|(v.id,v.name.clone()))).chain(p.characters.iter().map(|v|(v.id,v.name.clone()))).collect();
+    for(id,name)in targets{ui.push_id(id,|ui|{ui.horizontal(|ui|{
+     ui.label(name);let mut fps=p.layer_frame_rates.get(&id).copied().unwrap_or(0);let before=fps;
+     egui::ComboBox::from_id_salt("cadence").selected_text(if fps==0{"Project".into()}else{format!("{fps} FPS")}).show_ui(ui,|ui|{
+      ui.selectable_value(&mut fps,0,"Project");for value in [6,8,10,12,15,24,30,60]{if value<=p.fps{ui.selectable_value(&mut fps,value,format!("{value} FPS"));}}
+     });
+     if fps!=before{self.apply(vec![Command::SetLayerFrameRate{layer:id,fps:if fps==0{None}else{Some(fps)}}]);}
+    });});}
+   });
    ui.small("Masks/blends work in premultiplied sRGB. Nodes are shared by preview and export; large graphs have a bounded memory budget.");
   });
     }
+}
+
+fn comic_controls(ui: &mut egui::Ui, style: &mut ComicStyle, frame: u32) -> bool {
+    let mut changed = false;
+    match style {
+        ComicStyle::RgbSplit { offset, .. } => {
+            changed |= ui
+                .add(egui::Slider::new(&mut offset.x, -64.0..=64.).text("Red/blue X"))
+                .changed();
+            changed |= ui
+                .add(egui::Slider::new(&mut offset.y, -64.0..=64.).text("Red/blue Y"))
+                .changed();
+        }
+        ComicStyle::Glitch {
+            displacement,
+            band_height,
+            seed,
+            rate,
+            ..
+        } => {
+            changed |= ui
+                .add(egui::Slider::new(displacement, 0.0..=128.).text("Displacement"))
+                .changed();
+            changed |= ui
+                .add(egui::Slider::new(band_height, 1..=128).text("Band height"))
+                .changed();
+            changed |= ui
+                .add(egui::Slider::new(rate, 1..=60).text("Updates/sec"))
+                .changed();
+            changed |= ui.add(egui::DragValue::new(seed).prefix("Seed ")).changed();
+        }
+        ComicStyle::Halftone {
+            spacing,
+            angle,
+            ink,
+            ..
+        } => {
+            changed |= ui
+                .add(egui::Slider::new(spacing, 2.0..=64.).text("Dot spacing"))
+                .changed();
+            changed |= ui
+                .add(
+                    egui::Slider::new(angle, -std::f32::consts::PI..=std::f32::consts::PI)
+                        .text("Angle (radians)"),
+                )
+                .changed();
+            changed |= ui.color_edit_button_srgba_unmultiplied(ink).changed();
+        }
+    }
+    let (strength, keys) = match style {
+        ComicStyle::RgbSplit { strength, keys, .. }
+        | ComicStyle::Glitch { strength, keys, .. }
+        | ComicStyle::Halftone { strength, keys, .. } => (strength, keys),
+    };
+    changed |= ui
+        .add(egui::Slider::new(strength, 0.0..=1.).text("Strength"))
+        .changed();
+    if ui.button("Key strength at playhead").clicked() {
+        if let Some(k) = keys.iter_mut().find(|k| k.frame == frame) {
+            k.strength = *strength;
+        } else {
+            keys.push(ComicKey {
+                frame,
+                strength: *strength,
+            });
+            keys.sort_by_key(|k| k.frame);
+        }
+        changed = true;
+    }
+    if !keys.is_empty() {
+        ui.small(format!("{} strength keys (linear)", keys.len()));
+        if ui.button("Clear strength keys").clicked() {
+            keys.clear();
+            changed = true;
+        }
+    }
+    changed
 }

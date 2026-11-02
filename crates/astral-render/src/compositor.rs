@@ -6,6 +6,7 @@ use std::{
 };
 struct Cached {
     graph: Composition,
+    time: Option<(u64, u32)>,
     inputs: Vec<(Id, DisplayList)>,
     bitmap: Arc<DecodedBitmap>,
 }
@@ -69,14 +70,19 @@ pub fn display(p: &Project, frame: f64) -> DisplayList {
             .map(|n| (n.id, crate::display_list(&input_project(p, &n.op), frame)))
             .collect();
         let cache = CACHE.get_or_init(Default::default);
+        let time = graph
+            .nodes
+            .iter()
+            .any(|n| matches!(&n.op, CompositeOp::Comic { style, .. } if style.animated()))
+            .then_some((frame.to_bits(), p.fps));
         let cached = cache
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .iter()
-            .find(|c| c.graph == *graph && c.inputs == inputs)
+            .find(|c| c.graph == *graph && c.inputs == inputs && c.time == time)
             .map(|c| c.bitmap.clone());
         let bitmap = cached.unwrap_or_else(|| {
-            let pixels = compose(p.width, p.height, graph, &inputs);
+            let pixels = compose(p.width, p.height, graph, &inputs, frame, p.fps);
             let bitmap = Arc::new(DecodedBitmap {
                 id: Id::new_v4(),
                 width: p.width,
@@ -95,6 +101,7 @@ pub fn display(p: &Project, frame: f64) -> DisplayList {
             }
             entries.push_back(Cached {
                 graph: graph.clone(),
+                time,
                 inputs,
                 bitmap: bitmap.clone(),
             });
@@ -131,12 +138,22 @@ pub fn display(p: &Project, frame: f64) -> DisplayList {
     }
     list
 }
-fn compose(w: u32, h: u32, g: &Composition, inputs: &[(Id, DisplayList)]) -> Vec<u8> {
+fn compose(
+    w: u32,
+    h: u32,
+    g: &Composition,
+    inputs: &[(Id, DisplayList)],
+    frame: f64,
+    fps: u32,
+) -> Vec<u8> {
     let mut outputs: BTreeMap<Id, Vec<u8>> = BTreeMap::new();
     let size = w as usize * h as usize * 4;
     for id in g.order().expect("validated compositing DAG") {
         let n = g.nodes.iter().find(|n| n.id == id).unwrap();
         let pixels = match n.op {
+            CompositeOp::Comic { source, ref style } => {
+                crate::comic::process(&outputs[&source], w, h, style, frame, fps)
+            }
             CompositeOp::Raster { .. }
             | CompositeOp::Drawing { .. }
             | CompositeOp::Graphic { .. }

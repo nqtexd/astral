@@ -1,4 +1,6 @@
 //! UI-independent, deterministic animation documents and transactional edits.
+mod comic;
+pub use comic::*;
 mod animation;
 mod cels;
 mod commands;

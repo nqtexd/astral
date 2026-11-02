@@ -7,6 +7,11 @@ use std::collections::VecDeque;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
+    /// Independent stepped sampling; null restores project cadence.
+    SetLayerFrameRate {
+        layer: Id,
+        fps: Option<u32>,
+    },
     BooleanGraphics {
         left: Id,
         right: Id,
@@ -371,6 +376,12 @@ impl Session {
         {
             next.schema = next.schema.max(10);
         }
+        next.layer_frame_rates.retain(|id, _| {
+            next.layers.iter().any(|v| v.id == *id)
+                || next.rasters.iter().any(|v| v.id == *id)
+                || next.graphics.iter().any(|v| v.id == *id)
+                || next.characters.iter().any(|v| v.id == *id)
+        });
         next.validate()?;
         next.revision = self
             .project
@@ -507,6 +518,19 @@ fn set_key(c: &mut Character, key: PoseKey) {
 }
 fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<()> {
     match command {
+        Command::SetLayerFrameRate { layer, fps } => {
+            ensure!(p.timing_target_exists(layer), "Timing layer missing");
+            if let Some(fps) = fps {
+                ensure!(
+                    (1..=p.fps).contains(&fps),
+                    "Layer FPS must be 1 to project FPS"
+                );
+                p.layer_frame_rates.insert(layer, fps);
+                p.schema = p.schema.max(12);
+            } else {
+                p.layer_frame_rates.remove(&layer);
+            }
+        }
         Command::BooleanGraphics {
             left,
             right,
@@ -526,6 +550,13 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             p.schema = p.schema.max(11);
         }
         Command::SetCompositions { compositions } => {
+            if compositions
+                .iter()
+                .flat_map(|g| &g.nodes)
+                .any(|n| matches!(n.op, CompositeOp::Comic { .. }))
+            {
+                p.schema = p.schema.max(12);
+            }
             if compositions.iter().any(|g| {
                 g.nodes
                     .iter()
@@ -873,6 +904,18 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             for e in &mut p.effects {
                 e.start = map(e.start)?;
                 e.end = map(e.end)?
+            }
+            for n in p.compositions.iter_mut().flat_map(|g| &mut g.nodes) {
+                if let CompositeOp::Comic { style, .. } = &mut n.op {
+                    let keys = match style {
+                        ComicStyle::RgbSplit { keys, .. }
+                        | ComicStyle::Glitch { keys, .. }
+                        | ComicStyle::Halftone { keys, .. } => keys,
+                    };
+                    for key in keys {
+                        key.frame = map(key.frame)?;
+                    }
+                }
             }
             for r in &mut p.rasters {
                 r.start = map(r.start)?;

@@ -145,6 +145,7 @@ pub struct DrawingCel {
 impl Project {
     /// A drawing holds until the next key on its own layer, including explicit blanks.
     pub fn cel_at(&self, layer: Id, frame: u32) -> Option<&DrawingCel> {
+        let frame = self.layer_frame(layer, frame as f64).floor() as u32;
         self.cels
             .iter()
             .filter(|c| c.layer == layer && c.frame <= frame)

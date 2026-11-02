@@ -1,5 +1,13 @@
 # Astral changelog
 
+## Unreleased — comic 2D workflows
+
+- Add editable RGB split, seeded time-varying glitch bands and rotated luminance halftone processing on arbitrary composited artwork, shared by preview/export.
+- Animate effect strength with validated linear keys; expose desktop sliders and playhead key controls.
+- Add independently stepped drawing/raster/graphic/character cadence, keeping camera and audio on the project clock.
+- Add MCP `comic_tools` for validated look proposals, actual frame images and bounded pixel-difference refinement with revision checks and undo.
+- Add schema 12 validation, alpha/cadence/cache/transaction regressions and an original editable illustrated courier demo. [Workflow and research](ASTRAL-COMIC-2D.md).
+
 ## [0.15.0]
 Native editing, finishing and production gates
 

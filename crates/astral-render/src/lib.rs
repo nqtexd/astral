@@ -827,3 +827,4 @@ mod text_review;
 pub use text_review::{TextIssue, fit_and_place, review_text};
 
 pub mod color;
+pub mod comic;
