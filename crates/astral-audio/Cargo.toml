@@ -11,3 +11,6 @@ anyhow.workspace = true
 hound = "3.5"
 symphonia = { version="0.5", features=["mp3","aac","alac","isomp4","aiff","pcm"] }
 
+
+[dev-dependencies]
+tempfile = "3"

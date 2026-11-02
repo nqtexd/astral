@@ -15,6 +15,8 @@ use std::{
 };
 
 mod assembly;
+mod avi;
+mod native;
 pub use assembly::*;
 mod presets;
 pub use presets::*;
@@ -101,7 +103,16 @@ pub(crate) fn background(
     });
     let worker = job.clone();
     std::thread::spawn(move || {
-        match task(&worker){Ok(mut value)=>{value["state"]="completed".into();value["progress"]=1.0.into();value["job"]=json!(worker.id);worker.update(value);},Err(e)=>worker.update(json!({"job":worker.id,"state":if worker.cancelled.load(Ordering::Relaxed){"cancelled"}else{"failed"},"error":format!("{e:#}")}))}
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(||task(&worker))).unwrap_or_else(|_|Err(anyhow::anyhow!("Background task panicked; inspect the current project revision and local diagnostics"))){Ok(mut value)=>{value["state"]="completed".into();value["progress"]=1.0.into();value["job"]=json!(worker.id);worker.update(value);},Err(e)=>worker.update(json!({"job":worker.id,"state":if worker.cancelled.load(Ordering::Relaxed){"cancelled"}else{"failed"},"error":format!("{e:#}")}))}
+        if let Some(mut child) = worker
+            .child
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take()
+        {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
         worker.done.store(true, Ordering::Release);
     });
     job
@@ -240,7 +251,14 @@ pub fn start(workspace: Workspace, project: Project, spec: ExportSpec) -> Result
     });
     let worker = job.clone();
     std::thread::spawn(move || {
-        let result = run(&workspace, &project, &spec, &worker, &plan);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            run(&workspace, &project, &spec, &worker, &plan)
+        }))
+        .unwrap_or_else(|_| {
+            Err(anyhow::anyhow!(
+                "Export worker panicked; previous output was preserved; inspect local diagnostics"
+            ))
+        });
         if let Err(error) = result {
             worker.update(json!({"job":worker.id,"state":if worker.cancelled.load(Ordering::Relaxed){"cancelled"}else{"failed"},"error":format!("{error:#}")}));
         }
@@ -283,6 +301,12 @@ fn run(
         job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"plan":plan,"revision":project.revision,"metrics":{"render_seconds":render_seconds,"render_workers":workers,"renderer":renderer,"adapter":adapter,"gpu_readback_seconds":readback,"reused_frames":cache_hits,"frames":1,"total_seconds":started.elapsed().as_secs_f64()}}));
         return Ok(());
     }
+    if matches!(
+        plan.format,
+        Format::Avi | Format::Jpeg | Format::PngSequence | Format::Wav
+    ) {
+        return native::run(workspace, project, spec, job, plan);
+    }
     let target = workspace.path(&spec.path)?;
     let parent = target.parent().context("Output parent missing")?;
     std::fs::create_dir_all(parent)?;
@@ -315,7 +339,7 @@ fn run(
             return false;
         }
         let trim = (first_seconds - start).max(0.);
-        a.offset_seconds += trim;
+        a.offset_seconds += trim * a.speed as f64;
         a.duration_seconds = (end.min(last_seconds) - start.max(first_seconds)).max(0.);
         a.start = a.start.saturating_sub(first);
         true
@@ -334,11 +358,17 @@ fn run(
             Format::Mp4 | Format::Webm | Format::PngSequence
         )
     {
-        let bytes = astral_audio::mix(&audio_project, workspace)?;
         let mut file = tempfile::Builder::new()
             .suffix(".wav")
             .tempfile_in(parent)?;
-        file.write_all(&bytes)?;
+        astral_audio::mix_range_to(
+            project,
+            workspace,
+            first_seconds,
+            (last + 1) as f64 / project.fps as f64,
+            &mut file,
+            || job.check(),
+        )?;
         audio_file = Some(file);
     }
     let mut command = Command::new(ffmpeg());
@@ -456,7 +486,7 @@ fn run(
         Format::PngSequence => {
             command.args(["-vf", filter, "-start_number", "0"]);
         }
-        Format::Wav => unreachable!(),
+        Format::Wav | Format::Avi => unreachable!(),
     }
     // The encoder writes only into private temporary storage until every frame succeeds.
     let sequence = tempfile::tempdir_in(parent)?;
@@ -617,9 +647,14 @@ fn render_frames(
         }
     }
     let bytes = plan.width as usize * plan.height as usize * 4;
+    let max_workers = if project.compositions.iter().any(|g| g.enabled) {
+        1
+    } else {
+        4
+    };
     let workers = std::thread::available_parallelism()
         .map_or(1, |n| n.get())
-        .min(4)
+        .min(max_workers)
         .min(plan.frames as usize)
         .min((192 * 1024 * 1024usize / (bytes.max(1) * 3)).max(1));
     std::thread::scope(|scope| {
@@ -734,4 +769,20 @@ pub(crate) fn run_encoder(job: &Job, mut command: Command) -> Result<()> {
     let detail = reader.join().unwrap_or_default();
     ensure!(result?.success(), "Media decoding failed: {detail}");
     Ok(())
+}
+
+#[cfg(test)]
+mod worker_reliability_tests {
+    use super::*;
+    #[test]
+    fn panicked_background_job_finishes_with_diagnostic_instead_of_sticking() {
+        let job = background(Id::new_v4(), 0, |_| panic!("synthetic worker failure"));
+        let began = Instant::now();
+        while !job.finished() && began.elapsed() < Duration::from_secs(5) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(job.finished());
+        assert_eq!(job.status()["state"], "failed");
+        assert!(job.status()["error"].as_str().unwrap().contains("panicked"));
+    }
 }

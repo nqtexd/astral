@@ -119,6 +119,7 @@ fn stroke_proposals_require_the_original_revision_and_do_not_auto_apply() {
                         layer: lid,
                         frame: 0,
                         strokes: vec![InkStroke {
+                            brush: None,
                             bitmap: None,
                             skin: None,
                             pressures: vec![],

@@ -147,6 +147,7 @@ impl Service {
                         ".settings",
                         ".astral-trash",
                         ".astral-history",
+                        ".astral-backups",
                     ]
                     .iter()
                     .any(|v| name.eq_ignore_ascii_case(v))

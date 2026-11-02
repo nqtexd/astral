@@ -33,3 +33,14 @@ No ownership of user-imported media or generated productions is asserted. Users 
 ### Native voice and audio dependencies (0.14)
 
 The Rust build now includes reqwest (MIT OR Apache-2.0), rustls and related TLS dependencies, plus Symphonia (MPL-2.0) and its enabled native audio decoders. Exact versions, SPDX declarations, source links and available license files are collected from Cargo metadata in each Windows package. See Cargo.lock and the packaged dependency notices. ElevenLabs is an optional user-configured service; no ElevenLabs model weights, voices or API credentials are bundled.
+
+## Compositing, PSD and offline speech (0.15)
+
+- ag-psd 34.1.0 unmodified browser bundle: MIT, with pako 2.1.0 and base64-js 1.5.1. Exact upstream package and full adjacent notices are in `vendor/psd/`.
+- Node.js 24.16.0 Windows runtime is staged from the official distribution with its full LICENSE and provenance in `resources/node/`. It runs fixed packaged parsing scripts, not agent-supplied programs.
+- Rhubarb Lip Sync 1.14.0 and recognition data: retain the entire upstream `resources/rhubarb/LICENSE.md`, including CMUSphinx/PocketSphinx/SphinxBase/Flite and other dependency/model notices. The bundled archive/executable hashes and source URL are in its provenance file.
+- geo and its geometry dependencies retain their Cargo package licenses, source links and packaged dependency notices.
+
+AVI/MJPEG encoding uses Astral's Rust muxer and the image crate's JPEG encoder. No FFmpeg binary is redistributed by this package. External encoders retain their own distribution terms.
+
+The optional Windows setup is generated with unmodified Inno Setup 7.1.1. Its full notice is retained in `platforms/windows/INNO-LICENSE.txt`; the pinned official compiler download and hash are in `scripts/stage-astral-installer.py`. Astral does not claim authorship of the setup engine.

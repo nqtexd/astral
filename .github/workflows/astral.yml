@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
   pull_request:
-    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', '.github/workflows/astral.yml']
+    paths: ['Cargo.toml', 'Cargo.lock', 'crates/**', 'scripts/*astral*', 'tests/astral*.mjs', 'tests/helpers/**', 'vendor/psd/**', '.github/workflows/astral.yml']
 permissions:
   contents: read
 jobs:
@@ -26,10 +26,16 @@ jobs:
         run: |
           python -m pip install imageio-ffmpeg==0.6.0
           python scripts/stage-video-encoder.py
+      - name: Stage pinned offline speech and parser runtimes
+        run: |
+          python scripts/stage-astral-speech.py
+          python scripts/stage-astral-node.py
       - name: Format
         run: cargo fmt --all -- --check
       - name: Legacy source evaluation regression
-        run: node --test tests/astral-legacy-evaluation.test.mjs
+        run: node --test tests/astral-legacy-evaluation.test.mjs tests/astral-psd.test.mjs
+      - name: Strict lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Tests
         run: cargo test --workspace --locked
       - name: Build
@@ -44,6 +50,10 @@ jobs:
         env:
           ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
         run: node scripts/check-astral-artwork.mjs
+      - name: Production candidate workflows
+        env:
+          ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
+        run: node scripts/check-astral-production.mjs
       - name: MCP profile contracts
         run: node scripts/smoke-astral-profiles.mjs
       - uses: actions/upload-artifact@v4

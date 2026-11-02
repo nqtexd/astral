@@ -11,6 +11,7 @@ fn pressure_tapers_across_a_long_segment_instead_of_using_average_width() {
         layer: id,
         frame: 0,
         strokes: vec![InkStroke {
+            brush: None,
             bitmap: None,
             skin: None,
             pressures: vec![0.2, 1.],
@@ -49,6 +50,7 @@ fn layer_order_opacity_and_visibility_match_rendered_cels() {
     let bid = blue.id;
     let ink = |color| {
         vec![InkStroke {
+            brush: None,
             bitmap: None,
             skin: None,
             pressures: vec![],

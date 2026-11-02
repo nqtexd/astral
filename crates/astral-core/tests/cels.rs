@@ -26,6 +26,7 @@ fn fixture() -> (Session, Id) {
 }
 fn ink(x: f32) -> InkStroke {
     InkStroke {
+        brush: None,
         bitmap: None,
         skin: None,
         pressures: vec![],

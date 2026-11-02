@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "Astral",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "requested_release": "Moho Debut-equivalent features plus Astral tools on desktop, phones and tablets",
   "inventory_complete": false,
   "reference_scope": "Minimum confirmed requirements from the official Debut product page and the 14.5 announcement; an exhaustive edition-by-edition comparison remains required.",
@@ -18,12 +18,12 @@
     {
       "id": "editable_vector_points_curves",
       "status": "partial",
-      "gap": "Pressure-aware vector strokes, draggable point controls, closed fills and cubic smoothing exist; a full Bezier tangent-handle/Boolean toolset is not equivalent."
+      "gap": "Custom contour editing, cubic stroke smoothing, Boolean union/subtract/intersection/XOR and composited gradients exist. Independent Bezier tangent handles and keyed path morphing remain incomplete."
     },
     {
       "id": "vector_fills_brush_styles",
       "status": "partial",
-      "gap": "Solid/marker/dashed/stipple strokes and closed fills exist; texture/scatter-brush packs and a general paint bucket remain."
+      "gap": "Procedural textured dab engine, pressure, pencil/ink/airbrush/chalk and custom local presets exist. Arbitrary texture-tip packs and a broad paint-bucket/brush ecosystem remain unfinished."
     },
     {
       "id": "pen_pressure",
@@ -39,7 +39,7 @@
       "id": "layered_psd_import",
       "status": "partial",
       "evidence": "crates/astral/tests/artwork.rs",
-      "gap": "8-bit RGB layers/composite only; PSD text, masks, blend groups, ZIP compression, PSB and high-bit-depth equivalence remain unsupported."
+      "gap": "Native group/mask/supported blend graphs, ZIP-compressed 8-bit RGB layers and basic editable text. PSB/high-bit-depth/CMYK, mixed text styles, exact font metrics, clipping/adjustments/layer styles/vector masks remain non-equivalent."
     },
     {
       "id": "pin_deformation",
@@ -93,7 +93,7 @@
       "id": "automatic_lipsync",
       "status": "partial",
       "evidence": "crates/astral/tests/artwork.rs",
-      "gap": "Editable envelope/text-guided mouth cues; not phoneme recognition or language-complete lip sync."
+      "gap": "Offline Rhubarb English/phonetic recognition produces distinct editable visemes with custom bitmap mouth mapping. Human review, language/noise quality certification and full facial performance remain required."
     },
     {
       "id": "object_follow_path",
@@ -109,7 +109,7 @@
     {
       "id": "video_still_export_formats",
       "status": "partial",
-      "gap": "Several desktop exports work; MOV/AVI parity and native mobile video encoding are incomplete."
+      "gap": "Native AVI/MJPEG+PCM, PNG/JPEG, PNG sequences+WAV and WAV need no FFmpeg. MP4/WebM/GIF and hardware encoders still use FFmpeg. Native AVI is bounded to 2 GB; long-form NLE/color-management equivalence is incomplete."
     },
     {
       "id": "multiple_documents",
@@ -159,6 +159,24 @@
       "id": "astral_seeded_director",
       "status": "implemented",
       "evidence": "crates/astral-core/tests/director.rs"
+    },
+    {
+      "id": "editable_compositing_graph",
+      "status": "implemented",
+      "evidence": "crates/astral-core/tests/compositor_015.rs; crates/astral-render/tests/compositor_015.rs; scripts/check-astral-production.mjs",
+      "scope": "Bounded DAG with source/solid/gradient/blend/mask/blur/color nodes. CPU node evaluation produces a shared viewport/export texture; not a GPU effects engine."
+    },
+    {
+      "id": "saved_version_backups",
+      "status": "implemented",
+      "evidence": "crates/astral-storage/tests/backups_015.rs",
+      "scope": "Five distinct previous saves, atomic publication and existing recovery copies. Recovery saves do not multiply backups."
+    },
+    {
+      "id": "long_form_audio_export",
+      "status": "partial",
+      "evidence": "crates/astral-audio/tests/streaming_015.rs",
+      "gap": "Two-second mixing blocks support output ranges up to six hours, with bounded decoded active sources. Individual source decoding and in-memory preview retain ten-minute limits; full long-form editing/streamed preview remain unfinished."
     }
   ],
   "platforms": [
@@ -205,5 +223,7 @@
     "privacy_api_inventory_reviewed": false,
     "store_accounts_configured": false,
     "production_signing_configured": false
-  }
+  },
+  "production_gate_inventory": "platforms/release/production-gates.json",
+  "production_certified": false
 }

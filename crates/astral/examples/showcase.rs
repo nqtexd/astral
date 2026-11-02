@@ -402,6 +402,8 @@ fn main() -> Result<()> {
     let id = service.insert(p)?;
     let p = service.snapshot(id)?;
     service.artwork(ArtworkRequest::LipSync {
+        engine: astral::speech::Recognizer::Envelope,
+        mapping: Default::default(),
         project: id,
         expected_revision: p.revision,
         clip: clip_id,

@@ -39,3 +39,6 @@
 *.so binary
 *.dylib binary
 
+
+# Preserve the exact upstream PSD parser bundle and its original formatting.
+vendor/psd/*.cjs -text whitespace=-trailing-space

@@ -54,7 +54,12 @@ pub fn import_legacy(
         script.is_file(),
         "Legacy bridge is unavailable; keep the original application installed"
     );
-    let mut command = Command::new(program);
+    let executable = if program == "node" {
+        astral_storage::node_executable(application_root)
+    } else {
+        std::path::PathBuf::from(program)
+    };
+    let mut command = Command::new(executable);
     command
         .arg(script)
         .arg(&input)
@@ -139,7 +144,7 @@ fn evaluate_source(report: &Value, root: &Path) -> Result<Value> {
     use std::io::Write;
     let script = root.join("scripts/astral-evaluate-legacy.mjs");
     ensure!(script.is_file(), "Source evaluator is unavailable");
-    let mut command = Command::new("node");
+    let mut command = Command::new(astral_storage::node_executable(root));
     command
         .arg(script)
         .current_dir(root)

@@ -8,13 +8,13 @@ Astral 0.8 adds `storyboard` and `review_animation`. Plan the cast, shots and co
 
 ## Connection
 
-Use the built `target/release/astral.exe` with these process arguments:
+Use `astral.exe` from the same extracted package as `Astral-Studio.exe`, with these process arguments. Prefer a stable installed directory rather than a temporary Cargo build path:
 
 ```json
 {
   "mcpServers": {
     "astral": {
-      "command": "D:/StykAnimate-App-main/target/release/astral.exe",
+      "command": "C:/Apps/Astral/astral.exe",
       "args": ["--workspace", "D:/AstralProjects", "mcp"]
     }
   }
@@ -99,3 +99,9 @@ The trained masked-pose model, example-based frame learner, reversible stroke fi
 ## Motion studio (0.7)
 
 `motion_tools` exposes the same bounded editing proposals as the native editor, including constrained poses, choreography, paths, coaching, batch frames, libraries, contact effects, camera keys and audio edits. Preview results include separate original/proposed images and structured commands. See [the typed workflow and example](ASTRAL-STUDIO-TOOLS.md#mcp-and-cli).
+
+## 0.15 finishing and transaction previews
+
+Use `preview_commands` before a large `apply_commands` batch. `SetCompositions` edits bounded blend/mask/gradient/blur/color graphs; `BooleanGraphics` creates a contour result while retaining the original shapes. `artwork_tools` with `operation: "lip_sync"` and `engine: "english"` or `"phonetic"` creates recognized, editable visemes. Native AVI, images, PNG-sequence ZIP and WAV export without FFmpeg. See the [0.15 workflow](ASTRAL-0.15-WORKFLOW.md).
+
+An already running Studio or agent server keeps its old version. Extracting a new ZIP does not update that process. Point the MCP command at the new package, reconnect the client, and open the matching new Studio. Local bridges are versioned; an old server cannot expose new tools through an old window. Check **Settings → version** and `astral --version` before reporting a missing tool.

@@ -329,8 +329,24 @@ pub fn validate_graphics(p: &Project) -> Result<()> {
                 && d.end < p.duration
                 && d.position.finite()
                 && d.size.finite()
-                && (100.0..=8192.).contains(&d.size.x)
-                && (60.0..=8192.).contains(&d.size.y)
+                && ((if d.style == DialogueStyle::Caption
+                    && d.color[3] == 0
+                    && d.appearance.border_width == 0.
+                {
+                    1.
+                } else {
+                    100.
+                })..=8192.)
+                    .contains(&d.size.x)
+                && ((if d.style == DialogueStyle::Caption
+                    && d.color[3] == 0
+                    && d.appearance.border_width == 0.
+                {
+                    1.
+                } else {
+                    60.
+                })..=8192.)
+                    .contains(&d.size.y)
                 && d.font_size.is_finite()
                 && (8.0..=200.).contains(&d.font_size)
                 && d.typewriter.is_finite()

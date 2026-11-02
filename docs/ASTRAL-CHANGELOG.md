@@ -1,5 +1,19 @@
 # Astral changelog
 
+## [0.15.0]
+Native finishing and production gates
+
+- Add editable compositing DAGs, bitmap/luminance masks, supported blend modes, gradients, blur and color adjustments; reject cycles/missing references/oversized graphs atomically.
+- Add advanced 8-bit RGB PSD decoding into native groups/masks/blends/basic text, with an isolated pinned parser runtime in Windows packages and explicit conversion warnings.
+- Add offline English/phonetic viseme recognition, nine source mouth codes, editable keys and bitmap mouth assignments; retain envelope timing as an explicit compatibility mode.
+- Add pressure-aware procedural textured brushes and persistent custom brush presets; Boolean path operations preserve original shapes.
+- Add built-in AVI/MJPEG+PCM, JPEG, PNG-sequence and WAV export paths; avoid FFmpeg for these formats.
+- Stream export audio in bounded blocks, preserving original trim/speed/fade phase; bound long ranges and native AVI output.
+- Retain five distinct prior saves, hide backups from recent-project discovery, validate new image payloads before commit and expose non-mutating MCP transaction previews.
+- Catch background-job panics, retain bounded local diagnostics and add stress/readiness/installer tooling. Physical device, signing, complete localization and eight-hour desktop gates remain open.
+
+See [the 0.15 workflow](ASTRAL-0.15-WORKFLOW.md). This is not full Moho/Photoshop/legacy-source parity or production certification.
+
 ## [0.14.0]
 Native editing and configurable voice providers
 

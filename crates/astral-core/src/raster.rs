@@ -153,9 +153,15 @@ impl RasterLayer {
             )
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum MouthShape {
+    Consonant,
+    Wide,
+    U,
+    L,
     Rest,
     A,
     E,
@@ -170,6 +176,8 @@ pub struct MouthKey {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct MouthTrack {
+    #[serde(default)]
+    pub sprites: std::collections::BTreeMap<MouthShape, Id>,
     pub id: Id,
     pub name: String,
     pub character: Id,
@@ -333,6 +341,21 @@ pub fn validate(p: &Project) -> Result<()> {
                 && !m.keys.is_empty()
                 && m.keys.len() <= 12000,
             "Invalid mouth track"
+        );
+        ensure!(
+            m.sprites
+                .values()
+                .all(|id| p.bitmaps.iter().any(|b| b.id == *id)),
+            "Mouth sprite bitmap missing"
+        );
+        ensure!(
+            (m.sprites.is_empty()
+                && !m.keys.iter().any(|k| matches!(
+                    k.shape,
+                    MouthShape::Consonant | MouthShape::Wide | MouthShape::U | MouthShape::L
+                )))
+                || p.schema >= 10,
+            "Extended mouth shapes require schema 10"
         );
         for (i, k) in m.keys.iter().enumerate() {
             ensure!(

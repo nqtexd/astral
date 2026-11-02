@@ -89,6 +89,7 @@ enum Mode {
 }
 #[tokio::main]
 async fn main() -> Result<()> {
+    astral::diagnostics::install();
     let args = Args::parse();
     let service = Service::new(args.workspace.unwrap_or_else(astral::default_workspace))?;
     let result = match args.command.unwrap_or(Mode::Studio) {

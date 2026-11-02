@@ -38,7 +38,7 @@ try {
         }
     }
     New-Item -ItemType Directory -Force -Path (Join-Path $astralPackage 'scripts') | Out-Null
-    foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs','astral-evaluate-legacy.mjs','astral-decode-container.mjs','astral-source-input.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
+    foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs','astral-evaluate-legacy.mjs','astral-decode-container.mjs','astral-source-input.mjs','astral-psd.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
 
     Get-ChildItem -LiteralPath (Join-Path $astralRoot 'docs') -Filter 'ASTRAL-*' -File | Where-Object Extension -In @('.md','.json') | Copy-Item -Destination (Join-Path $astralPackage 'docs')
     # Offline README gallery and editable studies, excluding runtime history and benchmark outputs.
@@ -59,6 +59,21 @@ try {
     New-Item -ItemType Directory -Force -Path $astralBrandDestination | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $astralRoot 'assets/brand') -File | Where-Object Extension -In @('.svg','.png','.ico','.txt') | Copy-Item -Destination $astralBrandDestination
 
+    $astralNodeRuntime = Join-Path $astralRoot 'build/astral-node'
+    if (-not (Test-Path -LiteralPath (Join-Path $astralNodeRuntime 'node.exe'))) { throw 'Stage parser runtime with python scripts/stage-astral-node.py before packaging.' }
+    $astralNodeTarget = Join-Path $astralPackage 'resources/node'
+    New-Item -ItemType Directory -Force -Path $astralNodeTarget | Out-Null
+    Get-ChildItem -LiteralPath $astralNodeRuntime -File | Copy-Item -Destination $astralNodeTarget
+    $astralSpeech = Join-Path $astralRoot 'build/rhubarb'
+    if (-not (Test-Path -LiteralPath (Join-Path $astralSpeech 'rhubarb.exe'))) { throw 'Stage the pinned offline recognizer with python scripts/stage-astral-speech.py before packaging.' }
+    $astralSpeechTarget = Join-Path $astralPackage 'resources/rhubarb'
+    New-Item -ItemType Directory -Force -Path $astralSpeechTarget | Out-Null
+    Get-ChildItem -LiteralPath $astralSpeech -Recurse -File | ForEach-Object {
+        $astralSpeechRelative = [System.IO.Path]::GetRelativePath($astralSpeech, $_.FullName)
+        $astralSpeechDestination = Join-Path $astralSpeechTarget $astralSpeechRelative
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $astralSpeechDestination) | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $astralSpeechDestination
+    }
     $astralNotices = Join-Path $astralPackage 'THIRD_PARTY'
     New-Item -ItemType Directory -Force -Path $astralNotices | Out-Null
     Copy-Item -LiteralPath (Join-Path $astralRoot 'vendor/text/OFL.txt') -Destination (Join-Path $astralNotices 'NotoSans-OFL.txt')

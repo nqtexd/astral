@@ -119,7 +119,45 @@ impl Workspace {
             path.as_ref().extension().is_some_and(|e| e == "astral"),
             "Save projects with .astral extension"
         );
-        self.atomic_write(path, &encode(project)?)
+        let bytes = encode(project)?;
+        let path = path.as_ref();
+        let target = self.path(path)?;
+        // Keep the last five distinct saved versions before replacing the destination.
+        // Recovery saves are already a rolling copy and must not multiply backups.
+        if !path.components().any(|c| c.as_os_str() == "recovery") && target.is_file() {
+            let previous = self.read(path)?;
+            if previous != bytes {
+                let digest = Sha256::digest(path.to_string_lossy().as_bytes());
+                let key = digest
+                    .iter()
+                    .take(12)
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>();
+                let folder = format!(".astral-backups/{key}");
+                let name = format!(
+                    "{folder}/{}-{}.astral",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)?
+                        .as_nanos(),
+                    Id::new_v4()
+                );
+                self.atomic_write(&name, &previous)?;
+                let directory = self.path(&folder)?;
+                let mut entries = std::fs::read_dir(&directory)?
+                    .filter_map(|e| e.ok())
+                    .filter(|e| {
+                        e.file_type().is_ok_and(|t| t.is_file())
+                            && e.path().extension().is_some_and(|s| s == "astral")
+                    })
+                    .collect::<Vec<_>>();
+                entries.sort_by_key(|e| e.file_name());
+                let excess = entries.len().saturating_sub(5);
+                for entry in entries.into_iter().take(excess) {
+                    std::fs::remove_file(entry.path())?;
+                }
+            }
+        }
+        self.atomic_write(path, &bytes)
     }
     pub fn atomic_write(&self, path: impl AsRef<Path>, bytes: &[u8]) -> Result<()> {
         let target = self.path(path)?;
@@ -248,4 +286,20 @@ mod preview_lock_tests {
         assert!(warnings.is_empty());
         assert_eq!(workspace.read(path).unwrap(), b"replacement");
     }
+}
+
+/// Prefer the packaged parser runtime. No user project can select executable paths.
+pub fn node_executable(application_root: &std::path::Path) -> std::path::PathBuf {
+    let name = if cfg!(windows) { "node.exe" } else { "node" };
+    let bundled = application_root.join("resources/node").join(name);
+    if bundled.is_file() {
+        return bundled;
+    }
+    let staged = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../build/astral-node")
+        .join(name);
+    if staged.is_file() {
+        return staged;
+    }
+    "node".into()
 }

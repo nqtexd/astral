@@ -164,6 +164,7 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                     }
                 });
             strokes.push(InkStroke {
+                brush: None,
                 points,
                 color: serde_json::from_value(source["color"].clone())?,
                 width: source["width"].as_f64().unwrap_or(1.) as f32,

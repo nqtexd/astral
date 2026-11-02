@@ -93,6 +93,7 @@ pub enum Quality {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Format {
+    Avi,
     Mp4,
     Webm,
     Gif,
@@ -102,7 +103,8 @@ pub enum Format {
     Wav,
 }
 impl Format {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
+        Self::Avi,
         Self::Mp4,
         Self::Webm,
         Self::Gif,
@@ -113,6 +115,7 @@ impl Format {
     ];
     pub fn extension(self) -> &'static str {
         match self {
+            Self::Avi => "avi",
             Self::Mp4 => "mp4",
             Self::Webm => "webm",
             Self::Gif => "gif",
@@ -124,6 +127,7 @@ impl Format {
     }
     pub fn label(self) -> &'static str {
         match self {
+            Self::Avi => "AVI · native MJPEG + PCM (no FFmpeg)",
             Self::Mp4 => "MP4 · H.264 + AAC",
             Self::Webm => "WebM · VP9 + Opus",
             Self::Gif => "Animated GIF · silent",
@@ -160,6 +164,7 @@ impl Plan {
             .unwrap_or("")
             .to_ascii_lowercase();
         let format = match ext.as_str() {
+            "avi" => Format::Avi,
             "mp4" => Format::Mp4,
             "webm" => Format::Webm,
             "gif" => Format::Gif,
@@ -167,7 +172,7 @@ impl Plan {
             "jpg" | "jpeg" => Format::Jpeg,
             "zip" => Format::PngSequence,
             "wav" => Format::Wav,
-            _ => anyhow::bail!("Use .mp4, .webm, .gif, .png, .jpg, .zip or .wav"),
+            _ => anyhow::bail!("Use .avi, .mp4, .webm, .gif, .png, .jpg, .zip or .wav"),
         };
         let first = s.start.unwrap_or(0);
         let last = s.end.unwrap_or(p.duration - 1);
@@ -208,6 +213,10 @@ impl Plan {
         } else {
             (duration_seconds * fps as f64 - 1e-9).ceil().max(1.) as u32
         };
+        ensure!(
+            frames <= 1_000_000,
+            "Export exceeds one million output frames; split the selected range"
+        );
         let base = if width.max(height) >= 3840 {
             if fps > 30 { 60000 } else { 40000 }
         } else if fps > 30 {

@@ -33,7 +33,7 @@ def decode(path):
 
 cli("demo", "motion.astral")
 catalog = cli("export-presets")
-assert len(catalog["presets"]) == 9 and len(catalog["formats"]) == 7
+assert len(catalog["presets"]) == 9 and len(catalog["formats"]) == 8
 reports = {}
 
 

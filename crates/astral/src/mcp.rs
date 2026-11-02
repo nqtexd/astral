@@ -315,7 +315,7 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
-        description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera or graphic/raster object keys (source-pixel seed, at most 120 frames, optional second_point for rotation/scale and target object ID). Import audio normalizes bounded WAV/AIFF/MP3/M4A to editable full-length clips. Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD text/masks/groups/blends are not native equivalents; warnings describe limits. Use apply_commands PutRasterLayer for transforms, translation/MLS-similarity pins, cubic curve keys and bone-angle corrective drivers."
+        description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera or graphic/raster object keys (source-pixel seed, at most 120 frames, optional second_point for rotation/scale and target object ID). Import audio normalizes bounded WAV/AIFF/MP3/M4A to editable full-length clips. Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD supports native group/mask/supported-blend graphs and basic editable text; font metrics, adjustment/filter/clipping semantics still require review. lip_sync engine english/phonetic uses offline recognition with configurable viseme mapping; envelope is approximate. Use apply_commands PutRasterLayer for transforms, translation/MLS-similarity pins, cubic curve keys and bone-angle corrective drivers."
     )]
     async fn artwork_tools(
         &self,
@@ -925,6 +925,12 @@ impl AstralMcp {
         .await
     }
     #[tool(
+        description = "Validate a complete typed command batch against the expected project revision without mutating the document or history. Returns proposed counts; apply_commands still requires the current revision. Preview-generated IDs are not commit IDs."
+    )]
+    async fn preview_commands(&self, Parameters(batch): Parameters<Batch>) -> CallToolResult {
+        self.dispatch(Request::PreviewCommands { batch }).await
+    }
+    #[tool(
         description = "Atomically apply typed animation commands as one undo step. Requires current expected_revision. Read inspect_project and list_presets before editing; failures commit nothing."
     )]
     async fn apply_commands(&self, Parameters(batch): Parameters<Batch>) -> CallToolResult {
@@ -993,7 +999,7 @@ impl AstralMcp {
         self.dispatch(Request::ImportLegacy { path: a.path }).await
     }
     #[tool(
-        description = "Start asynchronous media export with social presets. Supports MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Poll job_status."
+        description = "Start asynchronous media export with social presets. Supports native AVI/MJPEG+PCM, PNG, JPEG, PNG-sequence ZIP and WAV without FFmpeg; MP4/WebM/GIF use FFmpeg. Poll job_status."
     )]
     async fn export_video(&self, Parameters(a): Parameters<ExportArgs>) -> CallToolResult {
         self.dispatch(Request::ExportVideo {
@@ -1019,7 +1025,7 @@ impl AstralMcp {
         self.dispatch(Request::ListExportPresets).await
     }
     #[tool(
-        description = "Export to Instagram, YouTube, TikTok or original framing. Set spec.path extension for format, preset for destination, framing fit/fill, optional width/height/fps, quality and inclusive start/end source frames. Returns a cancellable job; no automatic trimming."
+        description = "Export to Instagram, YouTube, TikTok or original framing. Set spec.path extension for format, preset for destination, framing fit/fill, optional width/height/fps, quality and inclusive start/end source frames. Returns a cancellable job; no automatic trimming. Native AVI is bounded to 2 GB and uses black matte for transparency."
     )]
     async fn export_media(&self, Parameters(a): Parameters<ExportArgs>) -> CallToolResult {
         self.dispatch(Request::ExportMedia {

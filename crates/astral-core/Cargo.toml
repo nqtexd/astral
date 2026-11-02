@@ -12,3 +12,5 @@ schemars.workspace = true
 uuid.workspace = true
 astral-ml.workspace = true
 
+
+geo = { version="=0.33.1", default-features=false }

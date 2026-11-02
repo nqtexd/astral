@@ -1,6 +1,8 @@
 //! One renderer-independent display list for GPU UI and deterministic exports.
 use anyhow::{Context, Result, ensure};
 use astral_core::*;
+mod brush;
+mod compositor;
 mod presentation;
 mod raster_images;
 mod text;
@@ -86,6 +88,9 @@ fn pressure_outline(points: &[Point], stroke: &InkStroke) -> Vec<Point> {
 }
 
 pub fn display_list(project: &Project, frame: f64) -> DisplayList {
+    if project.compositions.iter().any(|c| c.enabled) {
+        return compositor::display(project, frame);
+    }
     let scene = evaluate(project, frame);
     let mut out = DisplayList {
         width: project.width,
@@ -160,6 +165,10 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
                             opacity: color[3] as f32 / 255.,
                         });
                     }
+                    continue;
+                }
+                if stroke.brush.is_some() {
+                    brush::append(&mut out, &points, stroke, color, transform, scene.zoom);
                     continue;
                 }
                 if stroke.filled {

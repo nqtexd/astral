@@ -85,6 +85,7 @@ fn rejects_empty_dense_and_invalid_images() {
 #[test]
 fn geometric_suggestions_preserve_the_drawn_prefix() {
     let line = InkStroke {
+        brush: None,
         bitmap: None,
         skin: None,
         pressures: vec![],
@@ -99,6 +100,7 @@ fn geometric_suggestions_preserve_the_drawn_prefix() {
     assert_eq!(&suggestion.stroke.points[..2], &line.points);
     assert!(suggestion.stroke.points.last().unwrap().x > 80.);
     let circle = InkStroke {
+        brush: None,
         bitmap: None,
         skin: None,
         pressures: vec![],
@@ -126,6 +128,7 @@ fn learns_cel_inbetweens_and_keeps_authored_frames_and_partial_ink() {
     p.layers.push(layer);
     p.schema = 3;
     let stroke = |y| InkStroke {
+        brush: None,
         bitmap: None,
         skin: None,
         pressures: vec![],

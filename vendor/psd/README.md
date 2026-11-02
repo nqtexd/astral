@@ -1,0 +1,1 @@
+ag-psd 34.1.0 browser bundle, MIT, from https://registry.npmjs.org/ag-psd/-/ag-psd-34.1.0.tgz . Includes pako 2.1.0 (MIT/Zlib) and base64-js 1.5.1 (MIT). Full notices are adjacent. Bundle is unmodified. Decoder is isolated in a bounded Node process; native project commands retain editable masks, supported blends/groups and basic text.

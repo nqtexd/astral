@@ -29,7 +29,7 @@ try{
   assert.ok(initialized.capabilities.tools);
   child.stdin.write(JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})+'\n');
   const tools=await rpc('tools/list');assert.ok(tools.tools.some(t=>t.name==='apply_commands'));assert.ok(tools.tools.length>=15);
-  const destinations=await tool('list_export_presets');assert.equal(destinations.presets.length,9);assert.equal(destinations.formats.length,7);
+  const destinations=await tool('list_export_presets');assert.equal(destinations.presets.length,9);assert.equal(destinations.formats.length,8);
   const p=await tool('create_project',{name:'Agent fight',width:1920,height:1080,fps:30,duration:300});
   let revision=p.revision;const project=p.project;
   async function apply(commands){const result=await tool('apply_commands',{project,expected_revision:revision,commands});revision=result.revision;return result;}

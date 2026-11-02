@@ -24,6 +24,8 @@ impl DrawingLayer {
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct InkStroke {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub brush: Option<StampBrush>,
     /// Optional embedded bitmap; four vector points define its editable destination quad.
     #[serde(default)]
     pub bitmap: Option<Id>,
@@ -182,6 +184,23 @@ pub(crate) fn validate(p: &Project) -> Result<()> {
         );
         ensure!(cel.strokes.len() <= 100_000, "Too many strokes in one cel");
         for stroke in &cel.strokes {
+            if let Some(brush) = &stroke.brush {
+                brush.validate()?;
+                ensure!(
+                    p.schema >= 10 && stroke.bitmap.is_none() && !stroke.filled,
+                    "Textured brush needs schema 10 and an unfilled vector stroke"
+                );
+                let length: f32 = stroke
+                    .sampled_points()
+                    .windows(2)
+                    .map(|p| p[0].distance(p[1]))
+                    .sum();
+                ensure!(
+                    length.is_finite()
+                        && length / (stroke.width * brush.spacing).max(0.5) <= 50000.,
+                    "Textured stroke exceeds 50,000 dabs"
+                );
+            }
             ensure!(
                 !stroke.curved || stroke.points.len() <= 12500,
                 "Cubic strokes exceed the 100000-sample budget"
@@ -447,4 +466,39 @@ pub(crate) fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) 
         _ => anyhow::bail!("Not a cel command"),
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct StampBrush {
+    pub spacing: f32,
+    pub scatter: f32,
+    pub flow: f32,
+    pub hardness: f32,
+    pub grain: f32,
+    pub seed: u32,
+}
+impl Default for StampBrush {
+    fn default() -> Self {
+        Self {
+            spacing: 0.2,
+            scatter: 0.,
+            flow: 0.7,
+            hardness: 0.8,
+            grain: 0.4,
+            seed: 17,
+        }
+    }
+}
+impl StampBrush {
+    pub fn validate(&self) -> Result<()> {
+        ensure!(
+            (0.05..=4.).contains(&self.spacing)
+                && (0.0..=2.).contains(&self.scatter)
+                && (0.01..=1.).contains(&self.flow)
+                && (0.0..=1.).contains(&self.hardness)
+                && (0.0..=1.).contains(&self.grain),
+            "Invalid textured brush settings"
+        );
+        Ok(())
+    }
 }

@@ -54,6 +54,10 @@ pub enum ArtworkRequest {
         erase: bool,
     },
     LipSync {
+        #[serde(default)]
+        engine: crate::speech::Recognizer,
+        #[serde(default)]
+        mapping: std::collections::BTreeMap<String, MouthShape>,
         project: Id,
         expected_revision: u64,
         clip: Id,
@@ -105,7 +109,13 @@ fn decode(bytes: &[u8]) -> Result<image::RgbaImage> {
     );
     Ok(image)
 }
-fn layer(name: String, source: &Bitmap, start: u32, end: u32, position: Point) -> RasterLayer {
+pub(crate) fn layer(
+    name: String,
+    source: &Bitmap,
+    start: u32,
+    end: u32,
+    position: Point,
+) -> RasterLayer {
     RasterLayer {
         id: Id::new_v4(),
         name,
@@ -280,8 +290,16 @@ impl Service {
                             .is_some_and(|e| e.eq_ignore_ascii_case("psd"))
                     {
                         let bytes = workspace.read(&paths[0])?;
-                        let (parts, notes) = import_psd(&bytes, start, p.duration - 1)?;
+                        let (native, notes, created) = crate::psd_import::import(
+                            &bytes,
+                            &service.application_root,
+                            &p,
+                            start,
+                            job,
+                        )?;
+                        commands.extend(native);
                         warnings.extend(notes);
+                        ids.extend(created);
                         commands.push(Command::AddAsset {
                             asset: Asset {
                                 id: Id::new_v4(),
@@ -295,11 +313,6 @@ impl Service {
                                 tags: vec!["psd".into(), "original".into()],
                             },
                         });
-                        for (bitmap, raster) in parts {
-                            ids.push(raster.id);
-                            commands.push(Command::AddBitmap { bitmap });
-                            commands.push(Command::PutRasterLayer { layer: raster });
-                        }
                     } else {
                         let mut sources = vec![];
                         let mut first = None;
@@ -457,6 +470,8 @@ impl Service {
                 })
             }
             ArtworkRequest::LipSync {
+                engine,
+                mapping,
                 project,
                 expected_revision,
                 clip,
@@ -464,6 +479,18 @@ impl Service {
                 text,
                 threshold,
             } => {
+                if engine != crate::speech::Recognizer::Envelope {
+                    return crate::speech::recognize(
+                        self,
+                        project,
+                        expected_revision,
+                        clip,
+                        character,
+                        text,
+                        engine,
+                        mapping,
+                    );
+                }
                 let p = self.snapshot(project)?;
                 ensure!(
                     p.revision == expected_revision,
@@ -669,27 +696,6 @@ fn follow_track(
     Ok(out)
 }
 
-type ImportedArtwork = (Vec<(Bitmap, RasterLayer)>, Vec<String>);
-fn import_psd(bytes: &[u8], start: u32, end: u32) -> Result<ImportedArtwork> {
-    ensure!(
-        bytes.len() >= 26
-            && &bytes[..4] == b"8BPS"
-            && u16::from_be_bytes([bytes[4], bytes[5]]) == 1
-            && u16::from_be_bytes([bytes[22], bytes[23]]) == 8
-            && u16::from_be_bytes([bytes[24], bytes[25]]) == 3,
-        "Import supports 8-bit RGB PSD files; PSB, CMYK and high-bit-depth PSD are unsupported"
-    );
-    let height = u32::from_be_bytes(bytes[14..18].try_into()?);
-    let width = u32::from_be_bytes(bytes[18..22].try_into()?);
-    ensure!(
-        width > 0 && height > 0 && width as u64 * height as u64 <= 16_777_216,
-        "PSD exceeds 16 megapixels"
-    );
-    std::panic::catch_unwind(||->Result<_>{let document=psd::Psd::from_bytes(bytes).map_err(|e|anyhow::anyhow!("PSD: {e:?}"))?;ensure!(document.layers().len()<=64,"PSD exceeds 64 layers");let mut out=vec![];let mut pixels=0u64;let mut warnings=vec!["PSD layers are rasterized. Text, smart objects, masks, adjustment layers, groups and non-normal blend modes are not editable equivalents; inspect the imported composition.".into()];
-        for source in document.layers().iter().rev(){let x=source.layer_left().max(0)as u32;let y=source.layer_top().max(0)as u32;let right=(source.layer_right()+1).clamp(0,width as i32)as u32;let bottom=(source.layer_bottom()+1).clamp(0,height as i32)as u32;if x>=right||y>=bottom{warnings.push(format!("Skipped empty/off-canvas layer {}",source.name()));continue;}pixels+=(right-x)as u64*(bottom-y)as u64;ensure!(pixels<=134_217_728,"PSD layers exceed bitmap budget");let data=source.rgba();let canvas=image::RgbaImage::from_raw(width,height,data).context("Invalid PSD layer pixels")?;let cropped=image::imageops::crop_imm(&canvas,x,y,right-x,bottom-y).to_image();let b=bitmap(source.name().into(),cropped)?;let mut r=layer(source.name().into(),&b,start,end,Point::new(x as f32+(right-x)as f32/2.,y as f32+(bottom-y)as f32/2.));r.visible=source.visible();r.keys[0].opacity=source.opacity()as f32/255.;out.push((b,r));}
-        if out.is_empty(){let b=bitmap("PSD composite".into(),image::RgbaImage::from_raw(width,height,document.rgba()).context("Invalid PSD composite")?)?;let r=layer("PSD composite".into(),&b,start,end,Point::new(width as f32/2.,height as f32/2.));out.push((b,r));warnings.push("No editable raster layers found; imported the composite only".into());}Ok((out,warnings))
-    }).map_err(|_|anyhow::anyhow!("PSD decoder rejected unsupported compression or malformed layer data; the original file was not changed"))?
-}
 pub fn paint(
     image: &mut image::RgbaImage,
     points: &[Point],
@@ -815,6 +821,7 @@ fn lip_sync(
         }
     }
     Ok(MouthTrack {
+        sprites: Default::default(),
         id: Id::new_v4(),
         name: "Audio mouth cues".into(),
         character,

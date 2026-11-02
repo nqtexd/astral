@@ -255,6 +255,8 @@ pub struct NamedPose {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Project {
+    #[serde(default)]
+    pub compositions: Vec<crate::Composition>,
     /// Immutable archived source shared by all revisions; never rendered or sent in inspection results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub original_source: Option<std::sync::Arc<OriginalSource>>,
@@ -340,6 +342,7 @@ impl Project {
     }
     pub fn new(name: impl Into<String>, width: u32, height: u32, fps: u32, duration: u32) -> Self {
         Self {
+            compositions: vec![],
             original_source: None,
             schema: 2,
             bitmaps: vec![],
@@ -373,6 +376,7 @@ impl Project {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        crate::compositor::validate(self)?;
         if let Some(source) = &self.original_source {
             ensure!(
                 self.schema >= 9
@@ -383,7 +387,7 @@ impl Project {
             );
         }
         ensure!(
-            matches!(self.schema, 1..=9),
+            matches!(self.schema, 1..=10),
             "Unsupported Astral schema {}",
             self.schema
         );

@@ -1,0 +1,10 @@
+import ag from '../vendor/psd/ag-psd-34.1.0.cjs';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {decodePsd} from '../scripts/astral-psd.mjs';
+import {fixture} from './helpers/psd-fixture.mjs';
+test('PSD groups, blend parameters, masks and editable text survive the bridge',()=>{const result=decodePsd(fixture());assert.equal(result.width,32);assert.equal(result.layers[0].name,'Base');const group=result.layers[1];assert.equal(group.blend,'multiply');assert.ok(Math.abs(group.opacity-0.75)<0.01);assert.equal(group.children[0].mask.width,16);assert.equal(group.children[0].mask.default_color,0);assert.equal(group.children[1].text.value,'Editable');assert.ok(result.warnings.some(w=>w.includes('Text is editable')));assert.ok(Buffer.from(group.children[0].png,'base64').subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')));});
+test('PSD bridge rejects truncation, oversized canvas and high-bit-depth headers',()=>{assert.throws(()=>decodePsd(Buffer.alloc(20)));const bytes=fixture();bytes.writeUInt32BE(100000,18);assert.throws(()=>decodePsd(bytes),/budget/);const depth=fixture();depth.writeUInt16BE(16,22);assert.throws(()=>decodePsd(depth),/8-bit/);});
+
+test('PSD bounds are rejected before decoding hostile off-canvas layers',()=>{const bytes=fixture();let p=26;for(let i=0;i<2;i++)p+=4+bytes.readUInt32BE(p);const first=p+4+4+2;bytes.writeInt32BE(1000000000,first+12);assert.throws(()=>decodePsd(bytes),/layer.*budget/);});
+test('composite-only PSD remains available through the isolated decoder',()=>{const bytes=Buffer.alloc(26+12+2+48);bytes.write('8BPS');bytes.writeUInt16BE(1,4);bytes.writeUInt16BE(3,12);bytes.writeUInt32BE(4,14);bytes.writeUInt32BE(4,18);bytes.writeUInt16BE(8,22);bytes.writeUInt16BE(3,24);bytes.fill(200,40,56);bytes.fill(40,56,72);bytes.fill(20,72,88);const report=decodePsd(bytes);assert.equal(report.layers.length,1);assert.equal(report.layers[0].name,'PSD composite');assert.ok(report.warnings.some(w=>w.includes('No separate layers')));});

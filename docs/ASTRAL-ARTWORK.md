@@ -1,5 +1,7 @@
 # Artwork, voice and rendering
 
+> Historical 0.13 overview. For current PSD graphs, offline recognized visemes, textured brushes and native exports, read the [0.15 workflow](ASTRAL-0.15-WORKFLOW.md). The limitations below describe the earlier implementation.
+
 Astral 0.13 adds native raster tracks alongside the existing vector frames and rigs. Manual drawing stays independent by default.
 
 ## A short desktop workflow

@@ -137,6 +137,7 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                     if primitive == 0 {
                         if width <= 500. {
                             strokes.push(InkStroke {
+                                brush: None,
                                 bitmap: None,
                                 skin: None,
                                 pressures: vec![],
@@ -163,6 +164,7 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                         }
                         if filled {
                             strokes.push(InkStroke {
+                                brush: None,
                                 bitmap: None,
                                 skin: None,
                                 pressures: vec![],
@@ -176,6 +178,7 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                         } else {
                             if primitive == 1 {
                                 strokes.push(InkStroke {
+                                    brush: None,
                                     bitmap: None,
                                     skin: None,
                                     pressures: vec![],
@@ -188,6 +191,7 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                                 });
                             }
                             strokes.push(InkStroke {
+                                brush: None,
                                 bitmap: None,
                                 skin: None,
                                 pressures: vec![],

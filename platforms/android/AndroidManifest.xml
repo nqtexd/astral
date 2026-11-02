@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.astral.studio.preview" android:versionCode="1400" android:versionName="0.14.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.astral.studio.preview" android:versionCode="1500" android:versionName="0.15.0">
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="36" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
     <application android:label="Astral Preview" android:icon="@drawable/icon" android:hasCode="true" android:debuggable="true" android:allowBackup="false" android:extractNativeLibs="true" android:theme="@android:style/Theme.Material.NoActionBar">

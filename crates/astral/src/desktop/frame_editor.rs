@@ -390,6 +390,7 @@ impl Studio {
                         ui.separator();
                         theme::section(ui, "BRUSH");
                         egui::ComboBox::from_id_salt("brush.style").selected_text(format!("{:?}",self.preferences.brush_style)).show_ui(ui,|ui|{for style in [BrushStyle::Solid,BrushStyle::Marker,BrushStyle::Dashed,BrushStyle::Stipple]{ui.selectable_value(&mut self.preferences.brush_style,style,format!("{style:?}"));}});
+                        self.textured_brush_settings(ui);
                         ui.checkbox(&mut self.preferences.pressure_brush,i18n::tr("Pressure controls width")).on_hover_text("Uses normalized pressure reported by the device. Mouse uses full pressure. Tablet support depends on the operating-system input driver.");
                         ui.checkbox(&mut self.preferences.curved_brush,i18n::tr("Cubic smoothing"));ui.checkbox(&mut self.preferences.filled_brush,i18n::tr("Closed fill"));
                         if theme::button(ui,"Edit points",theme::Icon::Pencil,self.draw_tool==DrawTool::Nodes).clicked(){self.draw_tool=DrawTool::Nodes;}
@@ -1297,6 +1298,7 @@ impl Studio {
                         }
                         let mut strokes = self.current_strokes(p);
                         strokes.push(InkStroke {
+                            brush: self.preferences.stamp_brush.clone(),
                             bitmap: None,
                             skin: None,
                             pressures: {
@@ -1311,7 +1313,8 @@ impl Studio {
                                 }
                             },
                             style: self.preferences.brush_style,
-                            filled: self.preferences.filled_brush,
+                            filled: self.preferences.filled_brush
+                                && self.preferences.stamp_brush.is_none(),
                             curved: self.preferences.curved_brush,
                             points,
                             color: self.draw_color.to_srgba_unmultiplied(),
@@ -1408,4 +1411,98 @@ fn swept_distance(a: Point, b: Point, c: Point, d: Point) -> f32 {
         .min(segment_distance(b, c, d))
         .min(segment_distance(c, a, b))
         .min(segment_distance(d, a, b))
+}
+
+impl Studio {
+    fn textured_brush_settings(&mut self, ui: &mut egui::Ui) {
+        ui.collapsing(i18n::tr("Brush studio"), |ui| {
+            ui.horizontal_wrapped(|ui| {
+                for (name, brush) in [
+                    (
+                        "Pencil",
+                        StampBrush {
+                            grain: 0.8,
+                            flow: 0.6,
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "Ink",
+                        StampBrush {
+                            grain: 0.,
+                            flow: 1.,
+                            hardness: 1.,
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "Airbrush",
+                        StampBrush {
+                            spacing: 0.15,
+                            hardness: 0.,
+                            flow: 0.15,
+                            grain: 0.,
+                            ..Default::default()
+                        },
+                    ),
+                    (
+                        "Chalk",
+                        StampBrush {
+                            grain: 0.85,
+                            scatter: 0.3,
+                            hardness: 0.7,
+                            ..Default::default()
+                        },
+                    ),
+                ] {
+                    if ui.button(name).clicked() {
+                        self.preferences.stamp_brush = Some(brush);
+                        self.preferences.filled_brush = false;
+                    }
+                }
+            });
+            if let Some(brush) = &mut self.preferences.stamp_brush {
+                ui.add(egui::Slider::new(&mut brush.spacing, 0.05..=4.).text(i18n::tr("Spacing")));
+                ui.add(egui::Slider::new(&mut brush.flow, 0.01..=1.).text(i18n::tr("Flow")));
+                ui.add(egui::Slider::new(&mut brush.hardness, 0.0..=1.).text(i18n::tr("Hardness")));
+                ui.add(egui::Slider::new(&mut brush.grain, 0.0..=1.).text(i18n::tr("Grain")));
+                ui.add(egui::Slider::new(&mut brush.scatter, 0.0..=2.).text(i18n::tr("Scatter")));
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.preferences.brush_preset_name)
+                        .hint_text("Preset name")
+                        .char_limit(64),
+                );
+                if ui
+                    .add_enabled(
+                        !self.preferences.brush_preset_name.trim().is_empty()
+                            && self.preferences.brush_presets.len() < 32,
+                        egui::Button::new(i18n::tr("Save brush preset")),
+                    )
+                    .clicked()
+                {
+                    self.preferences.brush_presets.insert(
+                        self.preferences.brush_preset_name.trim().into(),
+                        brush.clone(),
+                    );
+                }
+                if ui.button(i18n::tr("Use simple brush")).clicked() {
+                    self.preferences.stamp_brush = None;
+                }
+            }
+            let presets = self.preferences.brush_presets.clone();
+            for (name, brush) in presets {
+                ui.horizontal(|ui| {
+                    if ui.button(&name).clicked() {
+                        self.preferences.stamp_brush = Some(brush);
+                        self.preferences.filled_brush = false;
+                    }
+                    if theme::icon_button(ui, "Remove brush preset", theme::Icon::Delete, false)
+                        .clicked()
+                    {
+                        self.preferences.brush_presets.remove(&name);
+                    }
+                });
+            }
+        });
+    }
 }

@@ -29,3 +29,8 @@ pub mod composition;
 pub mod raster;
 pub use raster::*;
 pub mod deformation;
+
+pub mod compositor;
+pub use compositor::{BlendMode, CompositeNode, CompositeOp, Composition};
+
+pub mod vector;

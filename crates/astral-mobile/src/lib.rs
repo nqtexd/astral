@@ -606,6 +606,7 @@ impl TouchStudio {
                     .map(|c| c.strokes.clone())
                     .unwrap_or_default();
                 strokes.push(InkStroke {
+                    brush: None,
                     bitmap: None,
                     skin: None,
                     pressures: vec![],
@@ -962,6 +963,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut app = TouchStudio::new(dir.path().to_owned()).unwrap();
         let stroke = InkStroke {
+            brush: None,
             bitmap: None,
             skin: None,
             pressures: vec![],

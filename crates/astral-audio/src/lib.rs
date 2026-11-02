@@ -20,78 +20,14 @@ pub fn mix(project: &Project, workspace: &Workspace) -> Result<Vec<u8>> {
     let seconds = project.duration as f64 / project.fps as f64;
     ensure!(
         seconds <= 600.,
-        "Audio export currently limited to ten minutes"
+        "In-memory mix is limited to ten minutes; use streaming export for longer projects"
     );
-    let mut mixed = vec![[0f32; 2]; (seconds * SAMPLE_RATE as f64).ceil() as usize];
-    for clip in &project.audio {
-        let asset = project
-            .assets
-            .iter()
-            .find(|a| a.id == clip.asset)
-            .context("Audio asset missing")?;
-        let bytes = workspace.read(&asset.path)?;
-        let pcm = decode(&bytes).with_context(|| format!("Decode {}", asset.name))?;
-        let samples = pcm.samples;
-        ensure!(
-            samples.iter().all(|v| v.is_finite()),
-            "Non-finite audio samples"
-        );
-        let source_frames = samples.len() / pcm.channels;
-        ensure!(source_frames > 0, "Empty WAV file");
-        let start = (clip.start as f64 / project.fps as f64 * SAMPLE_RATE as f64).round() as usize;
-        let count = (clip.duration_seconds * SAMPLE_RATE as f64).round() as usize;
-        for i in 0..count.min(mixed.len().saturating_sub(start)) {
-            let time = i as f64 / SAMPLE_RATE as f64;
-            let source = (clip.offset_seconds + time * clip.speed as f64) * pcm.rate as f64;
-            let source = if clip.looping {
-                source % source_frames as f64
-            } else {
-                if source >= source_frames as f64 {
-                    break;
-                }
-                source
-            };
-            let f = source.floor() as usize;
-            let next = (f + 1).min(source_frames - 1);
-            let t = (source - f as f64) as f32;
-            let fade_in = if clip.fade_in > 0. {
-                (time as f32 / clip.fade_in).min(1.)
-            } else {
-                1.
-            };
-            let fade_out = if clip.fade_out > 0. {
-                ((clip.duration_seconds - time) as f32 / clip.fade_out).clamp(0., 1.)
-            } else {
-                1.
-            };
-            for (channel, output) in mixed[start + i].iter_mut().enumerate() {
-                let ch = channel.min(pcm.channels - 1);
-                let a = samples[f * pcm.channels + ch];
-                let b = samples[next * pcm.channels + ch];
-                *output += (a + (b - a) * t) * clip.gain * fade_in * fade_out;
-            }
-        }
-    }
-    let mut bytes = Cursor::new(Vec::new());
-    {
-        let mut writer = hound::WavWriter::new(
-            &mut bytes,
-            hound::WavSpec {
-                channels: 2,
-                sample_rate: SAMPLE_RATE,
-                bits_per_sample: 16,
-                sample_format: hound::SampleFormat::Int,
-            },
-        )?;
-        for frame in mixed {
-            for sample in frame {
-                writer.write_sample((sample.clamp(-1., 1.) * i16::MAX as f32) as i16)?;
-            }
-        }
-        writer.finalize()?;
-    }
-    Ok(bytes.into_inner())
+    let mut output = Cursor::new(Vec::new());
+    mix_range_to(project, workspace, 0., seconds, &mut output, || Ok(()))?;
+    Ok(output.into_inner())
 }
+mod stream;
+pub use stream::mix_range_to;
 
 /// A reproducible, local impact sound used by the example project.
 pub fn impact_wav() -> Result<Vec<u8>> {

@@ -10,3 +10,5 @@ Human review remains necessary for security, licensing, usability and animation 
 
 
 The 0.14 voice-provider adapters, migration helper, deformation/brush extensions, shortcut editor and Spanish/French core-control catalogs were implemented with AI coding assistance. Provider contracts were checked against primary documentation. No proprietary Moho implementation or content was copied; the existing GPL source evaluator is retained as a transitional, read-only import helper. Feature equivalence and artistic quality are not inferred from generated code or passing tests.
+
+The 0.15 compositing, PSD adapter, native AVI muxing, speech timing integration, brush controls and production-gate tooling were developed with AI coding assistance. Third-party parser/recognizer/runtime code and speech models remain separately attributed; Astral does not claim to have trained Rhubarb’s recognizers.

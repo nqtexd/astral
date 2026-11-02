@@ -15,6 +15,9 @@ use std::{
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 pub enum Request {
+    PreviewCommands {
+        batch: Batch,
+    },
     Artwork {
         request: crate::artwork::ArtworkRequest,
     },
@@ -348,7 +351,33 @@ impl Service {
                     json!({"document":document,"scene":frame.map(|f|evaluate(&p,f)),"capabilities":capabilities()}),
                 )
             }
+            Request::PreviewCommands { batch } => {
+                let p = self.checked_project(batch.project, batch.expected_revision)?;
+                let mut preview = Session::new(p)?;
+                let receipt = preview.apply(batch)?;
+                for asset in &preview.project.assets {
+                    self.project_workspace(preview.project.id)
+                        .path(&asset.path)?;
+                }
+                astral_render::validate_artwork(&preview.project)?;
+                Ok(
+                    json!({"valid":true,"mutated":false,"project":receipt.project,"expected_revision":receipt.revision-1,"proposed_revision":receipt.revision,"created_ids_are_preview_only":true,"characters":preview.project.characters.len(),"drawing_cels":preview.project.cels.len(),"graphics":preview.project.graphics.len(),"compositions":preview.project.compositions.len(),"audio_clips":preview.project.audio.len(),"warnings":["Structural transaction preview; inspect rendered animation before committing. Generated IDs may differ at commit."]}),
+                )
+            }
             Request::ApplyCommands { batch } => {
+                // Decode new embedded images before touching the live history. A bad
+                // payload must not leave an invalid committed project behind.
+                if batch
+                    .commands
+                    .iter()
+                    .any(|c| matches!(c, Command::AddBitmap { .. }))
+                {
+                    let mut candidate = Session::new(
+                        self.checked_project(batch.project, batch.expected_revision)?,
+                    )?;
+                    candidate.apply(batch.clone())?;
+                    astral_render::validate_artwork(&candidate.project)?;
+                }
                 let id = batch.project;
                 let (before, receipt, after) = {
                     let mut store = self

@@ -349,6 +349,7 @@ impl Studio {
         }
         if self.preferences.mode == WorkspaceMode::Graphics {
             ui.heading(i18n::tr("Motion graphics"));
+            self.vector_path_tools(ui, p);
             egui::ComboBox::from_id_salt("graphic.kind")
                 .selected_text(format!("{:?}", self.graphic_kind))
                 .show_ui(ui, |ui| {
@@ -705,4 +706,20 @@ fn text_format_controls(ui: &mut egui::Ui, format: &mut TextFormatting) {
         "Padding",
         egui::Slider::new(&mut format.padding, 0.0..=50.),
     );
+}
+
+impl Studio {
+    fn vector_path_tools(&mut self, ui: &mut egui::Ui, p: &Project) {
+        ui.collapsing(i18n::tr("Vector paths"),|ui|{
+   let id=egui::Id::unique("vector.boolean.selection");let mut state=ui.ctx().data_mut(|d|d.get_temp::<(Option<Id>,Option<Id>,usize)>(id).unwrap_or_default());
+   for(label,value)in[("First",&mut state.0),("Second",&mut state.1)]{egui::ComboBox::from_id_salt(label).selected_text(format!("{label}: {}",value.and_then(|id|p.graphics.iter().find(|g|g.id==id)).map_or("Choose shape",|g|g.name.as_str()))).show_ui(ui,|ui|{for g in &p.graphics{ui.selectable_value(value,Some(g.id),&g.name);}});}
+   let labels=["Union","Subtract","Intersect","XOR"];state.2=state.2.min(3);egui::ComboBox::from_id_salt("vector.boolean.operation").selected_text(labels[state.2]).show_ui(ui,|ui|{for(i,label)in labels.into_iter().enumerate(){ui.selectable_value(&mut state.2,i,label);}});
+   if ui.add_enabled(state.0.is_some()&&state.1.is_some()&&state.0!=state.1,egui::Button::new(i18n::tr("Create combined shape"))).clicked(){let operation=[astral_core::vector::BooleanOperation::Union,astral_core::vector::BooleanOperation::Subtract,astral_core::vector::BooleanOperation::Intersect,astral_core::vector::BooleanOperation::Xor][state.2];self.apply(vec![Command::BooleanGraphics{left:state.0.unwrap(),right:state.1.unwrap(),frame:self.frame as u32,operation}]);}
+   ui.ctx().data_mut(|d|d.insert_temp(id,state));
+   if let Some(source)=self.selected_graphic.and_then(|id|p.graphics.iter().find(|g|g.id==id)){
+    if source.contours.is_empty(){if ui.button(i18n::tr("Make path editable")).clicked(){match astral_core::vector::contours(source){Ok(contours)=>{let mut graphic=source.clone();graphic.contours=contours;self.apply(vec![Command::ReplaceGraphic{graphic}]);},Err(e)=>self.status=e.to_string()}}}
+    else{let mut graphic=source.clone();let selection=egui::Id::unique((graphic.id,"point.selection"));let(mut ring,mut point)=ui.ctx().data_mut(|d|d.get_temp::<(usize,usize)>(selection).unwrap_or_default());ring=ring.min(graphic.contours.len()-1);point=point.min(graphic.contours[ring].len()-1);ui.add(egui::DragValue::new(&mut ring).range(0..=graphic.contours.len()-1).prefix("Contour "));point=point.min(graphic.contours[ring].len()-1);ui.add(egui::DragValue::new(&mut point).range(0..=graphic.contours[ring].len()-1).prefix("Point "));ui.ctx().data_mut(|d|d.insert_temp(selection,(ring,point)));let q=&mut graphic.contours[ring][point];let mut changed=ui.add(egui::DragValue::new(&mut q.x).speed(0.25).prefix("X ")).changed();changed|=ui.add(egui::DragValue::new(&mut q.y).speed(0.25).prefix("Y ")).changed();if changed{self.apply(vec![Command::ReplaceGraphic{graphic}]);}ui.small("Path edits change the shared shape across its animation. Originals remain after Boolean operations.");}
+   }
+  });
+    }
 }

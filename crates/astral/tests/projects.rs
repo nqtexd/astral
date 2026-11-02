@@ -103,6 +103,7 @@ fn cel_projects_round_trip_with_identical_rendered_frames() {
                         layer: lid,
                         frame: 0,
                         strokes: vec![InkStroke {
+                            brush: None,
                             bitmap: None,
                             skin: None,
                             pressures: vec![],

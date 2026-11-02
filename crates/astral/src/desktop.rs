@@ -12,6 +12,7 @@ const VIOLET: Color32 = theme::ACCENT;
 const MUTED: Color32 = theme::MUTED;
 mod artwork_panel;
 mod assist;
+mod compositing;
 mod export_panel;
 mod features;
 mod frame_editor;
@@ -72,6 +73,9 @@ struct Preferences {
     pose_model_path: String,
     pressure_brush: bool,
     brush_style: BrushStyle,
+    stamp_brush: Option<StampBrush>,
+    brush_presets: BTreeMap<String, StampBrush>,
+    brush_preset_name: String,
     curved_brush: bool,
     filled_brush: bool,
     voice_id: String,
@@ -120,6 +124,9 @@ impl Default for Preferences {
             pose_model_path: String::new(),
             pressure_brush: true,
             brush_style: BrushStyle::Solid,
+            stamp_brush: None,
+            brush_presets: BTreeMap::new(),
+            brush_preset_name: String::new(),
             curved_brush: false,
             filled_brush: false,
             voice_id: String::new(),

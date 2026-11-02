@@ -1,5 +1,7 @@
 # Release scope and platform evidence
 
+Current Windows candidate: **0.15.0**. See the [current workflow](ASTRAL-0.15-WORKFLOW.md) and [production gate inventory](../platforms/release/production-gates.json). The platform results below are historical evidence for their named commits, not certification of the current candidate. Full production readiness is **not established**.
+
 Astral 0.13.0 is a Windows early-access release. It is **not feature-equivalent to Moho Debut or approved for app-store publication**. Its project-management, customization, composition, preview and finishing changes have local test evidence. The 0.13 Android ARM64/x86-64 APK compiles and has a development test signature. The emulator interaction checks below remain historical evidence; no physical Android device was connected for this revision. The macOS ARM development build and real headless MCP acceptance passed on a GitHub Mac runner at `fe7efde` ([run](https://github.com/nqtexd/astral/actions/runs/41322916660)); that is compile/headless evidence, not physical-device or production-signing evidence.
 
 ## Reference scope

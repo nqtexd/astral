@@ -10,9 +10,9 @@
 
 **Draw it yourself, animate a rig, or ask an external agent to work through MCP. Everything stays editable.**
 
-[Download v0.14.0](https://github.com/nqtexd/astral/releases/tag/v0.14.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
+[Download v0.15.0](https://github.com/nqtexd/astral/releases/tag/v0.15.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
 
-> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Historical 0.13 Mac ARM/Intel and Apple simulator development builds passed CI; 0.14 Apple/Android builds, physical device validation and production signing are not verified. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
+> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Historical 0.13 Mac ARM/Intel and Apple simulator development builds passed CI; 0.15 Apple/Android builds, physical device validation and production signing are not verified. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Watch, open, make it yours
 
@@ -28,20 +28,22 @@ Actual Astral renders. The source projects stay editable—poses, raster pins, c
 
 GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes separate impact clips. These are tool demonstrations made with AI coding assistance; they do not promise automatic film-quality acting.
 
-## New in 0.14
+## New in 0.15
 
-- **Draw and refine:** pressure samples, solid/marker/dashed/stipple brushes, closed fills, cubic smoothing and draggable vector points. Single-frame edits and undo remain explicit.
-- **Deform artwork:** choose soft pins or rotation/scale-preserving MLS pins, animate a cubic curver, and drive additive pin correctives from bone angles.
-- **Track an object:** follow a source texture point with a graphic/image layer; two points propose rotation and scale. Review the proposal before accepting it.
-- **Bring older work forward:** source-evaluated migration, editable native rig controls, image quads and separate audio clips. Original data stays available for original-file export.
-- **Choose a voice:** Settings → Voice supports ElevenLabs and a configurable compatible speech API, alongside installed offline Windows voices. Windows keys use Credential Manager and are never saved in projects.
-- **Make the workspace yours:** remap 18 shortcuts with conflict checks; select English, Spanish or French core controls. Advanced untranslated controls and diagnostics use English.
+- **Editable PSD composition:** supported groups, bitmap masks, ZIP-compressed 8-bit RGB layers, eight blend modes and basic editable text. Conversion warnings identify remaining Photoshop differences.
+- **Offline speech timing:** English or language-independent phonetic recognition, distinct timed visemes, editable mouth keys and per-character mouth artwork. The Windows package includes Rhubarb and its models.
+- **Brush studio:** pressure-aware procedural pencil/ink/airbrush/chalk presets; save custom spacing, flow, hardness, grain and scatter settings.
+- **Vector and compositing tools:** contour editing, union/subtract/intersection/XOR, linear/radial gradients, and editable blend/mask/blur/color nodes shared by preview and export.
+- **Native exports:** AVI/MJPEG with PCM sound, JPEG, PNG, PNG-sequence ZIP and WAV work without FFmpeg. MP4/WebM/GIF remain available through FFmpeg.
+- **Safer finishing:** block-based long-form audio export preserves trim, playback speed and original fade phase; distinct saved versions retain five backups. MCP can preview a transaction before applying it. Worker panics finish as errors and produce bounded local diagnostics.
 
-[Voice setup, editing tools and migration details](docs/ASTRAL-0.14-WORKFLOW.md) · [Release checks and remaining work](docs/ASTRAL-0.14-RELEASE.md). New features use project schema 9; older versions reject these projects. Keep your original files and previous release available.
+[0.15 workflows and exact limits](docs/ASTRAL-0.15-WORKFLOW.md) · [Production gates](platforms/release/production-gates.json). New features require project schema 10; keep originals and previous releases. **This is a release candidate, not production certification.** Physical tablet/input latency, eight-hour desktop stress, complete localization, signed installers and Apple release gates are still open.
 
 ## Getting started
 
-1. Download **Astral-0.14.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.14.0).
+Already running Astral? Check the version in Settings. Launch the new package and reconnect MCP using its matching `astral.exe`; existing windows/servers keep their old version.
+
+1. Download **Astral-0.15.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.15.0).
 2. Extract the whole ZIP to a writable folder. Keep its executables, models and notices together.
 3. Run **Astral-Studio.exe**. `astral.exe` is the separate command-line/MCP executable.
 4. Choose **New project**, set the canvas, FPS and duration, then create it.
@@ -54,7 +56,7 @@ Manual editing needs no account or paid generation service. An external AI clien
 
 ### Video export
 
-PNG previews work immediately. Video export, media conversion and shot assembly need a **separately installed FFmpeg**. The public ZIP does not redistribute an encoder binary.
+PNG/JPEG, AVI video with sound, PNG-sequence ZIP and WAV exports work without FFmpeg. MP4/WebM/GIF, media conversion and shot assembly use a **separately installed FFmpeg**. The public ZIP does not redistribute FFmpeg.
 
 Get FFmpeg through the [official download page](https://ffmpeg.org/download.html), extract it, then choose **Settings → Appearance → Video encoder → Select FFmpeg executable**. Alternatively, use `PATH` or `ASTRAL_FFMPEG`. Standard MP4 uses `libx264`; supported hardware encoders are tried at runtime with software fallback. A separately acquired encoder retains its own licenses and distribution requirements.
 
@@ -131,7 +133,7 @@ Use that workspace in the MCP arguments. Enable/restart the server in the client
 
 The agent should discover tools, inspect IDs/rigs/revisions, plan, propose/edit, review previews, refine, save and export. Mutations use `expected_revision`; stale revisions reject edits and invalid batches commit nothing. Poll `job_status` for exports.
 
-Tools include `create_managed_project`, `draw_frame`, `animate_character`, `motion_tools`, `storyboard`, `add_dialogue`, `add_voice`, `render_preview`, `review_animation`, `assemble_video`, `project_activity`, `rename_project`, `trash_project`, `save_project` and `history`. Discover current schemas rather than guessing fields.
+Tools include `create_managed_project`, `preview_commands`, `draw_frame`, `animate_character`, `motion_tools`, `storyboard`, `add_dialogue`, `add_voice`, `render_preview`, `review_animation`, `assemble_video`, `project_activity`, `rename_project`, `trash_project`, `save_project` and `history`. Discover current schemas rather than guessing fields.
 
 **Headless:** add `--headless` after `mcp` for a separate session. It does not automatically share editor state. Profiles: `all`, `projects`, `animation`.
 
@@ -159,18 +161,21 @@ cargo run -p astral -- --workspace C:/AstralProjects studio
 ```powershell
 cargo test --workspace --locked
 cargo fmt --all -- --check
+python scripts/stage-astral-node.py
+python scripts/stage-astral-speech.py
+node scripts/check-astral-production.mjs
 node scripts/check-astral-feedback.mjs
 pwsh -File scripts/package-astral.ps1 -SkipBuild
 ```
 
-Packages include dependency notices and omit encoder binaries by default. Caches, private projects, generated films and old archives stay out of Git. Retained Electron/web sources are upstream compatibility code; Astral's executable is Rust. [Platform build notes](docs/ASTRAL-RELEASE-READINESS.md).
+Windows packages include dependency notices, the pinned PSD parser runtime and offline speech models. Native AVI/image/audio exports need no external encoder; MP4/WebM/GIF use separately installed FFmpeg. Caches, private projects, generated films and old archives stay out of Git. Retained Electron/web sources are upstream compatibility code; Astral's executable is Rust. [Platform build notes](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Current limits
 
 - Windows early access. Mac ARM/Intel and Apple simulator development builds passed CI; physical Android/Apple checks and production signing remain unfinished.
-- Moho Debut equivalence is not certified. MLS similarity pins, cubic curvers, bone-driven raster correctives, pressure/style brushes, point editing and core-control localization are now available. Broad PSD masks/blends/ZIP/PSB support, phoneme recognition, long-form video and complete localization remain unfinished. Tablet pressure depends on device/driver input and has not been physically certified.
+- Moho Debut equivalence is not certified. MLS similarity pins, cubic curvers, bone-driven raster correctives, pressure/style brushes, point editing and core-control localization are now available. PSD masks/groups/supported blends and speech-derived visemes are now available. PSB/high-bit-depth/CMYK, advanced adjustments/layer styles/clipping, complete localization and comprehensive long-form editing remain unfinished. Tablet pressure depends on device/driver input and has not been physically certified.
 - Legacy migration now samples the established source evaluator at project FPS: native pose controls and skinned cels include supported joins, in-betweens, custom polygons/circles and embedded image quads. Camera translation/zoom and embedded audio become native tracks. Source solver rules, subframe curves, live hierarchies, text outlines, gradient/filter stacks and tiled drawings are not lossless native equivalents. Unsupported/oversized conversions fall back with warnings; complete originals and canonical metadata are retained in a shared archive.
-- Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.
+- Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import. Supported PSD masks/groups/blends become a native compositing graph; text uses Astral fonts and unsupported source semantics are reported.
 - Auto reserves GPU rendering for longer exports with substantial raster coverage and uses CPU workers for short clips/small sprites. A failed GPU initialization falls back to CPU. Explicit GPU mode reports adapter/readback metrics. Hardware encoding remains separate. Speed depends on the scene and hardware.
 - Review tools cannot certify composition, continuity or realistic acting.
 - The release is unsigned; it is not a store-signed installer.

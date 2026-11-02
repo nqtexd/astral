@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "version": "0.15.0",
+  "claim": "Windows release candidate; production certification requires measured evidence",
+  "gates": [
+    {"id":"critical_workflows","area":"stability","requirement":"No reproducible critical crash in the documented release workflow corpus"},
+    {"id":"data_integrity","area":"data safety","requirement":"All save/reopen, recovery, backup and interrupted-write regression cases pass"},
+    {"id":"drawing_latency","area":"performance","requirement":"Physical common-stroke latency p95 < 20 ms on identified reference hardware"},
+    {"id":"playback","area":"performance","requirement":"Sustained >=24 FPS for specified representative moving scenes on reference hardware"},
+    {"id":"export_regressions","area":"interoperability","requirement":"All reference image/video/audio and range-sync cases pass"},
+    {"id":"memory_8h","area":"performance","requirement":"Eight-hour engine AND desktop stress runs without sustained unexplained memory growth"},
+    {"id":"undo_matrix","area":"artist workflows","requirement":"Restoration verified for every supported mutation family"},
+    {"id":"stylus_hardware","area":"artist workflows","requirement":"Pressure, pen/touch separation, palm rejection and interruption tested on physical supported tablets/drivers"},
+    {"id":"mcp_integrity","area":"automation","requirement":"Transaction validation, stale-revision rollback, confinement and cancellation cases pass"},
+    {"id":"localization_review","area":"artist workflows","requirement":"All advertised complete locales pass string coverage, layout and native-language review"},
+    {"id":"signed_artifacts","area":"release engineering","requirement":"Release executable and installer signatures validate for the exact binary hashes"},
+    {"id":"installer_vm","area":"release engineering","requirement":"Clean install, upgrade and uninstall pass on a clean supported Windows VM while user projects/preferences remain intact"},
+    {"id":"reproducible_build","area":"release engineering","requirement":"Two clean pinned builds have matching unsigned payload hashes, or documented nondeterminism is resolved"}
+  ],
+  "apple_additional_gates": ["Developer ID signing", "notarization", "clean Mac install/upgrade", "physical Mac render/input/audio validation"],
+  "notes": "Headless MCP latency is not physical drawing latency. A short stress smoke does not satisfy eight hours. A compiled installer script is not an installation test. Signing credentials and physical Apple/tablet access are not present in this workspace."
+}

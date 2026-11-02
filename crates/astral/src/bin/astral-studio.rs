@@ -13,6 +13,7 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
+    astral::diagnostics::install();
     let args = Args::parse();
     let root = args.workspace.unwrap_or_else(astral::default_workspace);
     let result = astral::service::Service::new(root).and_then(astral::desktop::run);

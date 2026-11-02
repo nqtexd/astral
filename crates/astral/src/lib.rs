@@ -22,3 +22,9 @@ pub mod production;
 pub mod artwork;
 
 pub mod recording;
+
+mod psd_import;
+
+pub mod speech;
+
+pub mod diagnostics;

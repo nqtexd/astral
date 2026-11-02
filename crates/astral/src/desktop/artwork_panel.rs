@@ -18,6 +18,7 @@ pub(super) struct ArtworkState {
     recording_target: Option<(Id, u32)>,
     clip: Option<Id>,
     text: String,
+    speech_engine: crate::speech::Recognizer,
 }
 impl Studio {
     pub(super) fn import_audio_file(&mut self, file: PathBuf) {
@@ -622,6 +623,7 @@ impl Studio {
             }
         }
         ui.separator();
+        self.compositing_panel(ui, p);
         self.voice_artwork_panel(ui, p);
     }
     pub(super) fn voice_artwork_panel(&mut self, ui: &mut egui::Ui, p: &Project) {
@@ -638,15 +640,17 @@ impl Studio {
             }
             egui::ComboBox::from_id_salt("mouth.audio").selected_text(self.artwork.clip.and_then(|id|p.audio.iter().find(|a|a.id==id)).map_or("Choose audio",|a|a.name.as_str())).show_ui(ui,|ui|{for audio in &p.audio{ui.selectable_value(&mut self.artwork.clip,Some(audio.id),&audio.name);}});
             ui.add(egui::TextEdit::multiline(&mut self.artwork.text).hint_text("Optional transcript").desired_width(ui.available_width()));
+            egui::ComboBox::from_id_salt("speech.engine").selected_text(format!("{:?}",self.artwork.speech_engine)).show_ui(ui,|ui|{for mode in [crate::speech::Recognizer::Phonetic,crate::speech::Recognizer::English,crate::speech::Recognizer::Envelope]{ui.selectable_value(&mut self.artwork.speech_engine,mode,format!("{mode:?}"));}});
             if ui.add_enabled(self.selected.is_some()&&self.artwork.clip.is_some()&&self.artwork.pending.is_none(),egui::Button::new("Generate mouth cues")).clicked(){
-                self.artwork_request(ArtworkRequest::LipSync{project:p.id,expected_revision:p.revision,clip:self.artwork.clip.unwrap(),character:self.selected.unwrap(),text:self.artwork.text.clone(),threshold:None});
+                self.artwork_request(ArtworkRequest::LipSync{engine:self.artwork.speech_engine,mapping:Default::default(),project:p.id,expected_revision:p.revision,clip:self.artwork.clip.unwrap(),character:self.selected.unwrap(),text:self.artwork.text.clone(),threshold:None});
             }
-            ui.label(RichText::new("Select a character first. Cues approximate sound energy; review the keys below.").size(11.).color(MUTED));
+            ui.label(RichText::new("Select a character first. English/Phonetic uses offline recognition; Envelope is approximate. Review the keys below.").size(11.).color(MUTED));
             for track in &p.mouths {
                 ui.label(&track.name);
+                ui.collapsing(i18n::tr("Mouth artwork"),|ui|{let mut next=track.clone();let mut changed=false;for shape in [MouthShape::Rest,MouthShape::M,MouthShape::Consonant,MouthShape::E,MouthShape::Wide,MouthShape::O,MouthShape::U,MouthShape::F,MouthShape::L]{let mut selected=next.sprites.get(&shape).copied();egui::ComboBox::from_id_salt((track.id,format!("{shape:?}"))).selected_text(format!("{shape:?}: {}",selected.and_then(|id|p.bitmaps.iter().find(|b|b.id==id)).map_or("Vector mouth",|b|b.name.as_str()))).show_ui(ui,|ui|{changed|=ui.selectable_value(&mut selected,None,"Vector mouth").changed();for b in &p.bitmaps{changed|=ui.selectable_value(&mut selected,Some(b.id),&b.name).changed();}});if let Some(id)=selected{next.sprites.insert(shape,id);}else{next.sprites.remove(&shape);}}if changed{self.apply(vec![Command::PutMouthTrack{track:next}]);}});
                 let current=track.keys.iter().rev().find(|k|k.frame<=self.frame as u32).map_or(MouthShape::Rest,|k|k.shape);
                 ui.horizontal_wrapped(|ui|{
-                    for (shape,label) in [(MouthShape::Rest,"Rest"),(MouthShape::A,"A"),(MouthShape::E,"E"),(MouthShape::O,"O"),(MouthShape::F,"F"),(MouthShape::M,"M")] {
+                    for (shape,label) in [(MouthShape::Rest,"Rest"),(MouthShape::A,"A"),(MouthShape::E,"E"),(MouthShape::O,"O"),(MouthShape::F,"F"),(MouthShape::M,"M"),(MouthShape::Consonant,"B"),(MouthShape::Wide,"D"),(MouthShape::U,"U"),(MouthShape::L,"L")] {
                         if ui.selectable_label(current==shape,label).clicked(){
                             let mut next=track.clone();next.keys.retain(|k|k.frame!=self.frame as u32);next.keys.push(MouthKey{frame:self.frame as u32,shape});next.keys.sort_by_key(|k|k.frame);self.apply(vec![Command::PutMouthTrack{track:next}]);
                         }

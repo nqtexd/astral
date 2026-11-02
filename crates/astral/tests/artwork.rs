@@ -252,6 +252,8 @@ fn editable_mouth_cues_keep_schema_and_text_fit_is_non_mutating() {
     service.insert(p).unwrap();
     service
         .artwork(ArtworkRequest::LipSync {
+            engine: astral::speech::Recognizer::Envelope,
+            mapping: Default::default(),
             project,
             expected_revision: 0,
             clip: clip_id,

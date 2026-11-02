@@ -16,6 +16,7 @@ fn scene() -> (Session, Id, Id, Id) {
             layer: id,
             frame,
             strokes: vec![InkStroke {
+                brush: None,
                 bitmap: None,
                 skin: None,
                 pressures: vec![],

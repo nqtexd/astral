@@ -163,7 +163,44 @@ pub(crate) fn mouths(list: &mut DisplayList, p: &Project, s: &EvaluatedScene, fr
             .rev()
             .find(|k| k.frame as f64 <= frame)
             .map_or(MouthShape::Rest, |k| k.shape);
+        if let Some(source) = m
+            .sprites
+            .get(&shape)
+            .and_then(|id| p.bitmaps.iter().find(|b| b.id == *id))
+            && let Ok(bitmap) = decode_bitmap(source)
+        {
+            let hw = m.size.x * s.zoom / 2.;
+            let hh = m.size.y * s.zoom / 2.;
+            list.primitives.push(Primitive::Image {
+                bitmap,
+                vertices: vec![
+                    TextureVertex {
+                        position: center + Point::new(-hw, -hh),
+                        uv: Point::new(0., 0.),
+                    },
+                    TextureVertex {
+                        position: center + Point::new(hw, -hh),
+                        uv: Point::new(1., 0.),
+                    },
+                    TextureVertex {
+                        position: center + Point::new(hw, hh),
+                        uv: Point::new(1., 1.),
+                    },
+                    TextureVertex {
+                        position: center + Point::new(-hw, hh),
+                        uv: Point::new(0., 1.),
+                    },
+                ],
+                indices: vec![0, 1, 2, 0, 2, 3],
+                opacity: 1.,
+            });
+            continue;
+        }
         let (rx, ry) = match shape {
+            MouthShape::Consonant => (m.size.x * 0.48, m.size.y * 0.12),
+            MouthShape::Wide => (m.size.x * 0.48, m.size.y * 0.65),
+            MouthShape::U => (m.size.x * 0.18, m.size.y * 0.3),
+            MouthShape::L => (m.size.x * 0.4, m.size.y * 0.35),
             MouthShape::Rest | MouthShape::M => (m.size.x * 0.4, 0.7),
             MouthShape::A => (m.size.x * 0.45, m.size.y * 0.5),
             MouthShape::E => (m.size.x * 0.5, m.size.y * 0.2),

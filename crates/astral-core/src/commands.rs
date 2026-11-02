@@ -7,6 +7,15 @@ use std::collections::VecDeque;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
+    BooleanGraphics {
+        left: Id,
+        right: Id,
+        frame: u32,
+        operation: crate::vector::BooleanOperation,
+    },
+    SetCompositions {
+        compositions: Vec<Composition>,
+    },
     AddBitmap {
         bitmap: Bitmap,
     },
@@ -328,6 +337,27 @@ impl Session {
         {
             next.schema = next.schema.max(9);
         }
+        if next
+            .cels
+            .iter()
+            .flat_map(|c| &c.strokes)
+            .any(|s| s.brush.is_some())
+            || !next.compositions.is_empty()
+            || next.mouths.iter().any(|m| {
+                !m.sprites.is_empty()
+                    || m.keys.iter().any(|k| {
+                        matches!(
+                            k.shape,
+                            MouthShape::Consonant
+                                | MouthShape::Wide
+                                | MouthShape::U
+                                | MouthShape::L
+                        )
+                    })
+            })
+        {
+            next.schema = next.schema.max(10);
+        }
         next.validate()?;
         next.revision = self
             .project
@@ -464,6 +494,19 @@ fn set_key(c: &mut Character, key: PoseKey) {
 }
 fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<()> {
     match command {
+        Command::BooleanGraphics {
+            left,
+            right,
+            frame,
+            operation,
+        } => {
+            let graphic = crate::vector::boolean_graphics(p, left, right, frame, operation)?;
+            created.push(graphic.id);
+            p.graphics.push(graphic);
+        }
+        Command::SetCompositions { compositions } => {
+            p.compositions = compositions;
+        }
         Command::AddBitmap { bitmap } => {
             p.schema = p.schema.max(8);
             created.push(bitmap.id);
