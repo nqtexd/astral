@@ -1,5 +1,14 @@
 # Astral changelog
 
+## Unreleased — cinematic production tools
+
+- Add independently anchored pan/zoom responses for drawing, raster and vector graphic layers, including composition inputs.
+- Add per-segment eased/hold/Bezier camera timing and revisioned full camera-track replacement; remap timing associations with project retiming.
+- Add animated linear-light SDR bloom, alpha-derived soft shadows, matte rim light and lift/gamma/gain grading, shared by preview/export.
+- Add desktop finishing/depth controls and MCP `cinematic_tools` for staged camera proposals, before/after images and sampled frame sheets/diagnostics.
+- Preserve camera shake inside composed source planes; validate schema 13 staging, finishing parameters and bounded 4K-capable workspaces.
+- Add an original editable multiplane lighting study and regression coverage. [Exact scope and workflow](ASTRAL-CINEMATIC-TOOLS.md).
+
 ## Unreleased — comic 2D workflows
 
 - Add editable RGB split, seeded time-varying glitch bands and rotated luminance halftone processing on arbitrary composited artwork, shared by preview/export.

@@ -93,6 +93,8 @@ pub(crate) fn append(
     for r in p.rasters.iter().filter(|r| {
         r.visible && r.layer == layer && frame >= r.start as f64 && frame <= r.end as f64
     }) {
+        let adjusted = p.scene_for_layer(r.id, s);
+        let s = &adjusted;
         let frame = p.layer_frame(r.id, frame);
         let Some(source) = p.bitmaps.iter().find(|b| b.id == r.bitmap_at(frame, p.fps)) else {
             continue;

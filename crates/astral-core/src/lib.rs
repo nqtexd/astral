@@ -1,4 +1,6 @@
 //! UI-independent, deterministic animation documents and transactional edits.
+mod cinematic;
+pub use cinematic::*;
 mod comic;
 pub use comic::*;
 mod animation;

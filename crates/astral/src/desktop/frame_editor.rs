@@ -1051,7 +1051,12 @@ impl Studio {
                     }
                 }
                 painter.rect_filled(rect, 0., rgba(p.background));
-                let scene = evaluate(p, self.frame);
+                let evaluated_scene = evaluate(p, self.frame);
+                let scene = self
+                    .selected_layer
+                    .map_or(std::borrow::Cow::Borrowed(&evaluated_scene), |layer| {
+                        p.scene_for_layer(layer, &evaluated_scene)
+                    });
                 let to_world = |point: Pos2| {
                     Point::new(
                         ((point.x - rect.left()) / scale - p.width as f32 / 2.) / scene.zoom

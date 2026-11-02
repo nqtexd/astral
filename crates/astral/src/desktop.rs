@@ -2642,6 +2642,31 @@ mod tests {
         assert_eq!(p.cel_at(layer, 5).unwrap().strokes.len(), 2);
     }
     #[test]
+    fn drawing_input_follows_the_selected_parallax_plane() {
+        let (_dir, mut studio, layer) = studio();
+        studio.apply(vec![
+            Command::SetCinematicCamera {
+                keys: vec![
+                    CameraKey { frame: 0, center: Point::new(50., 50.), zoom: 1. },
+                    CameraKey { frame: 23, center: Point::new(150., 70.), zoom: 2. },
+                ],
+                easing: BTreeMap::new(),
+            },
+            Command::SetLayerDepth {
+                layer,
+                depth: Some(LayerDepth { parallax: 0., zoom: 0., anchor: None }),
+            },
+        ]);
+        drag(&mut studio, Pos2::new(250., 250.), Pos2::new(500., 350.));
+        let first = studio.service.snapshot(studio.project).unwrap()
+            .cel_at(layer, 0).unwrap().strokes[0].points.clone();
+        studio.seek_frame(23);
+        drag(&mut studio, Pos2::new(250., 250.), Pos2::new(500., 350.));
+        let last = studio.service.snapshot(studio.project).unwrap()
+            .cel_at(layer, 23).unwrap().strokes[0].points.clone();
+        assert_eq!(first, last, "Screen-space ink must stay on the locked plane");
+    }
+    #[test]
     fn manual_drawing_is_single_frame_by_default_and_next_pose_starts_blank() {
         let (_dir, mut studio, layer) = studio();
         drag(&mut studio, Pos2::new(250., 250.), Pos2::new(500., 350.));

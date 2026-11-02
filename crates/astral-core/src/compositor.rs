@@ -33,6 +33,10 @@ impl BlendMode {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum CompositeOp {
+    Cinematic {
+        source: Id,
+        stage: crate::CinematicStage,
+    },
     /// Print-inspired processing on any raster, drawing, graphic or composed input.
     Comic {
         source: Id,
@@ -98,7 +102,10 @@ impl CompositeOp {
                 vec![*below, *above]
             }
             Self::Mask { source, mask, .. } => vec![*source, *mask],
-            Self::Blur { source, .. } | Self::Color { source, .. } | Self::Comic { source, .. } => {
+            Self::Blur { source, .. }
+            | Self::Color { source, .. }
+            | Self::Comic { source, .. }
+            | Self::Cinematic { source, .. } => {
                 vec![*source]
             }
             _ => vec![],

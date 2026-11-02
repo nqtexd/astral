@@ -133,6 +133,13 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
         }
     }
     for layer in p_layers(project) {
+        let scene = project.scene_for_layer(layer.id, &scene);
+        let transform = |p: Point| {
+            Point::new(
+                (p.x - scene.center.x) * scene.zoom + project.width as f32 / 2.,
+                (p.y - scene.center.y) * scene.zoom + project.height as f32 / 2.,
+            )
+        };
         if let Some(cel) = project.cel_at(layer.id, frame.floor().max(0.) as u32) {
             for stroke in &cel.strokes {
                 let mut color = stroke.color;
@@ -826,5 +833,6 @@ pub mod gpu;
 mod text_review;
 pub use text_review::{TextIssue, fit_and_place, review_text};
 
+pub mod cinematic;
 pub mod color;
 pub mod comic;

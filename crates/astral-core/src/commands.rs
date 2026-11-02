@@ -7,6 +7,18 @@ use std::collections::VecDeque;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Command {
+    SetCinematicCamera {
+        keys: Vec<CameraKey>,
+        easing: std::collections::BTreeMap<u32, Easing>,
+    },
+    SetLayerDepth {
+        layer: Id,
+        depth: Option<LayerDepth>,
+    },
+    SetCameraEasing {
+        frame: u32,
+        easing: Option<Easing>,
+    },
     /// Independent stepped sampling; null restores project cadence.
     SetLayerFrameRate {
         layer: Id,
@@ -382,6 +394,11 @@ impl Session {
                 || next.graphics.iter().any(|v| v.id == *id)
                 || next.characters.iter().any(|v| v.id == *id)
         });
+        next.layer_depths.retain(|id, _| {
+            next.layers.iter().any(|v| v.id == *id)
+                || next.rasters.iter().any(|v| v.id == *id)
+                || next.graphics.iter().any(|v| v.id == *id)
+        });
         next.validate()?;
         next.revision = self
             .project
@@ -518,6 +535,33 @@ fn set_key(c: &mut Character, key: PoseKey) {
 }
 fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<()> {
     match command {
+        Command::SetCinematicCamera { keys, easing } => {
+            p.camera = keys;
+            p.camera_easing = easing;
+            p.schema = p.schema.max(13);
+        }
+        Command::SetLayerDepth { layer, depth } => {
+            ensure!(p.depth_target_exists(layer), "Depth layer missing");
+            if let Some(depth) = depth {
+                depth.validate()?;
+                p.layer_depths.insert(layer, depth);
+                p.schema = p.schema.max(13);
+            } else {
+                p.layer_depths.remove(&layer);
+            }
+        }
+        Command::SetCameraEasing { frame, easing } => {
+            ensure!(
+                p.camera.iter().any(|k| k.frame == frame),
+                "Camera key missing"
+            );
+            if let Some(easing) = easing {
+                p.camera_easing.insert(frame, easing);
+                p.schema = p.schema.max(13);
+            } else {
+                p.camera_easing.remove(&frame);
+            }
+        }
         Command::SetLayerFrameRate { layer, fps } => {
             ensure!(p.timing_target_exists(layer), "Timing layer missing");
             if let Some(fps) = fps {
@@ -550,6 +594,13 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             p.schema = p.schema.max(11);
         }
         Command::SetCompositions { compositions } => {
+            if compositions
+                .iter()
+                .flat_map(|g| &g.nodes)
+                .any(|n| matches!(n.op, CompositeOp::Cinematic { .. }))
+            {
+                p.schema = p.schema.max(13);
+            }
             if compositions
                 .iter()
                 .flat_map(|g| &g.nodes)
@@ -906,6 +957,11 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
                 e.end = map(e.end)?
             }
             for n in p.compositions.iter_mut().flat_map(|g| &mut g.nodes) {
+                if let CompositeOp::Cinematic { stage, .. } = &mut n.op {
+                    for key in &mut stage.keys {
+                        key.frame = map(key.frame)?;
+                    }
+                }
                 if let CompositeOp::Comic { style, .. } = &mut n.op {
                     let keys = match style {
                         ComicStyle::RgbSplit { keys, .. }
@@ -974,6 +1030,10 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             for k in &mut p.camera {
                 k.frame = map(k.frame)?
             }
+            p.camera_easing = std::mem::take(&mut p.camera_easing)
+                .into_iter()
+                .map(|(frame, easing)| Ok((map(frame)?, easing)))
+                .collect::<Result<_>>()?;
             for d in &mut p.drawings {
                 d.start = map(d.start)?;
                 d.end = map(d.end)?

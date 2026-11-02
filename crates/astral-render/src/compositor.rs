@@ -17,7 +17,7 @@ fn input_project(p: &Project, op: &CompositeOp) -> Project {
     q.compositions.clear();
     q.symbols.clear();
     q.background = [0, 0, 0, 0];
-    q.effects.clear();
+    q.effects.retain(|e| e.kind == EffectKind::CameraShake);
     q.drawings.clear();
     q.drawing_motions.clear();
     q.mouths.clear();
@@ -73,7 +73,10 @@ pub fn display(p: &Project, frame: f64) -> DisplayList {
         let time = graph
             .nodes
             .iter()
-            .any(|n| matches!(&n.op, CompositeOp::Comic { style, .. } if style.animated()))
+            .any(|n| {
+                matches!(&n.op, CompositeOp::Comic { style, .. } if style.animated())
+                    || matches!(&n.op,CompositeOp::Cinematic{stage,..} if !stage.keys.is_empty())
+            })
             .then_some((frame.to_bits(), p.fps));
         let cached = cache
             .lock()
@@ -151,6 +154,9 @@ fn compose(
     for id in g.order().expect("validated compositing DAG") {
         let n = g.nodes.iter().find(|n| n.id == id).unwrap();
         let pixels = match n.op {
+            CompositeOp::Cinematic { source, ref stage } => {
+                crate::cinematic::process(&outputs[&source], w, h, stage, frame)
+            }
             CompositeOp::Comic { source, ref style } => {
                 crate::comic::process(&outputs[&source], w, h, style, frame, fps)
             }

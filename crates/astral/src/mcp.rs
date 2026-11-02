@@ -315,6 +315,15 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
+        description = "Stage cinematic 2D shots with independently layered camera parallax and zoom response, eased full camera tracks, editable linear-light bloom, alpha shadows, matte rim light and lift/gamma/gain color grading. Finish appends animated mix stages to an existing composition. Stage/finish default to validated non-mutating proposals with before/after images; apply=true is revision-checked and undoable. Review returns sampled image sheets, pixel metrics and warnings, never an artistic quality certificate. Requires schema 13; finishing is SDR and limited to eight megapixels per frame within the graph budget."
+    )]
+    async fn cinematic_tools(
+        &self,
+        Parameters(request): Parameters<crate::cinematic::CinematicRequest>,
+    ) -> CallToolResult {
+        self.dispatch(Request::CinematicTools { request }).await
+    }
+    #[tool(
         description = "Create editable comic looks on arbitrary drawing/raster/vector graphics: RGB channel offsets, seeded animated glitch bands and rotated luminance halftone; optional independent 12/24 FPS source cadence. inspect_frame returns actual rendered pixels. refine measures sampled rendered differences and halves strengths in at most three rounds to meet a distortion budget; it does not judge artistic quality. Writes use expected_revision and apply defaults false. Animate strength keys or edit graphs with apply_commands set_compositions; restore cadence using set_layer_frame_rate fps:null. Preview and export share rendering."
     )]
     async fn comic_tools(
@@ -1107,6 +1116,33 @@ mod comic_contract_tests {
             "max_difference",
         ] {
             assert!(schema.contains(field), "Schema missing {field}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod cinematic_contract_tests {
+    use super::*;
+    #[test]
+    fn staging_finishing_and_review_are_discoverable() {
+        let tool = AstralMcp::tool_router()
+            .list_all()
+            .into_iter()
+            .find(|t| t.name == "cinematic_tools")
+            .unwrap();
+        let schema = serde_json::to_string(&tool.input_schema).unwrap();
+        for field in [
+            "stage_shot",
+            "finish",
+            "review",
+            "bloom",
+            "drop_shadow",
+            "rim_light",
+            "grade",
+            "expected_revision",
+            "parallax",
+        ] {
+            assert!(schema.contains(field), "Missing {field}");
         }
     }
 }

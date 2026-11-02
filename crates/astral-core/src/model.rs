@@ -284,6 +284,10 @@ pub struct Project {
     pub effects: Vec<Effect>,
     pub audio: Vec<AudioClip>,
     pub camera: Vec<CameraKey>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub camera_easing: BTreeMap<u32, Easing>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub layer_depths: BTreeMap<Id, crate::LayerDepth>,
     pub drawings: Vec<Drawing>,
     #[serde(default)]
     pub layers: Vec<crate::DrawingLayer>,
@@ -369,6 +373,8 @@ impl Project {
             effects: vec![],
             audio: vec![],
             camera: vec![],
+            camera_easing: BTreeMap::new(),
+            layer_depths: BTreeMap::new(),
             drawings: vec![],
             layers: vec![],
             layer_frame_rates: BTreeMap::new(),
@@ -385,6 +391,7 @@ impl Project {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        crate::cinematic::validate(self)?;
         crate::comic::validate(self)?;
         crate::validate_symbols(self)?;
         ensure!(
@@ -407,7 +414,7 @@ impl Project {
             );
         }
         ensure!(
-            matches!(self.schema, 1..=12),
+            matches!(self.schema, 1..=13),
             "Unsupported Astral schema {}",
             self.schema
         );

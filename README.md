@@ -63,6 +63,14 @@ PNG/JPEG, AVI video with sound, PNG-sequence ZIP and WAV exports work without FF
 
 Get FFmpeg through the [official download page](https://ffmpeg.org/download.html), extract it, then choose **Settings → Appearance → Video encoder → Select FFmpeg executable**. Alternatively, use `PATH` or `ASTRAL_FFMPEG`. Standard MP4 uses `libx264`; supported hardware encoders are tried at runtime with software fallback. A separately acquired encoder retains its own licenses and distribution requirements.
 
+## Cinematic production tools
+
+**Multiplane depth staging, eased camera motion, linear-light bloom, alpha shadows, matte rim lighting and lift/gamma/gain grading** now extend the native 2D pipeline. Desktop controls and MCP provide animated finishing, before/after proposals and sampled image review. [Workflow, examples, research and limits](docs/ASTRAL-CINEMATIC-TOOLS.md).
+
+![Original layered lighting study](docs/showcase/cinematic-lab/finished.png)
+
+[Editable staging study](docs/showcase/cinematic-lab/amber-passage.astral). These controls require schema 13. The scene is a technical demonstration; finished film quality depends on authored assets, animation, direction and review.
+
 ## Comic and illustrated 2D animation
 
 Animated **RGB split, seeded glitch bands and comic halftone** can process drawing, raster and custom vector artwork. Independent layer cadence mixes 12 FPS characters with 24 FPS backgrounds/camera. Desktop controls and MCP share editable effects; agents can inspect actual frames and run bounded visual refinement proposals. [Workflow, research and limits](docs/ASTRAL-COMIC-2D.md).

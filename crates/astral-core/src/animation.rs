@@ -56,6 +56,7 @@ pub fn evaluate(project: &Project, frame: f64) -> EvaluatedScene {
         zoom = a.zoom;
         if let Some(b) = project.camera.get(i + 1) {
             let t = ((frame - a.frame as f64) / (b.frame - a.frame) as f64).clamp(0., 1.) as f32;
+            let t = project.camera_easing.get(&a.frame).map_or(t, |e| ease(e,t));
             center = a.center.lerp(b.center, t);
             zoom = a.zoom + (b.zoom - a.zoom) * t;
         }
