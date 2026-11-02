@@ -118,6 +118,15 @@ pub fn evaluate(project: &Project, frame: f64) -> EvaluatedScene {
                     }
                 }
             }
+            for curve in project.curves.iter().filter(|v| v.character == c.id) {
+                if let Some(value) = curve.sample(frame) {
+                    let point = curve.joint.map_or(&mut pose.root, |j| &mut pose.joints[j]);
+                    match curve.axis {
+                        CurveAxis::X => point.x = value,
+                        CurveAxis::Y => point.y = value,
+                    }
+                }
+            }
             if c.preserve_bones {
                 crate::studio::constrain_bones(c, &mut pose);
             }

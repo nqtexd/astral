@@ -56,6 +56,10 @@ jobs:
         env:
           ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
         run: node scripts/check-astral-production.mjs
+      - name: Editor channels and portable media acceptance
+        env:
+          ASTRAL_BINARY: ${{ github.workspace }}/target/debug/astral.exe
+        run: node scripts/check-astral-editor.mjs
       - name: MCP profile contracts
         run: node scripts/smoke-astral-profiles.mjs
       - uses: actions/upload-artifact@v4

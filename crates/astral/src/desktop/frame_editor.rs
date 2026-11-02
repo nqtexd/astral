@@ -1259,7 +1259,12 @@ impl Studio {
                         || response.clicked())
                         && let Some(pos) = pointer
                     {
-                        let point = to_world(pos);
+                        let raw = to_world(pos);
+                        let strength = self.preferences.brush_stabilization.clamp(0., 0.95);
+                        let point = self
+                            .stroke
+                            .last()
+                            .map_or(raw, |last| last.lerp(raw, 1. - strength));
                         if self
                             .stroke
                             .last()
@@ -1292,6 +1297,13 @@ impl Studio {
                         || response.clicked())
                         && !self.stroke.is_empty()
                     {
+                        if self.preferences.brush_stabilization > 0.
+                            && let Some(pos) = pointer
+                        {
+                            self.stroke.push(to_world(pos));
+                            self.stroke_pressure
+                                .push(*self.stroke_pressure.last().unwrap_or(&1.));
+                        }
                         let mut points = std::mem::take(&mut self.stroke);
                         if points.len() == 1 {
                             points.push(points[0] + Point::new(0.001, 0.001));
@@ -1489,6 +1501,8 @@ impl Studio {
                     self.preferences.stamp_brush = None;
                 }
             }
+            ui.add(egui::Slider::new(&mut self.preferences.brush_stabilization, 0.0..=0.95).text("Stabilization"))
+                .on_hover_text("Smooth pointer jitter while drawing. Zero preserves the original stroke. The release point is retained.");
             let presets = self.preferences.brush_presets.clone();
             for (name, brush) in presets {
                 ui.horizontal(|ui| {

@@ -1,5 +1,5 @@
 use crate::*;
-use anyhow::{Result, ensure};
+use anyhow::{Context, Result, ensure};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -12,6 +12,12 @@ pub enum Command {
         right: Id,
         frame: u32,
         operation: crate::vector::BooleanOperation,
+    },
+    SetSymbolInstances {
+        instances: Vec<SymbolInstance>,
+    },
+    SetCurveTracks {
+        tracks: Vec<CurveTrack>,
     },
     SetCompositions {
         compositions: Vec<Composition>,
@@ -68,6 +74,10 @@ pub enum Command {
     },
     ReplaceEffect {
         effect: Effect,
+    },
+    SplitAudio {
+        clip: Id,
+        frame: u32,
     },
     ReplaceAudio {
         clip: AudioClip,
@@ -178,6 +188,9 @@ pub enum Command {
     },
     AddEffect {
         effect: Effect,
+    },
+    ReplaceAsset {
+        asset: Asset,
     },
     AddAsset {
         asset: Asset,
@@ -504,7 +517,22 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             created.push(graphic.id);
             p.graphics.push(graphic);
         }
+        Command::SetSymbolInstances { instances } => {
+            p.symbols = instances;
+            p.schema = p.schema.max(11);
+        }
+        Command::SetCurveTracks { tracks } => {
+            p.curves = tracks;
+            p.schema = p.schema.max(11);
+        }
         Command::SetCompositions { compositions } => {
+            if compositions.iter().any(|g| {
+                g.nodes
+                    .iter()
+                    .any(|n| matches!(n.op, CompositeOp::Clip { .. }))
+            }) {
+                p.schema = p.schema.max(11);
+            }
             p.compositions = compositions;
         }
         Command::AddBitmap { bitmap } => {
@@ -665,6 +693,15 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
         Command::AddEffect { effect } => {
             created.push(effect.id);
             p.effects.push(effect);
+        }
+        Command::ReplaceAsset { asset } => {
+            let old = p
+                .assets
+                .iter_mut()
+                .find(|a| a.id == asset.id)
+                .context("Asset missing")?;
+            ensure!(old.kind == asset.kind, "Relinking cannot change asset kind");
+            *old = asset;
         }
         Command::AddAsset { asset } => {
             created.push(asset.id);
@@ -1112,6 +1149,19 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
                 .find(|e| e.id == effect.id)
                 .ok_or_else(|| anyhow::anyhow!("Effect not found"))?;
             *old = effect;
+        }
+        Command::SplitAudio { clip, frame } => {
+            let old = p
+                .audio
+                .iter()
+                .find(|a| a.id == clip)
+                .context("Audio clip missing")?
+                .clone();
+            let (left, right) = split_audio(&old, frame, p.fps)?;
+            let index = p.audio.iter().position(|a| a.id == clip).unwrap();
+            created.push(right.id);
+            p.audio[index] = left;
+            p.audio.push(right);
         }
         Command::ReplaceAudio { clip } => {
             let old = p

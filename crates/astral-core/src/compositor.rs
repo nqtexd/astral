@@ -62,6 +62,12 @@ pub enum CompositeOp {
         mode: BlendMode,
         opacity: f32,
     },
+    Clip {
+        below: Id,
+        above: Id,
+        mode: BlendMode,
+        opacity: f32,
+    },
     Mask {
         source: Id,
         mask: Id,
@@ -83,7 +89,9 @@ pub enum CompositeOp {
 impl CompositeOp {
     pub fn inputs(&self) -> Vec<Id> {
         match self {
-            Self::Blend { below, above, .. } => vec![*below, *above],
+            Self::Blend { below, above, .. } | Self::Clip { below, above, .. } => {
+                vec![*below, *above]
+            }
             Self::Mask { source, mask, .. } => vec![*source, *mask],
             Self::Blur { source, .. } | Self::Color { source, .. } => vec![*source],
             _ => vec![],
@@ -195,7 +203,11 @@ pub fn validate(p: &Project) -> Result<()> {
                     );
                     Some(dialogue)
                 }
-                CompositeOp::Blend { opacity, .. } => {
+                CompositeOp::Blend { opacity, .. } | CompositeOp::Clip { opacity, .. } => {
+                    ensure!(
+                        !matches!(n.op, CompositeOp::Clip { .. }) || p.schema >= 11,
+                        "Clipping nodes require schema 11"
+                    );
                     ensure!(
                         opacity.is_finite() && (0.0..=1.0).contains(&opacity),
                         "Invalid blend opacity"

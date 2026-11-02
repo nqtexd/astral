@@ -219,8 +219,36 @@ impl Workspace {
     pub fn recover(&self, id: Id) -> Result<Project> {
         self.load(Self::recovery_path(id))
     }
+    /// Never replace a newer crash snapshot with an older saved document.
     pub fn save_recovery(&self, project: &Project) -> Result<()> {
+        if let Ok(previous) = self.recover(project.id)
+            && previous.revision > project.revision
+        {
+            return Ok(());
+        }
         self.save(Self::recovery_path(project.id), project)
+    }
+    /// Recover only ordinary project files. Opening a backup is an explicit choice.
+    /// The second value is the revision actually saved at the requested path.
+    pub fn load_recoverable(&self, path: impl AsRef<Path>) -> Result<(Project, u64)> {
+        let path = path.as_ref();
+        let saved = self.load(path)?;
+        let revision = saved.revision;
+        if !path
+            .components()
+            .any(|c| matches!(c.as_os_str().to_str(), Some("recovery" | ".astral-backups")))
+        {
+            let recovery = Self::recovery_path(saved.id);
+            if let Ok(candidate) = self.recover(saved.id)
+                && candidate.id == saved.id
+                && candidate.revision > revision
+                && self.path(&recovery)?.metadata()?.modified()?
+                    >= self.path(path)?.metadata()?.modified()?
+            {
+                return Ok((candidate, revision));
+            }
+        }
+        Ok((saved, revision))
     }
 }
 
@@ -241,6 +269,26 @@ mod tests {
         let mut bad = bytes;
         bad.push(0);
         assert!(decode(&bad).is_err());
+    }
+    #[test]
+    fn newer_recovery_survives_stale_open_and_reopens_as_unsaved() {
+        let dir = tempfile::tempdir().unwrap();
+        let w = Workspace::new(dir.path()).unwrap();
+        let mut p = fight_demo().unwrap();
+        p.revision = 3;
+        w.save("film.astral", &p).unwrap();
+        let saved = p.clone();
+        p.revision = 8;
+        p.name = "Recovered work".into();
+        w.save_recovery(&p).unwrap();
+        w.save_recovery(&saved).unwrap();
+        assert_eq!(w.recover(p.id).unwrap().revision, 8);
+        let (loaded, saved_revision) = w.load_recoverable("film.astral").unwrap();
+        assert_eq!(loaded.name, "Recovered work");
+        assert_eq!(saved_revision, 3);
+        assert_eq!(w.load("film.astral").unwrap().revision, 3);
+        let (_, explicit_revision) = w.load_recoverable(Workspace::recovery_path(p.id)).unwrap();
+        assert_eq!(explicit_revision, 8);
     }
     #[test]
     fn atomic_save_reopen_recovery_and_confinement() {
@@ -303,3 +351,5 @@ pub fn node_executable(application_root: &std::path::Path) -> std::path::PathBuf
     }
     "node".into()
 }
+
+mod package;

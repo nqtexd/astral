@@ -1,8 +1,15 @@
 # Astral changelog
 
 ## [0.15.0]
-Native finishing and production gates
+Native editing, finishing and production gates
 
+- Add independent root/joint Hermite channels with draggable time/value keys, numeric slopes, timing-curve handles and transactional undo.
+- Add a virtualized exposure sheet with range holds/blanks and dialogue/audio/marker notes; add live shared-library instances, transform keys and bounded nested local time.
+- Add waveform seek/trim/slip and sample-continuous split commands outside fade ranges; retain explicit reviewed draft application.
+- Add stable-ID media relinking and cancellable, hash-verified `.astralpack` packaging/extraction with no-overwrite destinations and confined paths.
+- Preserve higher-revision recovery snapshots, prefer newer autosaves on ordinary opens and keep recovered documents unsaved until explicitly saved.
+- Add opt-in drawing stabilization, alpha-preserving clipping nodes, scene-input composition controls, RGB ICC normalization and sRGB-tagged PNG/JPEG exports.
+- Add a signer-pinned Windows update verification script that refuses unsigned installers; actual release signing remains blocked by the missing certificate.
 - Add editable compositing DAGs, bitmap/luminance masks, supported blend modes, gradients, blur and color adjustments; reject cycles/missing references/oversized graphs atomically.
 - Add advanced 8-bit RGB PSD decoding into native groups/masks/blends/basic text, with an isolated pinned parser runtime in Windows packages and explicit conversion warnings.
 - Add offline English/phonetic viseme recognition, nine source mouth codes, editable keys and bitmap mouth assignments; retain envelope timing as an explicit compatibility mode.

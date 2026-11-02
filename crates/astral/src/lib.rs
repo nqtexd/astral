@@ -28,3 +28,5 @@ mod psd_import;
 pub mod speech;
 
 pub mod diagnostics;
+
+pub mod assets;

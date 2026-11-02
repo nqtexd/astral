@@ -15,6 +15,9 @@ use std::{
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 pub enum Request {
+    AssetTools {
+        request: crate::assets::AssetRequest,
+    },
     PreviewCommands {
         batch: Batch,
     },
@@ -204,6 +207,7 @@ impl Service {
     pub fn request(&self, request: Request) -> Result<Value> {
         match request {
             Request::Artwork { request } => self.artwork(request),
+            Request::AssetTools { request } => self.asset_tools(request),
             Request::ProjectActivity { project } => Ok(
                 json!({"project":project,"entries":self.project_activity(project)?,"note":"Local activity log: last 200 edits; not a version-control backup"}),
             ),
@@ -377,6 +381,11 @@ impl Service {
                     )?;
                     candidate.apply(batch.clone())?;
                     astral_render::validate_artwork(&candidate.project)?;
+                }
+                for command in &batch.commands {
+                    if let Command::ReplaceAsset { asset } | Command::AddAsset { asset } = command {
+                        self.project_workspace(batch.project).path(&asset.path)?;
+                    }
                 }
                 let id = batch.project;
                 let (before, receipt, after) = {
@@ -667,5 +676,5 @@ pub fn summary(p: &Project) -> Value {
     json!({"project":p.id,"revision":p.revision,"name":p.name,"width":p.width,"height":p.height,"fps":p.fps,"duration":p.duration})
 }
 pub fn capabilities() -> Value {
-    json!({"schema":10,"command_preview":true,"saved_version_backups":5,"compositing":"editable_DAG_blend_mask_gradient_blur_color_sRGB","native_export_formats":["avi","png","jpeg","png_sequence","wav"],"voice_providers":["offline","elevenlabs","compatible"],"vector_brushes":"pressure_cubic_nodes_fills_marker_dashed_stipple_procedural_texture_custom_presets","deformation":"translation_or_MLS_similarity_cubic_curvers_bone_correctives","single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"source_evaluated_native_cels_rigs_images_audio_with_archived_original_and_reported_fallback","legacy_native_editing":"sampled_source_tweens_joined_geometry_custom_shapes_native_skin_bindings","image_asset_rendering":true,"raster_artwork":"embedded_PNG_JPEG_PSD_groups_masks_supported_blends_basic_text_sequences_per_frame_paint_mesh_pins","lip_sync":"offline_English_or_phonetic_recognized_visemes_custom_mouth_artwork_or_explicit_envelope_mode","tracking":"bounded_local_template_camera_or_object_translation_two_point_rotation_scale_proposals","microphone":"user_initiated_60_seconds","audio":"WAV_AIFF_MP3_M4A_native_decode_pitch_speed_streamed_export_mix","glow_blur":"stylized_overlays_not_filters","export":"native_AVI_MJPEG_PCM_images_sequences_WAV_or_FFmpeg_MP4_WebM_GIF_CPU_or_wgpu_rendering"})
+    json!({"schema":11,"curve_tracks":"root_joint_XY_Hermite_tangents","live_symbols":"shared_library_nested_8_levels","asset_packages":"hash_verified_astralpack","audio_waveform_editing":"trim_slip_split_seek","command_preview":true,"saved_version_backups":5,"compositing":"editable_DAG_blend_mask_gradient_blur_color_sRGB","native_export_formats":["avi","png","jpeg","png_sequence","wav"],"voice_providers":["offline","elevenlabs","compatible"],"vector_brushes":"pressure_cubic_nodes_fills_marker_dashed_stipple_procedural_texture_custom_presets","deformation":"translation_or_MLS_similarity_cubic_curvers_bone_correctives","single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"source_evaluated_native_cels_rigs_images_audio_with_archived_original_and_reported_fallback","legacy_native_editing":"sampled_source_tweens_joined_geometry_custom_shapes_native_skin_bindings","image_asset_rendering":true,"raster_artwork":"embedded_PNG_JPEG_PSD_groups_masks_supported_blends_basic_text_sequences_per_frame_paint_mesh_pins","lip_sync":"offline_English_or_phonetic_recognized_visemes_custom_mouth_artwork_or_explicit_envelope_mode","tracking":"bounded_local_template_camera_or_object_translation_two_point_rotation_scale_proposals","microphone":"user_initiated_60_seconds","audio":"WAV_AIFF_MP3_M4A_native_decode_pitch_speed_streamed_export_mix","glow_blur":"stylized_overlays_not_filters","export":"native_AVI_MJPEG_PCM_images_sequences_WAV_or_FFmpeg_MP4_WebM_GIF_CPU_or_wgpu_rendering"})
 }

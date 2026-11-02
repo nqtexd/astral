@@ -32,12 +32,15 @@ GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes 
 
 - **Editable PSD composition:** supported groups, bitmap masks, ZIP-compressed 8-bit RGB layers, eight blend modes and basic editable text. Conversion warnings identify remaining Photoshop differences.
 - **Offline speech timing:** English or language-independent phonetic recognition, distinct timed visemes, editable mouth keys and per-character mouth artwork. The Windows package includes Rhubarb and its models.
-- **Brush studio:** pressure-aware procedural pencil/ink/airbrush/chalk presets; save custom spacing, flow, hardness, grain and scatter settings.
+- **Editor workflows:** draggable root/joint Hermite channels, timing tangent handles, a virtualized exposure sheet, live library symbols with nested local timing, and waveform seek/trim/slip/split.
+- **Portable media:** missing-file status, stable-ID relinking, and checksum-verified `.astralpack` projects.
+- **Color:** embedded RGB ICC conversion into sRGB; PNG/JPEG exports carry an sRGB profile. SDR only; OS monitor-profile discovery and HDR proofing remain unfinished.
+- **Brush studio:** optional stroke stabilization and pressure-aware procedural pencil/ink/airbrush/chalk presets; save custom spacing, flow, hardness, grain and scatter settings.
 - **Vector and compositing tools:** contour editing, union/subtract/intersection/XOR, linear/radial gradients, and editable blend/mask/blur/color nodes shared by preview and export.
 - **Native exports:** AVI/MJPEG with PCM sound, JPEG, PNG, PNG-sequence ZIP and WAV work without FFmpeg. MP4/WebM/GIF remain available through FFmpeg.
 - **Safer finishing:** block-based long-form audio export preserves trim, playback speed and original fade phase; distinct saved versions retain five backups. MCP can preview a transaction before applying it. Worker panics finish as errors and produce bounded local diagnostics.
 
-[0.15 workflows and exact limits](docs/ASTRAL-0.15-WORKFLOW.md) · [Production gates](platforms/release/production-gates.json). New features require project schema 10; keep originals and previous releases. **This is a release candidate, not production certification.** Physical tablet/input latency, eight-hour desktop stress, complete localization, signed installers and Apple release gates are still open.
+[0.15 workflows and exact limits](docs/ASTRAL-0.15-WORKFLOW.md) · [Production gates](platforms/release/production-gates.json). Curves, live symbols and clipping nodes require project schema 11; keep originals and previous releases. **This is a release candidate, not production certification.** Physical tablet/input latency, eight-hour desktop stress, complete localization, signed installers and Apple release gates are still open.
 
 ## Getting started
 

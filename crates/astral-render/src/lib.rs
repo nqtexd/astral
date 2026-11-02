@@ -5,6 +5,7 @@ mod brush;
 mod compositor;
 mod presentation;
 mod raster_images;
+mod symbols;
 mod text;
 pub use raster_images::{
     DecodedBitmap, TextureVertex, decode_bitmap, paint_image, validate_artwork,
@@ -442,6 +443,7 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
     raster_images::append(&mut out, project, &scene, frame, GraphicLayer::Foreground);
     raster_images::mouths(&mut out, project, &scene, frame);
     presentation::append_dialogues(&mut out, project, &scene, frame);
+    symbols::append(&mut out, project, frame);
     out
 }
 fn p_layers(project: &Project) -> impl Iterator<Item = &DrawingLayer> {
@@ -672,7 +674,8 @@ pub fn png(project: &Project, frame: f64, width: u32, height: u32) -> Result<Vec
         frame.is_finite() && frame >= 0. && frame < project.duration as f64,
         "Frame must be inside the project"
     );
-    Ok(rasterize(&display_list(project, frame), width, height)?.encode_png()?)
+    let pixels = straight_rgba(&rasterize(&display_list(project, frame), width, height)?);
+    color::png(&pixels, width, height)
 }
 /// Convert premultiplied pixels to straight RGBA for encoders.
 pub fn rgba(project: &Project, frame: f64) -> Result<Vec<u8>> {
@@ -822,3 +825,5 @@ pub mod gpu;
 
 mod text_review;
 pub use text_review::{TextIssue, fit_and_place, review_text};
+
+pub mod color;

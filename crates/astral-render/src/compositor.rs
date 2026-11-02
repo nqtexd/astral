@@ -14,6 +14,7 @@ static CACHE: OnceLock<Mutex<VecDeque<Cached>>> = OnceLock::new();
 fn input_project(p: &Project, op: &CompositeOp) -> Project {
     let mut q = p.clone();
     q.compositions.clear();
+    q.symbols.clear();
     q.background = [0, 0, 0, 0];
     q.effects.clear();
     q.drawings.clear();
@@ -198,6 +199,12 @@ fn compose(w: u32, h: u32, g: &Composition, inputs: &[(Id, DisplayList)]) -> Vec
                 mode,
                 opacity,
             } => blend(&outputs[&below], &outputs[&above], mode, opacity),
+            CompositeOp::Clip {
+                below,
+                above,
+                mode,
+                opacity,
+            } => clip(&outputs[&below], &outputs[&above], mode, opacity),
             CompositeOp::Mask {
                 source,
                 mask,
@@ -259,6 +266,33 @@ fn compose(w: u32, h: u32, g: &Composition, inputs: &[(Id, DisplayList)]) -> Vec
     }
     outputs.remove(&g.output).unwrap()
 }
+/// Source-atop blending preserves the base coverage, including antialiased edges.
+fn clip(below: &[u8], above: &[u8], mode: BlendMode, opacity: f32) -> Vec<u8> {
+    let mut opaque = below.to_vec();
+    for p in opaque.as_chunks_mut::<4>().0 {
+        let a = p[3] as u32;
+        for channel in &mut p[..3] {
+            *channel = (*channel as u32 * 255 + a / 2)
+                .checked_div(a)
+                .unwrap_or(0)
+                .min(255) as u8;
+        }
+        p[3] = 255;
+    }
+    let mut out = blend(&opaque, above, mode, opacity);
+    for (p, b) in out
+        .as_chunks_mut::<4>()
+        .0
+        .iter_mut()
+        .zip(below.as_chunks::<4>().0)
+    {
+        for channel in &mut p[..3] {
+            *channel = ((*channel as u32 * b[3] as u32 + 127) / 255) as u8;
+        }
+        p[3] = b[3];
+    }
+    out
+}
 pub(crate) fn blend(below: &[u8], above: &[u8], mode: BlendMode, opacity: f32) -> Vec<u8> {
     let mut out = below.to_vec();
     for (p, s) in out
@@ -306,6 +340,18 @@ pub(crate) fn blend(below: &[u8], above: &[u8], mode: BlendMode, opacity: f32) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn clipping_preserves_partial_base_alpha() {
+        assert_eq!(
+            clip(
+                &[64, 0, 0, 128, 0, 0, 0, 0],
+                &[0, 255, 0, 255, 255, 0, 0, 255],
+                BlendMode::Normal,
+                1.
+            ),
+            [0, 128, 0, 128, 0, 0, 0, 0]
+        );
+    }
     #[test]
     fn premultiplied_blends_handle_transparent_pixels() {
         assert_eq!(

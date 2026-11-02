@@ -256,6 +256,10 @@ pub struct NamedPose {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Project {
     #[serde(default)]
+    pub symbols: Vec<crate::SymbolInstance>,
+    #[serde(default)]
+    pub curves: Vec<crate::CurveTrack>,
+    #[serde(default)]
     pub compositions: Vec<crate::Composition>,
     /// Immutable archived source shared by all revisions; never rendered or sent in inspection results.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -342,6 +346,8 @@ impl Project {
     }
     pub fn new(name: impl Into<String>, width: u32, height: u32, fps: u32, duration: u32) -> Self {
         Self {
+            symbols: vec![],
+            curves: vec![],
             compositions: vec![],
             original_source: None,
             schema: 2,
@@ -376,6 +382,16 @@ impl Project {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        crate::validate_symbols(self)?;
+        ensure!(
+            self.symbols.is_empty() || self.schema >= 11,
+            "Live symbols require schema 11"
+        );
+        crate::validate_curves(self)?;
+        ensure!(
+            self.curves.is_empty() || self.schema >= 11,
+            "Curve tracks require schema 11"
+        );
         crate::compositor::validate(self)?;
         if let Some(source) = &self.original_source {
             ensure!(
@@ -387,7 +403,7 @@ impl Project {
             );
         }
         ensure!(
-            matches!(self.schema, 1..=10),
+            matches!(self.schema, 1..=11),
             "Unsupported Astral schema {}",
             self.schema
         );

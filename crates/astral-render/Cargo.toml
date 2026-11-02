@@ -9,6 +9,7 @@ serde.workspace = true
 astral-core.workspace = true
 anyhow.workspace = true
 tiny-skia = "0.11"
+moxcms = "=0.8.1"
 ttf-parser = "0.25"
 harfrust = "0.12"
 lyon_tessellation = "1"

@@ -1,5 +1,5 @@
 use super::*;
-use std::io::Cursor;
+use image::ImageEncoder;
 pub(super) fn jpeg(rgba: &[u8], width: u32, height: u32, quality: u8) -> Result<Vec<u8>> {
     let rgb: Vec<u8> = rgba
         .as_chunks::<4>()
@@ -8,12 +8,9 @@ pub(super) fn jpeg(rgba: &[u8], width: u32, height: u32, quality: u8) -> Result<
         .flat_map(|p| [0, 1, 2].map(|i| ((p[i] as u16 * p[3] as u16 + 127) / 255) as u8))
         .collect();
     let mut bytes = vec![];
-    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, quality).encode(
-        &rgb,
-        width,
-        height,
-        image::ExtendedColorType::Rgb8,
-    )?;
+    let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, quality);
+    encoder.set_icc_profile(astral_render::color::srgb_profile()?)?;
+    encoder.encode(&rgb, width, height, image::ExtendedColorType::Rgb8)?;
     Ok(bytes)
 }
 pub(super) fn run(
@@ -78,11 +75,7 @@ pub(super) fn run(
                 SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
             metrics = Some(render_frames(project, spec, plan, job, |index, rgba| {
                 archive.start_file(format!("frames/frame_{index:06}.png"), options)?;
-                let image = image::RgbaImage::from_raw(plan.width, plan.height, rgba.to_vec())
-                    .context("Invalid image dimensions")?;
-                let mut png = Cursor::new(vec![]);
-                image.write_to(&mut png, image::ImageFormat::Png)?;
-                archive.write_all(&png.into_inner())?;
+                archive.write_all(&astral_render::color::png(rgba, plan.width, plan.height)?)?;
                 Ok(())
             })?);
             archive.start_file("manifest.json", options)?;

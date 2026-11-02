@@ -94,7 +94,16 @@ pub fn import(
         report["layers"].as_array().is_some_and(|a| !a.is_empty()),
         "PSD has no separate layers"
     );
+    let icc = report["icc"]
+        .as_str()
+        .map(|v| STANDARD.decode(v))
+        .transpose()?;
+    ensure!(
+        icc.as_ref().is_none_or(|v| v.len() <= 4 * 1024 * 1024),
+        "PSD ICC profile exceeds 4 MiB"
+    );
     let mut builder = Builder {
+        icc,
         job,
         commands: vec![],
         nodes: vec![],
@@ -125,6 +134,7 @@ pub fn import(
     Ok((builder.commands, builder.warnings, builder.ids))
 }
 struct Builder<'a> {
+    icc: Option<Vec<u8>>,
     job: &'a crate::export::Job,
     commands: Vec<Command>,
     nodes: Vec<CompositeNode>,
@@ -143,11 +153,14 @@ impl Builder<'_> {
         });
         id
     }
-    fn image(&mut self, v: &Value, name: &str) -> Result<Id> {
+    fn image(&mut self, v: &Value, name: &str, manage_color: bool) -> Result<Id> {
         self.job.check()?;
         let png = STANDARD.decode(v["png"].as_str().context("PSD image missing")?)?;
-        let image =
+        let mut image =
             image::load_from_memory_with_format(&png, image::ImageFormat::Png)?.into_rgba8();
+        if manage_color && let Some(icc) = &self.icc {
+            astral_render::color::to_srgb(&mut image, icc)?;
+        }
         let b = bitmap(name.into(), image)?;
         let r = layer(
             name.into(),
@@ -180,7 +193,7 @@ impl Builder<'_> {
             } else if child["text"].is_object() {
                 self.text(child)?
             } else if child["png"].is_string() {
-                self.image(child, name)?
+                self.image(child, name, true)?
             } else {
                 self.warnings.push(format!(
                     "{name}: no editable pixels/text; retained in PSD original"
@@ -189,7 +202,7 @@ impl Builder<'_> {
             };
             if child["mask"].is_object() {
                 let m = &child["mask"];
-                let mask = self.image(m, &format!("{name} mask"))?;
+                let mask = self.image(m, &format!("{name} mask"), false)?;
                 let base = m["default_color"].as_u64().unwrap_or(0).min(255) as u8;
                 let bg = self.node(
                     "Mask outside",

@@ -620,8 +620,18 @@ impl Studio {
             .context("Save path is outside the project folder")?
             .to_string_lossy()
             .into();
-        self.saved_revision = Some(p.revision);
-        self.dirty = false;
+        self.saved_revision = self
+            .service
+            .store
+            .lock()
+            .unwrap()
+            .saved_revisions
+            .get(&p.id)
+            .copied();
+        self.dirty = self.saved_revision != Some(p.revision);
+        if self.dirty {
+            self.status = "Recovered newer autosave — save to keep these changes".into();
+        }
         self.remember_document();
         self.manager.record(&p, file);
         self.selected_layer = p.layers.last().map(|l| l.id);
@@ -652,7 +662,12 @@ impl Studio {
                 self.accept_project_file(file)?;
             }
             self.manager.home = false;
-            self.status = "Project opened".into();
+            self.status = if self.dirty {
+                "Recovered newer autosave — save to keep these changes"
+            } else {
+                "Project opened"
+            }
+            .into();
             Ok(())
         })();
         if let Err(e) = result {

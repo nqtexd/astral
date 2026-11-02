@@ -34,3 +34,12 @@ pub mod compositor;
 pub use compositor::{BlendMode, CompositeNode, CompositeOp, Composition};
 
 pub mod vector;
+
+mod curves;
+pub use curves::*;
+
+mod symbols;
+pub use symbols::*;
+
+mod audio_edit;
+pub use audio_edit::*;

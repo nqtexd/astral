@@ -41,6 +41,6 @@ export function decodePsd(bytes){
   return result;
  }
  if(!doc.children?.length){doc=ag.readPsd(bytes,{useImageData:true,skipThumbnail:true});if(doc.imageData){doc.children=[{name:'PSD composite',left:0,top:0,imageData:doc.imageData}];warnings.add('No separate layers; imported the source composite.');}}
- return{width:w,height:h,layers:(doc.children??[]).map(l=>walk(l,0)),warnings:[...warnings]};
+ return{icc:doc.imageResources?.iccProfile?Buffer.from(doc.imageResources.iccProfile).toString("base64"):null,width:w,height:h,layers:(doc.children??[]).map(l=>walk(l,0)),warnings:[...warnings]};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){const result=decodePsd(await readSource(process.argv[2]));const text=JSON.stringify(result);if(Buffer.byteLength(text)>100663296)throw Error('PSD report exceeds 96 MiB');process.stdout.write(text);}

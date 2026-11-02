@@ -13,6 +13,7 @@ pub(super) enum Tab {
     Library,
     Finish,
     Camera,
+    Curves,
 }
 struct Proposed {
     project: Id,
@@ -31,10 +32,13 @@ struct Reply {
 }
 #[derive(Clone)]
 pub(super) struct Wave {
+    pub source: String,
     pub peaks: Vec<f32>,
     pub duration: f64,
 }
 pub(super) struct MotionState {
+    pub curve_edit: Option<CurveTrack>,
+    pub symbol_edit: Option<SymbolInstance>,
     pub open: bool,
     pub tab: Tab,
     pub draw_path: bool,
@@ -72,6 +76,7 @@ pub(super) struct MotionState {
     sound_seconds: f64,
     pub selected_audio: Option<Id>,
     audio_edit: Option<AudioClip>,
+    audio_drag: Option<(AudioClip, u8)>,
     pub selected_effect: Option<Id>,
     effect_edit: Option<Effect>,
     pub waves: BTreeMap<Id, Wave>,
@@ -97,6 +102,8 @@ pub(super) struct MotionState {
 impl Default for MotionState {
     fn default() -> Self {
         Self {
+            curve_edit: None,
+            symbol_edit: None,
             open: false,
             tab: Tab::Pose,
             draw_path: false,
@@ -134,6 +141,7 @@ impl Default for MotionState {
             sound_seconds: 0.3,
             selected_audio: None,
             audio_edit: None,
+            audio_drag: None,
             selected_effect: None,
             effect_edit: None,
             waves: BTreeMap::new(),
@@ -338,6 +346,7 @@ impl Studio {
                             (Tab::Library, "Library"),
                             (Tab::Finish, "Finish"),
                             (Tab::Camera, "Camera"),
+                            (Tab::Curves, "Curves"),
                         ] {
                             ui.selectable_value(&mut self.motion.tab, tab, label);
                         }
@@ -401,6 +410,7 @@ impl Studio {
                         Tab::Library => self.motion_library(ui, p),
                         Tab::Finish => self.motion_finish(ui, p),
                         Tab::Camera => self.motion_camera(ui, p),
+                        Tab::Curves => self.curve_tracks_panel(ui, p),
                     }
                     if self.motion.pending.is_some() {
                         ui.horizontal(|ui| {
@@ -1234,6 +1244,7 @@ impl Studio {
                 );
             }
         });
+        self.symbols_panel(ui, p);
         theme::section(ui, "SAVED ITEMS");
         if let Ok(entries) = library_entries(p) {
             for entry in entries {
@@ -1499,10 +1510,72 @@ impl Studio {
             });
         if let Some(mut clip) = self.motion.audio_edit.take() {
             self.request_wave(p, clip.asset);
-            if let Some(wave) = self.motion.waves.get(&clip.asset) {
-                let (rect, _) =
-                    ui.allocate_exact_size(Vec2::new(ui.available_width(), 70.), Sense::hover());
-                paint_wave(ui.painter(), rect, wave, &clip);
+            if let Some(wave) = self.motion.waves.get(&clip.asset).cloned() {
+                let (rect, response) = ui.allocate_exact_size(
+                    Vec2::new(ui.available_width(), 90.),
+                    Sense::click_and_drag(),
+                );
+                paint_wave(ui.painter(), rect, &wave, &clip);
+                ui.painter().line_segment(
+                    [rect.left_top(), rect.left_bottom()],
+                    Stroke::new(4., theme::ACCENT),
+                );
+                ui.painter().line_segment(
+                    [rect.right_top(), rect.right_bottom()],
+                    Stroke::new(4., theme::ACCENT),
+                );
+                if response.drag_started()
+                    && let Some(origin) = ui.input(|i| i.pointer.press_origin())
+                {
+                    let side = if ui.input(|i| i.modifiers.shift) {
+                        2
+                    } else if origin.x < rect.left() + 14. {
+                        0
+                    } else {
+                        1
+                    };
+                    self.motion.audio_drag = Some((clip.clone(), side));
+                }
+                if response.dragged()
+                    && let Some((original, side)) = &self.motion.audio_drag
+                {
+                    let delta = response.drag_delta().x as f64 / rect.width() as f64
+                        * original.duration_seconds;
+                    clip = original.clone();
+                    if *side == 2 {
+                        clip.offset_seconds =
+                            (original.offset_seconds + delta * original.speed as f64).max(0.);
+                    } else if *side == 0 {
+                        let frames = (delta * p.fps as f64).round() as i64;
+                        let lower = -(original.start as i64).min(
+                            (original.offset_seconds / original.speed as f64 * p.fps as f64).floor()
+                                as i64,
+                        );
+                        let upper =
+                            ((original.duration_seconds - 0.01) * p.fps as f64).floor() as i64;
+                        let frames = frames.clamp(lower, upper);
+                        let seconds = frames as f64 / p.fps as f64;
+                        clip.start = (original.start as i64 + frames) as u32;
+                        clip.offset_seconds += seconds * clip.speed as f64;
+                        clip.duration_seconds -= seconds;
+                    } else {
+                        clip.duration_seconds =
+                            (original.duration_seconds + delta).clamp(0.01, 3600.);
+                    }
+                }
+                if response.drag_stopped() {
+                    self.motion.audio_drag = None;
+                }
+                if response.clicked()
+                    && let Some(pos) = response.interact_pointer_pos()
+                {
+                    let second =
+                        (pos.x - rect.left()) as f64 / rect.width() as f64 * clip.duration_seconds;
+                    self.seek_frame(
+                        (clip.start + (second * p.fps as f64).round() as u32).min(p.duration - 1),
+                    );
+                }
+                response.on_hover_text("Click to seek. Drag the left edge to trim the head; drag elsewhere to trim the tail. Shift-drag slips source audio. Apply audio edit to commit.");
                 ui.small(format!("Source {:.2}s", wave.duration));
             }
             ui.horizontal_wrapped(|ui| {
@@ -1551,6 +1624,25 @@ impl Studio {
                     self.frame as u32,
                 );
             }
+            ui.horizontal_wrapped(|ui| {
+                if ui.button("Apply audio edit").clicked() {
+                    self.apply(vec![Command::ReplaceAudio { clip: clip.clone() }]);
+                }
+                if ui.button("Split at playhead").clicked() {
+                    self.apply(vec![
+                        Command::ReplaceAudio { clip: clip.clone() },
+                        Command::SplitAudio {
+                            clip: clip.id,
+                            frame: self.frame as u32,
+                        },
+                    ]);
+                    if let Ok(next) = self.service.snapshot(p.id)
+                        && let Some(left) = next.audio.iter().find(|a| a.id == clip.id)
+                    {
+                        clip = left.clone();
+                    }
+                }
+            });
             self.motion.audio_edit = Some(clip);
         }
     }
@@ -1785,6 +1877,19 @@ impl Studio {
         }
     }
     pub(super) fn request_wave(&mut self, p: &Project, asset: Id) {
+        let source = p
+            .assets
+            .iter()
+            .find(|a| a.id == asset)
+            .map_or(String::new(), |a| a.path.clone());
+        if self
+            .motion
+            .waves
+            .get(&asset)
+            .is_some_and(|wave| wave.source != source)
+        {
+            self.motion.waves.remove(&asset);
+        }
         if self.motion.waves.contains_key(&asset) || self.motion.wave_pending.is_some() {
             return;
         }
@@ -1801,6 +1906,7 @@ impl Studio {
                 })
                 .and_then(|value| {
                     Ok(Wave {
+                        source,
                         peaks: serde_json::from_value(value["peaks"].clone())?,
                         duration: value["duration"].as_f64().unwrap_or(0.),
                     })
@@ -2117,6 +2223,26 @@ fn curve_editor(ui: &mut egui::Ui, easing: &mut Easing) {
         Stroke::new(2., theme::ACCENT),
     ));
     if let Easing::Bezier { x1, y1, x2, y2 } = easing {
+        for (index, x, y, anchor) in [
+            (0, &mut *x1, &mut *y1, at(0., 0.)),
+            (1, &mut *x2, &mut *y2, at(1., 1.)),
+        ] {
+            let pos = at(*x, *y);
+            painter.line_segment([anchor, pos], Stroke::new(1., theme::MUTED));
+            painter.circle_filled(pos, 5., theme::ACCENT);
+            let response = ui.interact(
+                Rect::from_center_size(pos, Vec2::splat(20.)),
+                ui.scope_id().with(("curve_handle", index)),
+                Sense::drag(),
+            );
+            if response.dragged()
+                && let Some(pointer) = response.interact_pointer_pos()
+            {
+                *x = ((pointer.x - inner.left()) / inner.width()).clamp(0., 1.);
+                *y = ((inner.bottom() - pointer.y) / inner.height()).clamp(-2., 3.);
+            }
+            response.on_hover_text("Drag timing tangent");
+        }
         ui.horizontal_wrapped(|ui| {
             for (label, value, min, max) in [
                 ("X1", x1, 0., 1.),

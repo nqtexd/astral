@@ -315,6 +315,15 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
+        description = "Inspect linked media, relink missing audio/source files without changing stable IDs, create verified .astralpack snapshots, or unpack into a new workspace folder. Relink requires current revision; package/unpack return cancellable job IDs. All paths are confined to configured project/workspace roots. Embedded raster pixels remain unchanged by source-file relinking; re-import to replace artwork."
+    )]
+    async fn asset_tools(
+        &self,
+        Parameters(request): Parameters<crate::assets::AssetRequest>,
+    ) -> CallToolResult {
+        self.dispatch(Request::AssetTools { request }).await
+    }
+    #[tool(
         description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera or graphic/raster object keys (source-pixel seed, at most 120 frames, optional second_point for rotation/scale and target object ID). Import audio normalizes bounded WAV/AIFF/MP3/M4A to editable full-length clips. Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD supports native group/mask/supported-blend graphs and basic editable text; font metrics, adjustment/filter/clipping semantics still require review. lip_sync engine english/phonetic uses offline recognition with configurable viseme mapping; envelope is approximate. Use apply_commands PutRasterLayer for transforms, translation/MLS-similarity pins, cubic curve keys and bone-angle corrective drivers."
     )]
     async fn artwork_tools(

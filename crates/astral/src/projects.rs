@@ -31,7 +31,9 @@ impl Service {
             std::fs::metadata(&file)?.len() <= MAX_PROJECT_BYTES as u64,
             "Project exceeds 256 MiB"
         );
-        let p = astral_storage::decode(&std::fs::read(&file)?)?;
+        let parent = Workspace::new(file.parent().context("Project folder missing")?)?;
+        let (p, revision) =
+            parent.load_recoverable(file.file_name().context("Project filename missing")?)?;
         {
             let store = self.store.lock().unwrap();
             if store.sessions.contains_key(&p.id) {
@@ -42,7 +44,6 @@ impl Service {
                 return Ok(p.id);
             }
         }
-        let parent = Workspace::new(file.parent().context("Project folder missing")?)?;
         let complete = |w: &Workspace| {
             p.assets
                 .iter()
@@ -53,7 +54,6 @@ impl Service {
         } else {
             parent
         };
-        let revision = p.revision;
         let id = self.insert(p)?;
         let mut store = self.store.lock().unwrap();
         store.locations.insert(id, workspace);

@@ -86,3 +86,32 @@ The stress runner records bounded private-memory samples, mutations, undo/redo, 
 ## Implementation references
 
 The PSD adapter uses [ag-psd](https://github.com/Agamnentzar/ag-psd). Offline mouth timing follows [Rhubarb’s recognizers and JSON interface](https://github.com/DanielSWolf/rhubarb-lip-sync). Boolean operations use [geo’s documented non-zero fill operations](https://docs.rs/geo/latest/geo/algorithm/bool_ops/trait.BooleanOps.html). Original third-party notices remain in the source/package; these integrations do not imply code or feature equivalence with proprietary editors.
+
+
+## Curves, exposures and live animation
+
+Open **Motion studio → Curves**. Select a character, create a channel, choose root/joint and X/Y, then add keys at the playhead. Drag keys or incoming/outgoing tangent handles. Numeric controls and hold/linear/cubic interpolation remain available. **Auto tangents** estimates a local slope. **Apply curve** commits the draft as one undoable revision. Only the authored range overrides ordinary poses/actions; bone constraints and contacts still run afterward. Curve values are absolute channel coordinates, not offsets. Retiming pose keys does not automatically retime these independent channels; edit their frames explicitly through `set_curve_tracks`.
+
+**Project menu → Exposure sheet** shows drawing keys, holds/blanks, dialogue starts, sound starts and markers. Click a cell; Shift-click extends the range. Expose the current drawing through a range or blank selected frames. Existing timeline/motion tools provide copying and broader retiming. The sheet virtualizes rows for long projects; it is not a full compositing-layer dope sheet.
+
+**Motion studio → Library → Live symbols and nested animation** places a shared library source rather than copying its contents. Each instance has local offset, speed, loop/hold, transform keys and an optional parent instance. Child timing is measured in the parent's local frames; nesting is limited to eight levels and cycles are rejected. `set_library` replaces a shared definition and updates its instances; `set_symbol_instances` edits instance structure transactionally. Source figures, drawing cels and effects are supported; source audio, raster-layer tracks, independent curve tracks and arbitrary movie files are not currently instanced. A library source in use cannot be removed without changing its instances in the same batch.
+
+## Waveform and color controls
+
+In **Motion studio → Finish**, select an audio clip. Click its waveform to seek. Drag the left edge to trim its head; drag elsewhere to trim its tail; Shift-drag slips source audio. These are draft edits until **Apply audio edit** or the reviewed preview is committed. **Split at playhead** preserves source time, speed, looping, outer fades and gain as one undoable batch. A cut inside a fade is refused to avoid changing the envelope. Waveform caches refresh when the linked source path changes. Stop and restart playback after relinking audio.
+
+RGB artwork with a supported embedded ICC profile is converted to the internal **sRGB SDR** working space. Untagged artwork is assumed sRGB. PSD pixel layers use the document RGB profile; mask coverage stays untransformed. Editable PSD text colors/font appearance still require review. PNG and JPEG exports carry an sRGB ICC profile, including PNG sequences. Compositing is premultiplied sRGB, not linear-light/HDR grading. OS monitor-profile discovery, calibrated display validation, CMYK/gray ICC workflows and full video color-profile equivalence remain unfinished.
+
+## Moving projects and recovering work
+
+**Project menu → Media and packages** shows linked media availability. **Relink** copies a selected replacement into the project asset folder and preserves the asset ID and clip timing. It does not replace already embedded bitmap pixels: re-import changed artwork. Waveforms refresh when the source path changes; stop and restart audio playback after relinking.
+
+**Create verified package** writes a new `.astralpack` snapshot containing the project, linked media and a SHA-256 manifest. Paths are relative to the project folder. **Verify and unpack** uses paths in the configured automation workspace and a new destination folder. No existing folder is overwritten; traversal, links, oversized files and checksum mismatches are rejected. Embedded artwork is already in the project. Limits: 4,096 linked paths, 256 MiB per file and 2 GiB total. Packages do not include credentials, preferences or diagnostic logs.
+
+The MCP `asset_tools` tool exposes `inspect`, `relink`, `package`, and `unpack`; package/unpack return cancellable job IDs. Relink/package require the expected revision. GUI and MCP opens prefer a newer autosave for ordinary project files, retain the original file and mark recovered work unsaved. Explicitly opened backup/recovery files are not automatically replaced. An older autosave request cannot overwrite a higher-revision recovery snapshot.
+
+## Installer updates
+
+`build-astral-installer.ps1 -Production -CertificateThumbprint …` requires an owned valid code-signing certificate. No certificate is present in this environment, so public setup builds remain **unsigned candidates**.
+
+The packaged `scripts/Update-Astral.ps1 -Tag vX.Y.Z -PublisherThumbprint <trusted certificate SHA-1 thumbprint>` downloads and verifies a specific official GitHub installer. It checks the SHA-256 release digest, size, Authenticode validity and the operator-pinned signer. It refuses unsigned releases. Add `-Install` to request installation, or `-WhatIf` to inspect that step; prereleases additionally require `-AllowPrerelease`. Publisher trust must come from a separately verified source, not the downloaded release. This is an explicit PowerShell update workflow, not a background GUI updater. It cannot update the current unsigned candidate through the signed path. Clean-VM installation/upgrade/uninstall and rollback testing remain release gates.

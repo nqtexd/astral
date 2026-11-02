@@ -102,7 +102,13 @@ fn decode(bytes: &[u8]) -> Result<image::RgbaImage> {
     limits.max_image_height = Some(8192);
     limits.max_alloc = Some(128 * 1024 * 1024);
     reader.limits(limits);
-    let image = reader.decode()?.into_rgba8();
+    use image::ImageDecoder;
+    let mut decoder = reader.into_decoder()?;
+    let profile = decoder.icc_profile()?;
+    let mut image = image::DynamicImage::from_decoder(decoder)?.into_rgba8();
+    if let Some(profile) = profile {
+        astral_render::color::to_srgb(&mut image, &profile)?;
+    }
     ensure!(
         image.width() as u64 * image.height() as u64 <= 16_777_216,
         "Bitmap exceeds 16 megapixels"

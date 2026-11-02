@@ -13,6 +13,7 @@ const MUTED: Color32 = theme::MUTED;
 mod artwork_panel;
 mod assist;
 mod compositing;
+mod curves;
 mod export_panel;
 mod features;
 mod frame_editor;
@@ -21,7 +22,9 @@ mod keymap;
 mod motion;
 mod project_manager;
 mod storyboard;
+mod symbols;
 mod theme;
+mod workspace_tools;
 
 #[derive(Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 enum WorkspaceMode {
@@ -74,6 +77,7 @@ struct Preferences {
     pressure_brush: bool,
     brush_style: BrushStyle,
     stamp_brush: Option<StampBrush>,
+    brush_stabilization: f32,
     brush_presets: BTreeMap<String, StampBrush>,
     brush_preset_name: String,
     curved_brush: bool,
@@ -125,6 +129,7 @@ impl Default for Preferences {
             pressure_brush: true,
             brush_style: BrushStyle::Solid,
             stamp_brush: None,
+            brush_stabilization: 0.,
             brush_presets: BTreeMap::new(),
             brush_preset_name: String::new(),
             curved_brush: false,
@@ -198,6 +203,7 @@ pub struct Studio {
     dirty: bool,
     confirm_close: bool,
     documents: BTreeMap<Id, (String, Option<u64>)>,
+    workspace_tools: workspace_tools::WorkspaceTools,
     exit_confirmed: bool,
     recovery_busy: std::sync::Arc<std::sync::atomic::AtomicBool>,
     learning_drawings: Vec<Id>,
@@ -289,6 +295,7 @@ impl Studio {
             dirty: false,
             confirm_close: false,
             documents: BTreeMap::new(),
+            workspace_tools: Default::default(),
             exit_confirmed: false,
             recovery_busy: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             learning_drawings: vec![],
@@ -712,6 +719,14 @@ impl Studio {
                         if ui.button(i18n::tr("Storyboard")).clicked() {
                             self.stop();
                             self.preferences.mode = WorkspaceMode::Storyboard;
+                            ui.close();
+                        }
+                        if ui.button("Media and packages").clicked() {
+                            self.workspace_tools.assets_open = true;
+                            ui.close();
+                        }
+                        if ui.button("Exposure sheet").clicked() {
+                            self.workspace_tools.xsheet_open = true;
                             ui.close();
                         }
                         if ui.button(i18n::tr("Project settings")).clicked() {
@@ -1846,6 +1861,7 @@ impl eframe::App for Studio {
         self.poll_artwork(&ctx);
         self.assist_windows(&ctx, &p);
         self.motion_windows(&ctx, &p);
+        self.workspace_tools_windows(&ctx, &p);
         if self.manager.home {
             self.show_projects(ui);
             self.close_confirmation(&ctx, &p);

@@ -292,12 +292,9 @@ fn run(
                 pixels = rgba.to_vec();
                 Ok(())
             })?;
-        let image = image::RgbaImage::from_raw(plan.width, plan.height, pixels)
-            .context("Invalid rendered PNG dimensions")?;
-        let mut output = std::io::Cursor::new(vec![]);
-        image.write_to(&mut output, image::ImageFormat::Png)?;
+        let output = astral_render::color::png(&pixels, plan.width, plan.height)?;
         job.check()?;
-        workspace.atomic_write(&spec.path, &output.into_inner())?;
+        workspace.atomic_write(&spec.path, &output)?;
         job.update(json!({"job":job.id,"state":"completed","progress":1.,"path":spec.path,"plan":plan,"revision":project.revision,"metrics":{"render_seconds":render_seconds,"render_workers":workers,"renderer":renderer,"adapter":adapter,"gpu_readback_seconds":readback,"reused_frames":cache_hits,"frames":1,"total_seconds":started.elapsed().as_secs_f64()}}));
         return Ok(());
     }
