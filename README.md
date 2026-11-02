@@ -40,7 +40,7 @@ GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes 
 - **Native exports:** AVI/MJPEG with PCM sound, JPEG, PNG, PNG-sequence ZIP and WAV work without FFmpeg. MP4/WebM/GIF remain available through FFmpeg.
 - **Safer finishing:** block-based long-form audio export preserves trim, playback speed and original fade phase; distinct saved versions retain five backups. MCP can preview a transaction before applying it. Worker panics finish as errors and produce bounded local diagnostics.
 
-[0.15 workflows and exact limits](docs/ASTRAL-0.15-WORKFLOW.md) · [Production gates](platforms/release/production-gates.json). Curves, live symbols and clipping nodes require project schema 11; keep originals and previous releases. **This is a release candidate, not production certification.** Physical tablet/input latency, eight-hour desktop stress, complete localization, signed installers and Apple release gates are still open.
+[Requested feature matrix](docs/ASTRAL-FEATURE-MATRIX.md) · [0.15 workflows and exact limits](docs/ASTRAL-0.15-WORKFLOW.md) · [Production gates](platforms/release/production-gates.json). Curves, live symbols and clipping nodes require project schema 11; keep originals and previous releases. **This is a release candidate, not production certification.** Physical tablet/input latency, eight-hour desktop stress, complete localization, signed installers and Apple release gates are still open.
 
 ## Getting started
 
