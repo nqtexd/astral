@@ -2,10 +2,6 @@
 
 Astral's native drawing, custom vector contours, raster sequences and deformation layers can now use an editable comic finish. This is an animation/compositing workflow for authored artwork; the built-in stickman director remains specialized. External agents can create and animate arbitrary artwork through the existing drawing, graphics and raster tools.
 
-![Original illustrated courier study](showcase/comic-city/comic-city.gif)
-
-The original **Chromatic Courier** scene contains 48 editable drawing cels, a city made from vector graphics, 12 FPS courier timing, project-rate velocity marks, halftone dots, RGB misregistration and a keyed glitch burst. Open [comic-city.astral](showcase/comic-city/comic-city.astral). [Four inspection frames](showcase/comic-city/frames.png).
-
 ## Desktop
 
 Open **Compositing**, create an empty composition, add a drawing/raster/graphic scene input, and set that input as the output. Add **Halftone**, **RGB split** and/or **Glitch**. Each new effect consumes the current output. Controls expose dot spacing/angle/ink, channel offsets, band height/displacement/update rate/seed, and strength. **Key strength at playhead** inserts or replaces a linear strength key. Clear keys to return to constant strength.
@@ -53,12 +49,4 @@ For automatic refinement, use operation `refine` with `project`, `expected_revis
 
 ## Research
 
-Sony Imageworks describes [on-twos animation, print texture, color misregistration and multi-view dimensional glitch compositing](https://www.imageworks.com/our-craft/feature-animation/movies/spider-man-spider-verse). These informed the separation of source cadence, screen texture and color displacement. Our seeded band displacement is an implementation adaptation, rather than Sony's multi-camera pipeline.
-
-The official [Three.js RGBShiftShader](https://github.com/mrdoob/three.js/blob/master/examples/jsm/shaders/RGBShiftShader.js) demonstrates opposite channel offsets. The alpha expansion here is specific to transparent 2D layers. [Maxime Heckel's halftone implementation](https://blog.maximeheckel.com/posts/shades-of-halftone/) and [Alexander Ameye's halftone shader notes](https://ameye.dev/notes/halftone-shader/) describe rotated dot screens and coverage. No film assets or external shader code are bundled in this example.
-
-Reproduce the sample:
-
-```powershell
-cargo run -p astral --locked --example comic_city -- docs/showcase/comic-city
-```
+The official [Three.js RGBShiftShader](https://github.com/mrdoob/three.js/blob/master/examples/jsm/shaders/RGBShiftShader.js) demonstrates opposite channel offsets. The alpha expansion here is specific to transparent 2D layers. [Maxime Heckel's halftone implementation](https://blog.maximeheckel.com/posts/shades-of-halftone/) and [Alexander Ameye's halftone shader notes](https://ameye.dev/notes/halftone-shader/) describe rotated dot screens and coverage. No external shader code is bundled.

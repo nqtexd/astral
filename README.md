@@ -71,14 +71,6 @@ Get FFmpeg through the [official download page](https://ffmpeg.org/download.html
 
 [Editable staging study](docs/showcase/cinematic-lab/amber-passage.astral). These controls require schema 13. The scene is a technical demonstration; finished film quality depends on authored assets, animation, direction and review.
 
-## Comic and illustrated 2D animation
-
-Animated **RGB split, seeded glitch bands and comic halftone** can process drawing, raster and custom vector artwork. Independent layer cadence mixes 12 FPS characters with 24 FPS backgrounds/camera. Desktop controls and MCP share editable effects; agents can inspect actual frames and run bounded visual refinement proposals. [Workflow, research and limits](docs/ASTRAL-COMIC-2D.md).
-
-![Original illustrated 2D courier with animated comic effects](docs/showcase/comic-city/comic-city.gif)
-
-[Open the editable project](docs/showcase/comic-city/comic-city.astral). Comic effects and layer cadence require schema 12. This supports authored 2D artwork; the built-in automatic sparring director remains specialized.
-
 ## Features
 
 | Workspace | What it includes |
