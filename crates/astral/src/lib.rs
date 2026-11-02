@@ -7,6 +7,7 @@ pub mod mcp;
 pub mod projects;
 pub mod service;
 pub mod voice;
+pub mod voice_provider;
 
 pub fn default_workspace() -> std::path::PathBuf {
     std::env::var_os("USERPROFILE")

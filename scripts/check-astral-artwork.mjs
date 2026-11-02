@@ -33,7 +33,19 @@ try{
  const stale=await rpc('tools/call',{name:'artwork_tools',arguments:{operation:'paint',project,expected_revision:0,layer:p.rasters[0].id,frame:0,points:[{x:8,y:8}],radius:1,color:[0,0,0,255]}});assert.equal(stale.isError,true);assert.equal((await tool('inspect_project',{project})).document.revision,p.revision);
  const exported=await finished(await tool('export_media',{project,spec:{path:'native-sized.png',renderer:'cpu',width:256,height:128,start:0,end:0}}));assert.equal(exported.metrics.renderer,'cpu');assert.equal(exported.plan.width,256);assert.equal((await readFile(path.join(workspace,'native-sized.png'))).subarray(0,8).toString('hex'),'89504e470d0a1a0a');
  await tool('save_project',{project,path:'artwork.astral'});const reopened=await tool('open_project',{path:'artwork.astral'});assert.equal(await preview(reopened.project,1),before1);
- const report={passed:true,tool:'artwork_tools',schema_object:true,embedded_images_hidden_from_inspection:true,independent_painted_frame:true,stale_revision_rollback:true,native_sized_png_without_ffmpeg:true,save_reopen:true};await writeFile(path.join(workspace,'report.json'),JSON.stringify(report,null,2));console.log(report);
+ // Exercise the real Python decoder → source evaluator → standalone native project route.
+ const {emptyDocument,createObject,createFrame}=await import('../src/demo.mjs');
+ const {buildContainerV2}=await import('../src/native-container.mjs');
+ const source=emptyDocument(),figure=source.figure_types[0];source._styk.name='Migration check';
+ source.keyframes=[createFrame([createObject(figure,1,300,280)],4),createFrame([createObject(figure,1,360,280)],1)];
+ const sourceBytes=await buildContainerV2(source,'styk');await writeFile(path.join(workspace,'source.styk'),sourceBytes);
+ const imported=await tool('import_legacy',{path:'source.styk'});let migrated=(await tool('inspect_project',{project:imported.project})).document;
+ assert.equal(migrated.metadata.legacy.conversion,'source-evaluated-native-cels',JSON.stringify(imported));assert.equal(migrated.cels.length,5);assert.equal(migrated.characters.length,1);assert.equal(migrated.characters[0].artwork_only,true);assert.ok(!('original_source'in migrated));
+ const originalPreview=await preview(imported.project,0),rig=migrated.characters[0],pose=structuredClone(rig.keys[0].pose);pose.root.x+=80;
+ await tool('apply_commands',{project:imported.project,expected_revision:migrated.revision,commands:[{type:'set_pose',character:rig.id,frame:0,pose,easing:'linear'}]});
+ assert.notEqual(await preview(imported.project,0),originalPreview);await tool('save_project',{project:imported.project,path:'migrated.astral'});
+ const opened=await tool('open_project',{path:'migrated.astral'});assert.equal((await tool('inspect_project',{project:opened.project})).document.schema,9);
+ const report={passed:true,tool:'artwork_tools',schema_object:true,embedded_images_hidden_from_inspection:true,independent_painted_frame:true,stale_revision_rollback:true,native_sized_png_without_ffmpeg:true,save_reopen:true,source_evaluated_legacy_import:true,native_skin_pose_edit:true,archive_omitted_from_mcp:true};await writeFile(path.join(workspace,'report.json'),JSON.stringify(report,null,2));console.log(report);
 }finally{child.stdin.end();}
 
 async function waitJob(job){let result;do{await new Promise(r=>setTimeout(r,100));result=await tool('job_status',{job});}while(!['completed','failed','cancelled'].includes(result.state));assert.equal(result.state,'completed',JSON.stringify(result));return result;}

@@ -116,7 +116,7 @@ impl Service {
         store.jobs.insert(id, job);
         Ok(json!({"job":id}))
     }
-    fn checked_project(&self, id: Id, revision: u64) -> Result<Project> {
+    pub(crate) fn checked_project(&self, id: Id, revision: u64) -> Result<Project> {
         let p = self.snapshot(id)?;
         ensure!(
             p.revision == revision,
@@ -375,14 +375,15 @@ impl Service {
                 }
                 let service = self.clone();
                 let workspace = self.project_workspace(project);
+                let voice_config = crate::voice_provider::load();
                 self.background_task(project,expected_revision,move|job|{
                     job.check()?;job.update(json!({"state":"synthesizing","progress":0.15}));
-                    let bytes=crate::voice::synthesize_cancellable(&text,&options,||job.cancelled.load(std::sync::atomic::Ordering::Relaxed))?;job.check()?;let seconds=astral_audio::wav_duration(&bytes)?;ensure!(seconds>0.&&seconds<=600.,"Voice clip must be at most ten minutes");
+                    let bytes=crate::voice::synthesize_with_config(&text,&options,&voice_config,||job.cancelled.load(std::sync::atomic::Ordering::Relaxed))?;job.check()?;let seconds=astral_audio::wav_duration(&bytes)?;ensure!(seconds>0.&&seconds<=600.,"Voice clip must be at most ten minutes");
                     let frames=(seconds*p.fps as f64).ceil().max(1.) as u32;let end=start.checked_add(frames).context("Voice range overflow")?;ensure!(end<=1_000_000,"Voice exceeds timeline limit");
                     let path=format!("assets/voice/{}.wav",job.id);write_new(&workspace,&path,&bytes)?;
                     let asset=Id::new_v4();let clip=Id::new_v4();let mut commands=vec![];if end>p.duration{commands.push(Command::SetProject{name:None,duration:Some(end),background:None});}
-                    commands.push(Command::AddAsset{asset:Asset{id:asset,name:if speaker.is_empty(){"Voice".into()}else{speaker.clone()},path:path.clone(),kind:"audio".into(),tags:vec!["speech".into(),"offline_windows_voice".into()]}});
-                    commands.push(Command::AddAudio{clip:AudioClip{id:clip,name:"Voice".into(),asset,start,offset_seconds:0.,duration_seconds:seconds,gain:1.,fade_in:0.,fade_out:0.,looping:false}});
+                    commands.push(Command::AddAsset{asset:Asset{id:asset,name:if speaker.is_empty(){"Voice".into()}else{speaker.clone()},path:path.clone(),kind:"audio".into(),tags:vec!["speech".into(),options.provider.unwrap_or(voice_config.provider).label().into()]}});
+                    commands.push(Command::AddAudio{clip:AudioClip{speed:1.,id:clip,name:"Voice".into(),asset,start,offset_seconds:0.,duration_seconds:seconds,gain:1.,fade_in:0.,fade_out:0.,looping:false}});
                     let dialogue_size=Point::new((p.width as f32*0.7).clamp(80.,1000.),(p.height as f32*0.22).clamp(60.,180.));
                     let dialogue_position=if let Some(character)=character.filter(|_|dialogue){
                         let scene=evaluate(&p,start as f64);let c=scene.characters.iter().find(|c|c.id==character).context("Dialogue character is hidden at the start frame")?;

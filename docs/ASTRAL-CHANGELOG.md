@@ -1,5 +1,20 @@
 # Astral changelog
 
+## [0.14.0]
+Native editing and configurable voice providers
+
+- Add pressure samples, marker/dashed/stipple brushes, closed fills, cubic smoothing and vector-node editing.
+- Add MLS similarity deformation, cubic curvers and bone-angle-driven raster corrective offsets to shared evaluation/rendering.
+- Migrate legacy geometry through the established source evaluator at project FPS; convert supported shapes, joins, source in-betweens, native pose controls, skinned cels and embedded image quads.
+- Import embedded legacy audio with native tracks, gain/mute/solo results, fades and trims; retain complete original data in immutable shared archives and omit it from MCP inspection results.
+- Add native WAV/AIFF/MP3/M4A decoding, full-length background audio import, pitch/speed and waveform alignment.
+- Add optional ElevenLabs and compatible speech endpoints to Settings → Voice, with provider profiles, explicit external-request opt-in and Windows Credential Manager storage scoped to provider/origin.
+- Add object-following tracking proposals with optional second-point rotation/scale, preserving adjacent frames.
+- Add an 18-action shortcut editor and English/Spanish/French core-control catalogs.
+- Use schema 9 for advanced features; migrate old inline legacy archives when a document enters the command service.
+
+This extends the parity work. It does not establish full Moho equivalence, lossless source semantics, all-language localization or physically certified tablet input. See [the 0.14 workflow](ASTRAL-0.14-WORKFLOW.md).
+
 ## [0.13.0]
 Artwork, deformation and editable voice studies
 

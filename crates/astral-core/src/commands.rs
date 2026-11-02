@@ -243,7 +243,8 @@ pub struct Session {
     history_bytes: usize,
 }
 impl Session {
-    pub fn new(project: Project) -> Result<Self> {
+    pub fn new(mut project: Project) -> Result<Self> {
+        project.upgrade_original_source()?;
         project.validate()?;
         Ok(Self {
             project,
@@ -305,6 +306,28 @@ impl Session {
         if !next.bitmaps.is_empty() || !next.rasters.is_empty() || !next.mouths.is_empty() {
             next.schema = next.schema.max(8);
         }
+        if next.characters.iter().any(|c| c.artwork_only)
+            || next.audio.iter().any(|c| c.speed != 1.)
+            || next.cels.iter().flat_map(|c| &c.strokes).any(|s| {
+                !s.pressures.is_empty()
+                    || s.bitmap.is_some()
+                    || s.skin.is_some()
+                    || s.filled
+                    || s.curved
+                    || s.style != BrushStyle::Solid
+            })
+            || next
+                .rasters
+                .iter()
+                .filter_map(|r| r.mesh.as_ref())
+                .any(|m| {
+                    m.mode != DeformMode::Translation
+                        || !m.curve.is_empty()
+                        || m.pins.iter().any(|p| p.driver.is_some())
+                })
+        {
+            next.schema = next.schema.max(9);
+        }
         next.validate()?;
         next.revision = self
             .project
@@ -353,6 +376,18 @@ impl Session {
         }
     }
     fn retired_bitmap_bytes(&self) -> usize {
+        let mut archives = std::collections::HashSet::new();
+        if let Some(source) = &self.project.original_source {
+            archives.insert(std::sync::Arc::as_ptr(source) as usize);
+        }
+        let archived_bytes: usize = self
+            .undo
+            .iter()
+            .chain(self.redo.iter())
+            .filter_map(|p| p.original_source.as_ref())
+            .filter(|a| archives.insert(std::sync::Arc::as_ptr(a) as usize))
+            .map(|a| a.source_base64.len() + a.canonical_json.len())
+            .sum();
         let mut pointers: std::collections::HashSet<_> = self
             .project
             .bitmaps
@@ -365,7 +400,8 @@ impl Session {
             .flat_map(|p| &p.bitmaps)
             .filter(|b| pointers.insert(b.png.as_ptr() as usize))
             .map(|b| b.png.len())
-            .sum()
+            .sum::<usize>()
+            + archived_bytes
     }
     fn check(&self, id: Id, revision: u64) -> Result<()> {
         ensure!(id == self.project.id, "Project handle does not match");
@@ -390,6 +426,7 @@ impl Session {
 // rather than serializing the same base64 payload after every brush stroke.
 fn snapshot_bytes(project: &Project) -> usize {
     let mut light = project.clone();
+    light.original_source = None;
     for bitmap in &mut light.bitmaps {
         bitmap.png = "".into();
     }
@@ -895,11 +932,27 @@ fn execute(p: &mut Project, command: Command, created: &mut Vec<Id>) -> Result<(
             p.bitmaps.retain(|b| {
                 let used = p.rasters.iter().any(|r| {
                     r.sources.contains(&b.id) || r.cels.iter().any(|c| c.bitmap == Some(b.id))
-                });
+                }) || p
+                    .cels
+                    .iter()
+                    .any(|c| c.strokes.iter().any(|s| s.bitmap == Some(b.id)));
                 used || (b.id != id && !retired.contains(&b.id))
             });
             if p.character(id).is_some() {
                 editable(p, id)?;
+                for cel in &mut p.cels {
+                    cel.strokes
+                        .retain(|s| s.skin.as_ref().is_none_or(|skin| skin.character != id));
+                }
+                for raster in &mut p.rasters {
+                    if let Some(mesh) = &mut raster.mesh {
+                        for pin in &mut mesh.pins {
+                            if pin.driver.as_ref().is_some_and(|d| d.character == id) {
+                                pin.driver = None;
+                            }
+                        }
+                    }
+                }
                 p.actions.retain(|a| a.character != id);
                 p.effects.retain(|e| e.character != Some(id));
                 p.dialogues.retain(|d| d.character != Some(id));

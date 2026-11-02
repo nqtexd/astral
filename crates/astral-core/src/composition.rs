@@ -159,6 +159,8 @@ fn obstacles(p: &Project, s: &EvaluatedScene, frame: u32) -> Vec<(Id, &'static s
         {
             continue;
         }
+        let resolved = raster.resolve_correctives(s);
+        let raster = &resolved;
         let columns = raster.mesh.as_ref().map_or(1, |m| m.columns);
         let rows = raster.mesh.as_ref().map_or(1, |m| m.rows);
         let mut bounds = Bounds {

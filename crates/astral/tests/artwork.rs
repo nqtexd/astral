@@ -233,6 +233,7 @@ fn editable_mouth_cues_keep_schema_and_text_fit_is_non_mutating() {
         tags: vec![],
     };
     let clip = AudioClip {
+        speed: 1.,
         id: Id::new_v4(),
         name: asset.name.clone(),
         asset: asset.id,
@@ -339,6 +340,8 @@ fn tracking_previews_real_sequence_motion_without_mutating_camera() {
         &service,
         service
             .artwork(ArtworkRequest::Track {
+                second_point: None,
+                target: None,
                 project,
                 expected_revision: p.revision,
                 layer: p.rasters[0].id,

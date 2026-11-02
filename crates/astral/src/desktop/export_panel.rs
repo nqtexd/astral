@@ -78,9 +78,9 @@ impl ExportPanel {
         }
         let mut open = true;
         let mut output = None;
-        egui::Window::new("Export").id(egui::Id::unique("astral.export.v2")).open(&mut open).collapsible(false).resizable(true).default_size(theme::dialog_size(ctx,Vec2::new(680.,640.))).max_size(theme::dialog_size(ctx,Vec2::new(840.,760.))).anchor(egui::Align2::CENTER_CENTER,[0.,0.]).show(ctx,|ui| {
+        egui::Window::new(i18n::tr("Export")).id(egui::Id::unique("astral.export.v2")).open(&mut open).collapsible(false).resizable(true).default_size(theme::dialog_size(ctx,Vec2::new(680.,640.))).max_size(theme::dialog_size(ctx,Vec2::new(840.,760.))).anchor(egui::Align2::CENTER_CENTER,[0.,0.]).show(ctx,|ui| {
             egui::ScrollArea::vertical().max_height((theme::dialog_size(ctx,Vec2::new(680.,640.)).y-90.).max(120.)).show(ui,|ui|{
-            if ui.button("Assemble rendered shots").on_hover_text("Join corrected endings and existing renders without an external editor").clicked(){self.assembly_open=true;}
+            if ui.button(i18n::tr("Assemble rendered shots")).on_hover_text("Join corrected endings and existing renders without an external editor").clicked(){self.assembly_open=true;}
             theme::section(ui,"DESTINATION");
             ui.add_space(8.);
             ui.horizontal_top(|ui|{
@@ -97,9 +97,9 @@ impl ExportPanel {
                     egui::ComboBox::from_id_salt("export.format").selected_text(self.format.label()).width(320.).show_ui(ui,|ui|{for format in Format::ALL {ui.selectable_value(&mut self.format,format,format.label());}});
                     if previous!=self.format{self.path(p);}
                     ui.horizontal(|ui|{ui.selectable_value(&mut self.spec.framing,Framing::Fit,"Fit - keep scene");ui.selectable_value(&mut self.spec.framing,Framing::Fill,"Fill - crop edges");});
-                    ui.horizontal(|ui|{ui.label("Quality");for (quality,label) in [(Quality::Draft,"Draft"),(Quality::Standard,"Standard"),(Quality::High,"High")] {ui.selectable_value(&mut self.spec.quality,quality,label);}});
-                    ui.horizontal(|ui|{ui.label("Renderer");for (backend,label) in [(crate::export::RenderBackend::Auto,"Auto"),(crate::export::RenderBackend::Cpu,"CPU"),(crate::export::RenderBackend::Gpu,"GPU")] {ui.selectable_value(&mut self.spec.renderer,backend,label);}});
-                    if self.format==Format::Mp4{ui.checkbox(&mut self.spec.hardware,"Use hardware encoder when available");}
+                    ui.horizontal(|ui|{ui.label(i18n::tr("Quality"));for (quality,label) in [(Quality::Draft,"Draft"),(Quality::Standard,"Standard"),(Quality::High,"High")] {ui.selectable_value(&mut self.spec.quality,quality,label);}});
+                    ui.horizontal(|ui|{ui.label(i18n::tr("Renderer"));for (backend,label) in [(crate::export::RenderBackend::Auto,"Auto"),(crate::export::RenderBackend::Cpu,"CPU"),(crate::export::RenderBackend::Gpu,"GPU")] {ui.selectable_value(&mut self.spec.renderer,backend,label);}});
+                    if self.format==Format::Mp4{ui.checkbox(&mut self.spec.hardware,i18n::tr("Use hardware encoder when available"));}
                 });
                 ui.vertical(|ui|{
                     ui.set_width(260.);
@@ -118,24 +118,24 @@ impl ExportPanel {
                         ui.painter().rect_stroke(rect,0.,Stroke::new(1.,theme::BORDER),egui::StrokeKind::Inside);
                         ui.label(RichText::new(format!("{} × {}  -  {} fps",plan.width,plan.height,plan.fps)).strong());
                         ui.label(RichText::new(format!("{:.2} seconds - {} frames",plan.duration_seconds,plan.frames)).color(MUTED));
-                        ui.small("Framing preview at the current playhead.");
+                        ui.small(i18n::tr("Framing preview at the current playhead."));
                     }
                 });
             });
             ui.separator();
             if self.format.still(){self.spec.start=Some(self.current_frame);self.spec.end=Some(self.current_frame);ui.label(format!("Still image at frame {}",self.current_frame));}
             else {
-                if ui.checkbox(&mut self.range,"Export selected source-frame range").changed(){self.spec.start=if self.range{Some(0)}else{None};self.spec.end=if self.range{Some(p.duration-1)}else{None};}
-                if self.range{ui.horizontal(|ui|{ui.label("From");ui.add(egui::DragValue::new(self.spec.start.as_mut().unwrap()).range(0..=p.duration-1));ui.label("through");ui.add(egui::DragValue::new(self.spec.end.as_mut().unwrap()).range(0..=p.duration-1));});}
+                if ui.checkbox(&mut self.range,i18n::tr("Export selected source-frame range")).changed(){self.spec.start=if self.range{Some(0)}else{None};self.spec.end=if self.range{Some(p.duration-1)}else{None};}
+                if self.range{ui.horizontal(|ui|{ui.label(i18n::tr("From"));ui.add(egui::DragValue::new(self.spec.start.as_mut().unwrap()).range(0..=p.duration-1));ui.label(i18n::tr("through"));ui.add(egui::DragValue::new(self.spec.end.as_mut().unwrap()).range(0..=p.duration-1));});}
                 else{self.spec.start=None;self.spec.end=None;}
             }
-            ui.collapsing("Custom dimensions and frame rate",|ui|{
+            ui.collapsing(i18n::tr("Custom dimensions and frame rate"),|ui|{
                 let defaults=Plan::new(p,&self.spec).ok();let (w,h)=defaults.as_ref().map(|plan|(plan.width,plan.height)).unwrap_or(self.spec.preset.dimensions(p));let mut width=self.spec.width.unwrap_or(w);let mut height=self.spec.height.unwrap_or(h);let mut fps=self.spec.fps.unwrap_or(defaults.as_ref().map(|plan|plan.fps).unwrap_or(self.spec.preset.fps(p)));
-                ui.horizontal(|ui|{ui.label("Width");if ui.add(egui::DragValue::new(&mut width).range(1..=8192)).changed(){self.spec.width=Some(width);}ui.label("Height");if ui.add(egui::DragValue::new(&mut height).range(1..=8192)).changed(){self.spec.height=Some(height);}ui.label("FPS");if ui.add(egui::DragValue::new(&mut fps).range(1..=240)).changed(){self.spec.fps=Some(fps);}});
+                ui.horizontal(|ui|{ui.label(i18n::tr("Width"));if ui.add(egui::DragValue::new(&mut width).range(1..=8192)).changed(){self.spec.width=Some(width);}ui.label(i18n::tr("Height"));if ui.add(egui::DragValue::new(&mut height).range(1..=8192)).changed(){self.spec.height=Some(height);}ui.label(i18n::tr("FPS"));if ui.add(egui::DragValue::new(&mut fps).range(1..=240)).changed(){self.spec.fps=Some(fps);}});
                 if ui.small_button("Reset to preset").clicked(){self.spec.width=None;self.spec.height=None;self.spec.fps=None;}
             });
-            ui.label("File in project folder");ui.add(egui::TextEdit::singleline(&mut self.spec.path).desired_width(f32::INFINITY));
-            ui.small("Existing files are replaced after a successful export.");
+            ui.label(i18n::tr("File in project folder"));ui.add(egui::TextEdit::singleline(&mut self.spec.path).desired_width(f32::INFINITY));
+            ui.small(i18n::tr("Existing files are replaced after a successful export."));
             match Plan::new(p,&self.spec){
                 Ok(plan) if plan.format != self.format => {ui.colored_label(Color32::LIGHT_RED,format!("Use .{} for the selected format, or choose a different format above.",self.format.extension()));}
                 Ok(plan)=>{for warning in &plan.warnings{ui.colored_label(Color32::from_rgb(242,199,116),warning);}}
@@ -162,20 +162,20 @@ impl ExportPanel {
         }
         let mut open = true;
         let mut output = None;
-        egui::Window::new("Assemble shots").open(&mut open).default_width(560.).max_size(theme::dialog_size(ctx,Vec2::new(720.,700.))).vscroll(true).show(ctx,|ui|{
-            ui.label("Hard cuts with synchronized audio. Set each source trim in seconds; all shots are normalized and re-encoded.");
+        egui::Window::new(i18n::tr("Assemble shots")).open(&mut open).default_width(560.).max_size(theme::dialog_size(ctx,Vec2::new(720.,700.))).vscroll(true).show(ctx,|ui|{
+            ui.label(i18n::tr("Hard cuts with synchronized audio. Set each source trim in seconds; all shots are normalized and re-encoded."));
             let mut move_up=None;let mut remove=None;
             for (i,clip) in self.assembly.clips.iter_mut().enumerate() {
                 ui.push_id(i,|ui|{ui.separator();ui.horizontal_wrapped(|ui|{ui.label(format!("Shot {}",i+1));if i>0&&theme::icon_button(ui,"Move earlier",theme::Icon::Previous,false).clicked(){move_up=Some(i);}
 if theme::icon_button(ui,"Remove shot",theme::Icon::Delete,false).clicked(){remove=Some(i);}});
                     ui.add(egui::TextEdit::singleline(&mut clip.path).desired_width(ui.available_width()).hint_text("Relative workspace video path"));
-                    ui.horizontal_wrapped(|ui|{ui.add(egui::DragValue::new(&mut clip.start_seconds).range(0.0..=36000.).speed(0.1).prefix("In ").suffix(" s"));ui.add(egui::DragValue::new(&mut clip.end_seconds).range(0.0..=36000.).speed(0.1).prefix("Out ").suffix(" s"));ui.checkbox(&mut clip.audio,"Source audio");});
+                    ui.horizontal_wrapped(|ui|{ui.add(egui::DragValue::new(&mut clip.start_seconds).range(0.0..=36000.).speed(0.1).prefix("In ").suffix(" s"));ui.add(egui::DragValue::new(&mut clip.end_seconds).range(0.0..=36000.).speed(0.1).prefix("Out ").suffix(" s"));ui.checkbox(&mut clip.audio,i18n::tr("Source audio"));});
                 });
             }
             if let Some(i)=move_up {self.assembly.clips.swap(i,i-1);}
 if let Some(i)=remove{self.assembly.clips.remove(i);}
             if ui.add_enabled(self.assembly.clips.len()<32,egui::Button::new("Add shot")).clicked(){self.assembly.clips.push(crate::export::AssemblyClip{path:String::new(),start_seconds:0.,end_seconds:1.,audio:true});}
-            ui.separator();ui.label("Output (relative workspace path)");ui.text_edit_singleline(&mut self.assembly.path);
+            ui.separator();ui.label(i18n::tr("Output (relative workspace path)"));ui.text_edit_singleline(&mut self.assembly.path);
             ui.horizontal_wrapped(|ui|{ui.add(egui::DragValue::new(&mut self.assembly.width).range(16..=3840).speed(2.).prefix("Width "));ui.add(egui::DragValue::new(&mut self.assembly.height).range(16..=3840).speed(2.).prefix("Height "));ui.add(egui::DragValue::new(&mut self.assembly.fps).range(1..=60).prefix("FPS "));});
             match self.assembly.validate(workspace){Ok(())=>{if theme::button(ui,"Assemble MP4",theme::Icon::Export,true).clicked(){output=Some(self.assembly.clone());}},Err(e)=>{ui.colored_label(Color32::from_rgb(242,199,116),e.to_string());}}
         });

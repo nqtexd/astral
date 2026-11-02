@@ -103,6 +103,12 @@ fn cel_projects_round_trip_with_identical_rendered_frames() {
                         layer: lid,
                         frame: 0,
                         strokes: vec![InkStroke {
+                            bitmap: None,
+                            skin: None,
+                            pressures: vec![],
+                            style: BrushStyle::Solid,
+                            filled: false,
+                            curved: false,
                             points: vec![Point::new(10., 50.), Point::new(90., 50.)],
                             color: [255, 0, 0, 255],
                             width: 8.,

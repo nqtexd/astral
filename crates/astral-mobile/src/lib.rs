@@ -606,6 +606,12 @@ impl TouchStudio {
                     .map(|c| c.strokes.clone())
                     .unwrap_or_default();
                 strokes.push(InkStroke {
+                    bitmap: None,
+                    skin: None,
+                    pressures: vec![],
+                    style: BrushStyle::Solid,
+                    filled: false,
+                    curved: false,
                     points: std::mem::take(&mut self.ink),
                     width: self.width,
                     color: self.color,
@@ -956,6 +962,12 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut app = TouchStudio::new(dir.path().to_owned()).unwrap();
         let stroke = InkStroke {
+            bitmap: None,
+            skin: None,
+            pressures: vec![],
+            style: BrushStyle::Solid,
+            filled: false,
+            curved: false,
             points: vec![Point::new(10., 10.), Point::new(60., 60.)],
             color: [10, 10, 10, 255],
             width: 3.,

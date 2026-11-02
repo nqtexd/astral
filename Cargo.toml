@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/astral-assist", "crates/astral-ml", "crates/astral-core", "crates/astral-storage", "crates/astral-render", "crates/astral-audio", "crates/astral-codecs", "crates/astral", "crates/astral-mobile"]
 
 [workspace.package]
-version = "0.13.0"
+version = "0.14.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 rust-version = "1.95"

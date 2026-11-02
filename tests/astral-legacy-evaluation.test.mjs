@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {evaluateLegacy} from '../scripts/astral-evaluate-legacy.mjs';
+import {defaultFigure,createObject,createFrame} from '../src/demo.mjs';
+import {timeline,evaluatedFrame,buildGeometry} from '../src/pivot/geometry.mjs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {emptyDocument} from '../src/demo.mjs';
+import {buildContainerV2} from '../src/native-container.mjs';
+test('native migration samples actual source tweens, custom polygons and joined geometry',()=>{
+  const figure=defaultFigure();figure.polyfills=[{polyfill_id:1,segment_ids:[0,1,3],color_rgb:[70,140,200],alpha_raw:0,z_order:0}];
+  const first=createObject(figure,1,100,200),next=createObject(figure,1,180,200);next.angles[2]+=0.7;
+  const report={version:5,canvas_width:640,canvas_height:360,fps:24,figure_types:[figure],backgrounds:[],keyframes:[createFrame([first],4),createFrame([next],1)]};
+  const sampled=evaluateLegacy(report);assert.equal(sampled.duration,5);assert.equal(sampled.samples.length,5);
+  const source=buildGeometry(report,evaluatedFrame(report,0,0.5,2));
+  const migrated=sampled.samples[2];assert.deepEqual(migrated.rigs[0].joints.find(j=>j.id===0).position,source.orderedObjects[0].joints.get(0));
+  assert.ok(migrated.strokes.some(s=>s.filled&&s.points.length===3));
+  assert.notDeepEqual(sampled.samples[0].strokes[0].points,migrated.strokes[0].points);
+  assert.throws(()=>evaluateLegacy(report,{maxFrames:2}),/exceeds/);
+  const joined=createObject(figure,2,0,0,{join:{target_object_slot:0,target_unique_id:1,target_handle_id:1}});
+  report.keyframes[0]=createFrame([first,joined],4);report.keyframes[1]=createFrame([next,structuredClone(joined)],1);
+  const joinedSamples=evaluateLegacy(report),sourceJoined=buildGeometry(report,evaluatedFrame(report,0,0.5,2)).objects.get(1);
+  assert.deepEqual(joinedSamples.samples[2].rigs.find(r=>r.uid===2).joints.find(j=>j.id===0).position,sourceJoined.root);
+});
+test('container/Python decoders use the supplied snapshot without reopening its path',async()=>{
+  const report=emptyDocument(),figure=report.figure_types[0];report.keyframes=[createFrame([createObject(figure,1,100,200)],1)];
+  report.keyframes[0].camera={is_default:true,x:90,y:42,scale:3,angle_rad:1};
+  const helper=fileURLToPath(new URL('../scripts/astral-decode-container.mjs',import.meta.url));
+  const source=await buildContainerV2(report,'styk');
+  const decoded=spawnSync(process.execPath,[helper,'not-present.styk','--stdin'],{input:source,maxBuffer:8*1024*1024});assert.equal(decoded.status,0,decoded.stderr.toString());
+  const sampled=evaluateLegacy(JSON.parse(decoded.stdout));assert.deepEqual(sampled.samples[0].background,[255,255,255,255]);assert.deepEqual(sampled.samples[0].camera,{center:{x:480,y:270},zoom:1});assert.deepEqual(sampled.samples[0].rigs[0].root,{x:100,y:200});
+  const python=spawnSync('python',[fileURLToPath(new URL('../scripts/astral-codec.py',import.meta.url)),'not-present.styk','--stdin'],{input:JSON.stringify(report),maxBuffer:8*1024*1024});assert.equal(python.status,0,python.stderr.toString());assert.equal(JSON.parse(python.stdout).keyframes.length,1);
+});

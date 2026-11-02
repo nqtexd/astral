@@ -20,7 +20,7 @@ Use one clear, separated stickman on a simple or transparent background. Crossed
 
 Dialogue supports regular, bold, italic and bold italic text, left/center/right alignment, line spacing, padding, font size, speech/thought bubbles, captions and typewriter reveal. These remain editable vector text. Rich formatting promotes the project to schema 4; previous project schemas still open. Text coverage follows the bundled Noto Sans fonts.
 
-Open **Add → Voice and dialogue**. Choose an installed Windows voice, rate, pitch and volume; enter text and generate at the playhead. Astral uses Windows SpeechSynthesizer locally and writes a WAV asset. No API key or paid voice service is used. Windows must have the desired voice installed. The separate audio clip and optional matching dialogue are editable; the timeline extends to fit speech. Generation runs in a cancellable worker and commits audio, text and duration together as one undoable edit. Playback starts audio at the current playhead.
+Open **Add → Voice and dialogue**. Choose an installed Windows voice, rate, pitch and volume; enter text and generate at the playhead. Astral uses Windows SpeechSynthesizer locally and writes a WAV asset. This offline provider needs no API key. Since 0.14, optional ElevenLabs and compatible speech endpoints can also be configured in Settings → Voice; see [provider setup](ASTRAL-0.14-WORKFLOW.md#voice-providers). Windows must have the desired voice installed. The separate audio clip and optional matching dialogue are editable; the timeline extends to fit speech. Generation runs in a cancellable worker and commits audio, text and duration together as one undoable edit. Playback starts audio at the current playhead.
 
 ## MCP server profiles
 

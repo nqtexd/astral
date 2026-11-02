@@ -93,7 +93,7 @@ Astral 0.4 adds add_layer, set_layer, move_layer, set_cel, delete_cel, move_cel,
 
 `mcp --profile projects` exposes ten project lifecycle tools. `mcp --profile animation` exposes 35 editing/animation tools. Default `all` exposes 39 tools. Both profiles share the running desktop service unless `--headless` is specified. Use `create_managed_project` to create and immediately save a blank drawing project with its own media root. The full workflow, new typed tools and path semantics are in [ASTRAL-ASSISTANCE.md](ASTRAL-ASSISTANCE.md).
 
-The trained masked-pose model, example-based frame learner, reversible stroke fitting, reviewed stickman mapping and offline `add_voice` tool work locally. Inspect schemas and returned method/limitations rather than treating all assistance as neural image generation.
+The trained masked-pose model, example-based frame learner, reversible stroke fitting, reviewed stickman mapping and Windows offline `add_voice` tool work locally. Optional external speech providers are configured through Settings → Voice; see [the 0.14 workflow](ASTRAL-0.14-WORKFLOW.md#voice-providers). Inspect schemas and returned method/limitations rather than treating all assistance as neural image generation.
 
 
 ## Motion studio (0.7)

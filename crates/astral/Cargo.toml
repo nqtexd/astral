@@ -36,11 +36,12 @@ image = {version="0.25",default-features=false,features=["png","jpeg","gif","bmp
 psd = "=0.3.5"
 hound = "3.5"
 cpal = "0.16"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 eframe = { version = "=0.37.0", optional = true, default-features = false, features = ["wgpu", "default_fonts", "accesskit", "persistence", "clipboard", "x11", "wayland"] }
 rfd = { version = "0.15", optional = true }
 rodio = { version = "0.21", optional = true, default-features = false, features = ["playback", "wav"] }
 
 [target.'cfg(windows)'.dependencies]
-windows = { version="0.62",features=["Media_SpeechSynthesis","Media_Core","Storage_Streams","Foundation","Win32_System_WinRT"] }
+windows = { version="0.62",features=["Media_SpeechSynthesis","Media_Core","Storage_Streams","Foundation","Win32_System_WinRT","Win32_Security_Credentials"] }
 
 [dev-dependencies]

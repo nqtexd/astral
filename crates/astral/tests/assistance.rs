@@ -119,6 +119,12 @@ fn stroke_proposals_require_the_original_revision_and_do_not_auto_apply() {
                         layer: lid,
                         frame: 0,
                         strokes: vec![InkStroke {
+                            bitmap: None,
+                            skin: None,
+                            pressures: vec![],
+                            style: BrushStyle::Solid,
+                            filled: false,
+                            curved: false,
                             points: vec![Point::new(10., 100.), Point::new(100., 100.)],
                             color: [0, 0, 0, 255],
                             width: 3.,

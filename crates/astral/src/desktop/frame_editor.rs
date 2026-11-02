@@ -7,6 +7,7 @@ pub enum DrawTool {
     Eraser,
     Move,
     Hand,
+    Nodes,
 }
 impl Studio {
     pub(super) fn cel_tracks(
@@ -167,7 +168,7 @@ impl Studio {
                     .auto_shrink([false, false])
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.heading("Layers");
+                            ui.heading(i18n::tr("Layers"));
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
@@ -306,9 +307,9 @@ impl Studio {
                                     }
                                 }
                                 theme::icon_menu(ui, "Layer options", theme::Icon::More, |ui| {
-                                    ui.label("Layer name");
+                                    ui.label(i18n::tr("Layer name"));
                                     ui.text_edit_singleline(&mut self.layer_rename);
-                                    if ui.button("Rename").clicked() {
+                                    if ui.button(i18n::tr("Rename")).clicked() {
                                         self.apply(vec![Command::SetLayer {
                                             layer: layer.id,
                                             name: Some(self.layer_rename.trim().into()),
@@ -383,11 +384,16 @@ impl Studio {
                                 );
                             }
                         } else {
-                            ui.label("Add a layer to start drawing.");
+                            ui.label(i18n::tr("Add a layer to start drawing."));
                         }
                         ui.add_space(16.);
                         ui.separator();
                         theme::section(ui, "BRUSH");
+                        egui::ComboBox::from_id_salt("brush.style").selected_text(format!("{:?}",self.preferences.brush_style)).show_ui(ui,|ui|{for style in [BrushStyle::Solid,BrushStyle::Marker,BrushStyle::Dashed,BrushStyle::Stipple]{ui.selectable_value(&mut self.preferences.brush_style,style,format!("{style:?}"));}});
+                        ui.checkbox(&mut self.preferences.pressure_brush,i18n::tr("Pressure controls width")).on_hover_text("Uses normalized pressure reported by the device. Mouse uses full pressure. Tablet support depends on the operating-system input driver.");
+                        ui.checkbox(&mut self.preferences.curved_brush,i18n::tr("Cubic smoothing"));ui.checkbox(&mut self.preferences.filled_brush,i18n::tr("Closed fill"));
+                        if theme::button(ui,"Edit points",theme::Icon::Pencil,self.draw_tool==DrawTool::Nodes).clicked(){self.draw_tool=DrawTool::Nodes;}
+
                         ui.horizontal(|ui| {
                             ui.color_edit_button_srgba(&mut self.draw_color);
                         });
@@ -425,20 +431,20 @@ impl Studio {
                         );
                         ui.add_space(12.);
                         ui.separator();
-                        ui.checkbox(&mut self.preferences.single_frame_drawing, "Single-frame drawing")
+                        ui.checkbox(&mut self.preferences.single_frame_drawing, i18n::tr("Single-frame drawing"))
                             .on_hover_text("Manual strokes affect only this frame. Disable to hold drawings until the next key; use Frame exposure for an intentional hold.");
-                        ui.checkbox(&mut self.preferences.onion, "Onion skin");
+                        ui.checkbox(&mut self.preferences.onion, i18n::tr("Onion skin"));
                         if self.preferences.onion {
                             egui::Grid::new("drawing.onion-counts")
                                 .num_columns(2)
                                 .show(ui, |ui| {
-                                    ui.label("Before");
+                                    ui.label(i18n::tr("Before"));
                                     ui.add(
                                         egui::DragValue::new(&mut self.preferences.onion_before)
                                             .range(0..=4),
                                     );
                                     ui.end_row();
-                                    ui.label("After");
+                                    ui.label(i18n::tr("After"));
                                     ui.add(
                                         egui::DragValue::new(&mut self.preferences.onion_after)
                                             .range(0..=4),
@@ -453,7 +459,7 @@ impl Studio {
                         }
                         if !p.drawings.is_empty() {
                             ui.add_space(10.);
-                            ui.collapsing("Existing drawing tools", |ui| self.feature_panel(ui, p));
+                            ui.collapsing(i18n::tr("Existing drawing tools"), |ui| self.feature_panel(ui, p));
                         }
                     });
             });
@@ -667,7 +673,7 @@ impl Studio {
                                         "Exposure: {} frames",
                                         p.cel_end(cel) - cel.frame + 1
                                     ));
-                                    if ui.button("Make one frame").clicked() {
+                                    if ui.button(i18n::tr("Make one frame")).clicked() {
                                         self.apply(vec![Command::SetExposure {
                                             layer: cel.layer,
                                             frame: cel.frame,
@@ -680,9 +686,9 @@ impl Studio {
                                             egui::DragValue::new(&mut self.hold_frames)
                                                 .range(1..=10000),
                                         );
-                                        ui.label("frames");
+                                        ui.label(i18n::tr("frames"));
                                     });
-                                    if ui.button("Set exposure").clicked() {
+                                    if ui.button(i18n::tr("Set exposure")).clicked() {
                                         self.apply(vec![Command::SetExposure {
                                             layer: cel.layer,
                                             frame: cel.frame,
@@ -848,7 +854,7 @@ impl Studio {
                                     "Held frame on the active layer"
                                 })
                                 .context_menu(|ui| {
-                                    if ui.button("Edit selected range…").clicked() {
+                                    if ui.button(i18n::tr("Edit selected range…")).clicked() {
                                         self.motion.open = true;
                                         self.motion.tab = super::motion::Tab::Frames;
                                         ui.close();
@@ -890,15 +896,15 @@ impl Studio {
         };
         let input = ctx.input(|i| {
             (
-                i.key_pressed(egui::Key::ArrowLeft),
-                i.key_pressed(egui::Key::ArrowRight),
-                i.modifiers.command && i.key_pressed(egui::Key::C),
-                i.modifiers.command && i.key_pressed(egui::Key::V),
-                i.modifiers.command && i.key_pressed(egui::Key::D),
-                i.key_pressed(egui::Key::B),
-                i.key_pressed(egui::Key::E),
-                i.key_pressed(egui::Key::G),
-                i.key_pressed(egui::Key::H),
+                keymap::pressed(i, &self.preferences.shortcuts, "previous"),
+                keymap::pressed(i, &self.preferences.shortcuts, "next"),
+                keymap::pressed(i, &self.preferences.shortcuts, "copy"),
+                keymap::pressed(i, &self.preferences.shortcuts, "paste"),
+                keymap::pressed(i, &self.preferences.shortcuts, "duplicate"),
+                keymap::pressed(i, &self.preferences.shortcuts, "pencil"),
+                keymap::pressed(i, &self.preferences.shortcuts, "eraser"),
+                keymap::pressed(i, &self.preferences.shortcuts, "move"),
+                keymap::pressed(i, &self.preferences.shortcuts, "hand"),
                 i.key_pressed(egui::Key::Home),
                 i.modifiers.command,
             )
@@ -919,7 +925,7 @@ impl Studio {
             if input.4 {
                 self.frame_action(&p, "Duplicate");
             }
-            if !input.10 {
+            {
                 if input.5 {
                     self.draw_tool = DrawTool::Pencil;
                 }
@@ -1190,12 +1196,14 @@ impl Studio {
                     self.stop();
                     self.assist.proposal = None;
                     self.stroke.clear();
+                    self.stroke_pressure.clear();
                     if self.draw_tool == DrawTool::Pencil
                         && let Some(origin) = ui
                             .input(|i| i.pointer.press_origin())
                             .filter(|pos| rect.contains(*pos) && area.contains(*pos))
                     {
                         self.stroke.push(to_world(origin));
+                        self.stroke_pressure.push(1.);
                     }
                     self.cel_origin = ui
                         .input(|i| i.pointer.press_origin())
@@ -1206,7 +1214,45 @@ impl Studio {
                         self.cel_work = Some(self.cel_base.clone());
                     }
                 }
-                if self.draw_tool == DrawTool::Pencil {
+                if self.draw_tool == DrawTool::Nodes {
+                    let strokes = self
+                        .cel_work
+                        .as_ref()
+                        .cloned()
+                        .unwrap_or_else(|| self.current_strokes(p));
+                    for (si, stroke) in strokes.iter().enumerate() {
+                        for (pi, point) in stroke.world_node_points(&scene).iter().enumerate() {
+                            let screen = to_screen(*point);
+                            painter.circle_filled(screen, 3.5, theme::ACCENT);
+                            if primary_start
+                                && pointer.is_some_and(|pos| pos.distance(screen) < 10.)
+                            {
+                                self.node_drag = Some((si, pi));
+                            }
+                        }
+                    }
+                    if response.dragged()
+                        && let (Some((si, pi)), Some(pos)) = (self.node_drag, pointer)
+                    {
+                        let mut next = strokes;
+                        if let Some(stroke) = next.get_mut(si) {
+                            if stroke.skin.is_some() {
+                                stroke.points = stroke.world_node_points(&scene);
+                                stroke.skin = None;
+                            }
+                            if let Some(point) = stroke.points.get_mut(pi) {
+                                *point = to_world(pos);
+                                self.cel_work = Some(next);
+                            }
+                        }
+                    }
+                    if response.drag_stopped() {
+                        self.node_drag = None;
+                        if let Some(next) = self.cel_work.take() {
+                            self.set_frame_strokes(next);
+                        }
+                    }
+                } else if self.draw_tool == DrawTool::Pencil {
                     if (primary_start
                         || response.dragged_by(egui::PointerButton::Primary)
                         || response.clicked())
@@ -1219,6 +1265,20 @@ impl Studio {
                             .is_none_or(|q| q.distance(point) > 0.3 / scale)
                         {
                             self.stroke.push(point);
+                            let pressure = if self.preferences.pressure_brush {
+                                ui.input(|i| {
+                                    i.events.iter().rev().find_map(|e| match e {
+                                        egui::Event::Touch { force: Some(f), .. } => {
+                                            Some(f.clamp(0., 1.))
+                                        }
+                                        _ => None,
+                                    })
+                                })
+                                .unwrap_or(1.)
+                            } else {
+                                1.
+                            };
+                            self.stroke_pressure.push(pressure);
                         }
                     }
                     if self.stroke.len() > 1 {
@@ -1237,6 +1297,22 @@ impl Studio {
                         }
                         let mut strokes = self.current_strokes(p);
                         strokes.push(InkStroke {
+                            bitmap: None,
+                            skin: None,
+                            pressures: {
+                                let mut pressure = std::mem::take(&mut self.stroke_pressure);
+                                pressure.resize(points.len(), *pressure.last().unwrap_or(&1.));
+                                if self.preferences.pressure_brush
+                                    && pressure.iter().any(|v| (*v - 1.).abs() > 0.0001)
+                                {
+                                    pressure
+                                } else {
+                                    vec![]
+                                }
+                            },
+                            style: self.preferences.brush_style,
+                            filled: self.preferences.filled_brush,
+                            curved: self.preferences.curved_brush,
                             points,
                             color: self.draw_color.to_srgba_unmultiplied(),
                             width: self.draw_width,

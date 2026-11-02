@@ -12,6 +12,12 @@ use std::{io::Cursor, sync::Arc};
 #[serde(tag = "operation", rename_all = "snake_case")]
 #[schemars(extend("type" = "object"))]
 pub enum ArtworkRequest {
+    Audio {
+        project: Id,
+        expected_revision: u64,
+        path: String,
+        start: u32,
+    },
     Track {
         project: Id,
         expected_revision: u64,
@@ -19,6 +25,11 @@ pub enum ArtworkRequest {
         start: u32,
         end: u32,
         point: Point,
+        #[serde(default)]
+        second_point: Option<Point>,
+        /// Native graphic or raster layer. Omit to drive the camera.
+        #[serde(default)]
+        target: Option<Id>,
         #[serde(default)]
         apply: bool,
     },
@@ -121,6 +132,28 @@ fn layer(name: String, source: &Bitmap, start: u32, end: u32, position: Point) -
 impl Service {
     pub fn artwork(&self, request: ArtworkRequest) -> Result<Value> {
         match request {
+            ArtworkRequest::Audio {
+                project,
+                expected_revision,
+                path,
+                start,
+            } => {
+                let p = self.checked_project(project, expected_revision)?;
+                ensure!(start < p.duration, "Audio starts outside project");
+                let workspace = self.project_workspace(project);
+                let service = self.clone();
+                self.background_task(project,expected_revision,move|job|{
+                    job.check()?;job.update(json!({"state":"decoding_audio","progress":0.1}));
+                    let bytes=workspace.read(&path)?;let wav=astral_audio::normalize_wav(&bytes)?;job.check()?;
+                    let seconds=astral_audio::wav_duration(&wav)?;let asset=Id::new_v4();let clip=Id::new_v4();let output=format!("assets/audio/{asset}.wav");workspace.atomic_write(&output,&wav)?;
+                    let name=std::path::Path::new(&path).file_name().and_then(|s|s.to_str()).unwrap_or("Audio").to_string();
+                    let end=start+(seconds*p.fps as f64).ceil() as u32;let mut commands=vec![];if end>p.duration{commands.push(Command::SetProject{name:None,duration:Some(end),background:None});}
+                    commands.push(Command::AddAsset{asset:Asset{id:asset,name:name.clone(),path:output.clone(),kind:"audio".into(),tags:vec!["normalized_pcm".into()]}});
+                    commands.push(Command::AddAudio{clip:AudioClip{id:clip,name,asset,start,offset_seconds:0.,duration_seconds:seconds,gain:1.,fade_in:0.,fade_out:0.,looping:false,speed:1.}});
+                    job.check()?;let receipt=service.request(Request::ApplyCommands{batch:Batch{project,expected_revision,commands}})?;
+                    Ok(json!({"project":project,"revision":receipt["revision"],"asset":asset,"clip":clip,"duration_seconds":seconds,"path":output,"receipt":receipt}))
+                })
+            }
             ArtworkRequest::Track {
                 project,
                 expected_revision,
@@ -128,6 +161,8 @@ impl Service {
                 start,
                 end,
                 point,
+                second_point,
+                target,
                 apply,
             } => {
                 let p = self.snapshot(project)?;
@@ -150,6 +185,16 @@ impl Service {
                     "Track inside the artwork range"
                 );
                 let service = self.clone();
+                ensure!(
+                    target.is_none_or(|id| p.graphics.iter().any(|g| g.id == id)
+                        || p.rasters.iter().any(|r| r.id == id)),
+                    "Tracking target must be a graphic or raster layer"
+                );
+                ensure!(
+                    second_point.is_none_or(|q| q.finite() && q.distance(point) >= 12.)
+                        && (target.is_some() || second_point.is_none()),
+                    "Two-point rotation tracking needs an object target and separated source points"
+                );
                 let mut jobs = self
                     .store
                     .lock()
@@ -157,7 +202,20 @@ impl Service {
                 jobs.jobs.retain(|_, j| !j.finished());
                 ensure!(jobs.jobs.len() < 8, "Too many active jobs");
                 let job = crate::export::background(project, p.revision, move |job| {
-                    let result = track(&p, &r, start, end, point, job)?;
+                    let mut result = track(&p, &r, start, end, point, job)?;
+                    let second = second_point
+                        .map(|q| track(&p, &r, start, end, q, job))
+                        .transpose()?;
+                    if let Some(target) = target {
+                        result.1 = follow_track(
+                            &p,
+                            target,
+                            start,
+                            end,
+                            &result.0,
+                            second.as_ref().map(|r| r.0.as_slice()),
+                        )?;
+                    }
                     let mut value = json!({"project":project,"revision":p.revision,"points":result.0,"plan":{"name":"Track artwork camera","commands":result.1},"warnings":["Local template tracking follows visible texture, not semantic objects. Inspect the points before applying; occlusion, blur or similar shapes can cause drift."],"applied":false});
                     if apply {
                         job.check()?;
@@ -524,6 +582,93 @@ impl Service {
         }
     }
 }
+
+fn follow_track(
+    p: &Project,
+    target: Id,
+    start: u32,
+    end: u32,
+    points: &[Value],
+    second: Option<&[Value]>,
+) -> Result<Vec<Command>> {
+    let world = |v: &Value| -> Result<Point> { Ok(serde_json::from_value(v["world"].clone())?) };
+    let origin = world(&points[0])?;
+    let baseline = second
+        .map(|s| world(&s[0]).map(|q| q - origin))
+        .transpose()?;
+    ensure!(
+        baseline.is_none_or(|p| p.distance(Point::default()) >= 1.),
+        "Tracking needs two distinct initial positions"
+    );
+    let transform = |index: usize, position: Point| -> Result<(Point, f32, f32)> {
+        let center = world(&points[index])?;
+        let mut angle = 0.;
+        let mut scale = 1.;
+        if let (Some(second), Some(base)) = (second, baseline) {
+            let delta = world(&second[index])? - center;
+            ensure!(
+                delta.distance(Point::default()) >= 1.,
+                "Tracking points converged; review a shorter range"
+            );
+            angle = delta.y.atan2(delta.x) - base.y.atan2(base.x);
+            scale = delta.distance(Point::default()) / base.distance(Point::default());
+        }
+        let local = position - origin;
+        Ok((
+            center
+                + Point::new(
+                    (local.x * angle.cos() - local.y * angle.sin()) * scale,
+                    (local.x * angle.sin() + local.y * angle.cos()) * scale,
+                ),
+            angle,
+            scale,
+        ))
+    };
+    let frames = (start..=end)
+        .chain((start > 0).then_some(start.saturating_sub(1)))
+        .chain((end + 1 < p.duration).then_some(end + 1));
+    let mut out = vec![];
+    if let Some(graphic) = p.graphics.iter().find(|g| g.id == target) {
+        ensure!(
+            !p.bindings.iter().any(|b| b.graphic == target),
+            "Detach bone-bound graphics before applying world-space tracking"
+        );
+        for frame in frames {
+            let mut key = graphic.at(frame as f64);
+            key.frame = frame;
+            if frame >= start && frame <= end {
+                let (position, angle, scale) = transform((frame - start) as usize, key.position)?;
+                key.position = position;
+                key.rotation += angle;
+                key.scale *= scale;
+                key.easing = Easing::Linear;
+            }
+            out.push(Command::SetGraphicKey {
+                graphic: target,
+                key,
+            });
+        }
+    } else if let Some(original) = p.rasters.iter().find(|r| r.id == target) {
+        let mut raster = original.clone();
+        for frame in frames {
+            let mut key = original.at(frame as f64);
+            key.frame = frame;
+            if frame >= start && frame <= end {
+                let (position, angle, scale) = transform((frame - start) as usize, key.position)?;
+                key.position = position;
+                key.rotation += angle;
+                key.scale = Point::new(key.scale.x * scale, key.scale.y * scale);
+                key.easing = Easing::Linear;
+            }
+            raster.keys.retain(|k| k.frame != frame);
+            raster.keys.push(key);
+        }
+        raster.keys.sort_by_key(|k| k.frame);
+        out.push(Command::PutRasterLayer { layer: raster });
+    }
+    Ok(out)
+}
+
 type ImportedArtwork = (Vec<(Bitmap, RasterLayer)>, Vec<String>);
 fn import_psd(bytes: &[u8], start: u32, end: u32) -> Result<ImportedArtwork> {
     ensure!(
@@ -604,25 +749,12 @@ fn lip_sync(
         threshold.is_finite() && (0.001..=0.5).contains(&threshold) && text.len() <= 4096,
         "Invalid lip-sync input"
     );
-    let mut reader = hound::WavReader::new(Cursor::new(bytes))?;
-    let spec = reader.spec();
+    let pcm = astral_audio::decode(bytes)?;
     ensure!(
-        (1..=2).contains(&spec.channels) && spec.sample_rate > 0 && clip.duration_seconds <= 600.,
-        "Lip sync requires bounded mono/stereo WAV"
+        clip.duration_seconds <= 600.,
+        "Lip sync is limited to ten minutes"
     );
-    let samples: Vec<f32> = match spec.sample_format {
-        hound::SampleFormat::Float => reader
-            .samples::<f32>()
-            .collect::<std::result::Result<_, _>>()?,
-        hound::SampleFormat::Int => {
-            let scale = 2f32.powi(spec.bits_per_sample as i32 - 1);
-            reader
-                .samples::<i32>()
-                .map(|v| v.map(|v| v as f32 / scale))
-                .collect::<std::result::Result<_, _>>()?
-        }
-    };
-    ensure!(samples.iter().all(|v| v.is_finite()), "Non-finite audio");
+    let samples = pcm.samples;
     let end =
         (clip.start + (clip.duration_seconds * p.fps as f64).ceil() as u32).min(p.duration) - 1;
     let letters: Vec<char> = text
@@ -634,9 +766,12 @@ fn lip_sync(
     let frames = (end - clip.start + 1).max(1);
     for frame in clip.start..=end {
         let time = (frame - clip.start) as f64 / p.fps as f64;
-        let offset = ((clip.offset_seconds + time) * spec.sample_rate as f64) as usize
-            * spec.channels as usize;
-        let count = (spec.sample_rate as usize / p.fps as usize).max(1) * spec.channels as usize;
+        let offset = ((clip.offset_seconds + time * clip.speed as f64) * pcm.rate as f64) as usize
+            * pcm.channels;
+        let count = (pcm.rate as f64 / p.fps as f64 * clip.speed as f64)
+            .ceil()
+            .max(1.) as usize
+            * pcm.channels;
         let mut energy = 0.;
         let mut n = 0;
         for i in offset..offset.saturating_add(count) {
@@ -786,8 +921,9 @@ fn track(
             (x as f32 + 0.5) / image.width as f32,
             (y as f32 + 0.5) / image.height as f32,
         );
-        let center = r.world_point(uv, frame as f64);
-        let zoom = evaluate(p, frame as f64).zoom;
+        let scene = evaluate(p, frame as f64);
+        let center = r.resolve_correctives(&scene).world_point(uv, frame as f64);
+        let zoom = scene.zoom;
         points.push(json!({"frame":frame,"source":Point::new(x as f32,y as f32),"world":center,"rms_error":best.0.sqrt()}));
         commands.push(Command::SetCamera {
             key: CameraKey {
@@ -801,4 +937,46 @@ fn track(
         );
     }
     Ok((points, commands))
+}
+
+#[cfg(test)]
+mod tracking_tests {
+    use super::*;
+    #[test]
+    fn tracking_does_not_accumulate_offsets_and_preserves_adjacent_frames() {
+        let mut p = Project::new("Track", 64, 64, 24, 24);
+        p.schema = 8;
+        let bitmap = Bitmap {
+            id: Id::new_v4(),
+            name: "Source".into(),
+            width: 1,
+            height: 1,
+            png: "AA==".into(),
+        };
+        let r = layer("Target".into(), &bitmap, 0, 23, Point::new(10., 10.));
+        let id = r.id;
+        p.bitmaps.push(bitmap);
+        p.rasters.push(r);
+        let points = vec![
+            json!({"world":{"x":0,"y":0}}),
+            json!({"world":{"x":10,"y":0}}),
+            json!({"world":{"x":20,"y":0}}),
+        ];
+        let commands = follow_track(&p, id, 3, 5, &points, None).unwrap();
+        let mut s = Session::new(p).unwrap();
+        s.apply(Batch {
+            project: s.project.id,
+            expected_revision: 0,
+            commands,
+        })
+        .unwrap();
+        let r = &s.project.rasters[0];
+        assert_eq!(r.at(3.).position, Point::new(10., 10.));
+        assert_eq!(r.at(4.).position, Point::new(20., 10.));
+        assert_eq!(r.at(5.).position, Point::new(30., 10.));
+        assert_eq!(r.at(2.).position, Point::new(10., 10.));
+        assert_eq!(r.at(6.).position, Point::new(10., 10.));
+        s.undo(s.project.id, 1).unwrap();
+        assert_eq!(s.project.rasters[0].keys.len(), 1);
+    }
 }

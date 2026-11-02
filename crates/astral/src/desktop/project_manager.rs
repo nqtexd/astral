@@ -258,7 +258,7 @@ impl Studio {
             });
         egui::CentralPanel::default().frame(egui::Frame::new().fill(theme::BACKGROUND).inner_margin(28.)).show(ui,|ui|{
             ui.horizontal(|ui|{
-                ui.heading("Projects");
+                ui.heading(i18n::tr("Projects"));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center),|ui|{
                     if theme::icon_button(ui,"Refresh projects",theme::Icon::Undo,false).clicked(){self.manager.refresh_recent();}
                     ui.add(egui::TextEdit::singleline(&mut self.manager.search).hint_text("Search projects").desired_width((ui.available_width()-20.).clamp(80.,210.)));
@@ -275,7 +275,7 @@ impl Studio {
             if !open.is_empty(){ui.horizontal_wrapped(|ui|{ui.label(RichText::new("Open").color(MUTED));for (id,name) in open{if ui.button(name).clicked(){self.switch_project(id);self.manager.home=false;}}});ui.add_space(12.);}
             let mut entries:Vec<_>=self.manager.recent.iter().filter(|r|r.trashed.is_some()==self.manager.trash_view&&(!self.manager.favorites||r.favorite)&&(r.name.to_lowercase().contains(&self.manager.search.to_lowercase())||r.file.to_string_lossy().to_lowercase().contains(&self.manager.search.to_lowercase()))).cloned().collect();
             if self.manager.sort_name {entries.sort_by_key(|r|r.name.to_lowercase());} else {entries.sort_by_key(|r|std::cmp::Reverse(r.updated));}
-            if entries.is_empty(){ui.add_space(60.);ui.vertical_centered(|ui|{ui.heading("No recent projects");ui.label("Create a project or open an .astral file.");});}
+            if entries.is_empty(){ui.add_space(60.);ui.vertical_centered(|ui|{ui.heading(i18n::tr("No recent projects"));ui.label(i18n::tr("Create a project or open an .astral file."));});}
             egui::ScrollArea::vertical().id_salt("project.library").auto_shrink([false,true]).show(ui,|ui|{
                 let columns=((ui.available_width()+16.)/296.).floor().clamp(1.,4.) as usize;
                 let card_width=(ui.available_width()-(columns-1) as f32*16.)/columns as f32;
@@ -301,11 +301,11 @@ impl Studio {
                                 if theme::icon_button(ui,"Open project",theme::Icon::Folder,false).clicked(){self.open_project_path(entry.file.clone());}
                                 if theme::icon_button(ui,if entry.favorite{"Remove favorite"}else{"Favorite"},theme::Icon::Favorite,entry.favorite).clicked(){if let Some(value)=self.manager.recent.iter_mut().find(|r|r.id==entry.id){value.favorite = !value.favorite;}let _=self.manager.persist();}
                                 theme::icon_menu(ui,"Project options",theme::Icon::More,|ui|{
-                                    if ui.button("Rename").clicked(){self.prepare_management(entry.clone(),1);ui.close();}
-                                    if ui.button("Recent changes").clicked(){self.prepare_management(entry.clone(),3);ui.close();}
-                                    if ui.button("Move to Trash").clicked(){self.prepare_management(entry.clone(),2);ui.close();}
-                                    if ui.button("Recover autosave").clicked(){self.recover_project_file(&entry.file,entry.id);ui.close();}
-                                    if ui.button("Remove from recent").clicked(){self.manager.recent.retain(|r|r.id!=entry.id);let _=self.manager.persist();ui.close();}
+                                    if ui.button(i18n::tr("Rename")).clicked(){self.prepare_management(entry.clone(),1);ui.close();}
+                                    if ui.button(i18n::tr("Recent changes")).clicked(){self.prepare_management(entry.clone(),3);ui.close();}
+                                    if ui.button(i18n::tr("Move to Trash")).clicked(){self.prepare_management(entry.clone(),2);ui.close();}
+                                    if ui.button(i18n::tr("Recover autosave")).clicked(){self.recover_project_file(&entry.file,entry.id);ui.close();}
+                                    if ui.button(i18n::tr("Remove from recent")).clicked(){self.manager.recent.retain(|r|r.id!=entry.id);let _=self.manager.persist();ui.close();}
                                 });
                             });
                         });
@@ -338,12 +338,12 @@ impl Studio {
                             (theme::dialog_size(ctx, Vec2::new(450., 620.)).y - 100.).max(80.),
                         )
                         .show(ui, |ui| {
-                            ui.heading("Project settings");
-                            ui.label("Name");
+                            ui.heading(i18n::tr("Project settings"));
+                            ui.label(i18n::tr("Name"));
                             ui.text_edit_singleline(&mut self.manager.name);
                             ui.label(format!("{} x {}    {} fps", p.width, p.height, p.fps));
                             ui.horizontal(|ui| {
-                                ui.label("Timeline length");
+                                ui.label(i18n::tr("Timeline length"));
                                 ui.add(
                                     egui::DragValue::new(&mut self.manager.property_frames)
                                         .range(1..=1_000_000)
@@ -351,12 +351,12 @@ impl Studio {
                                 );
                             });
                             ui.horizontal(|ui| {
-                                ui.label("Background");
+                                ui.label(i18n::tr("Background"));
                                 ui.color_edit_button_srgba(&mut self.manager.background);
                             });
-                            ui.small(
+                            ui.small(i18n::tr(
                                 "Shortening is rejected if it would remove existing animation.",
-                            );
+                            ));
                             if ui
                                 .add_enabled(
                                     !self.manager.name.trim().is_empty(),
@@ -404,16 +404,16 @@ impl Studio {
                             (theme::dialog_size(ctx, Vec2::new(450., 620.)).y - 100.).max(80.),
                         )
                         .show(ui, |ui| {
-                            ui.heading("New project");
+                            ui.heading(i18n::tr("New project"));
                             ui.add_space(6.);
-                            ui.label("Name");
+                            ui.label(i18n::tr("Name"));
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.manager.name)
                                     .desired_width(f32::INFINITY),
                             );
                             ui.add_space(6.);
                             ui.horizontal(|ui| {
-                                ui.label("Canvas");
+                                ui.label(i18n::tr("Canvas"));
                                 for (label, w, h) in [
                                     ("Landscape", 1920, 1080),
                                     ("Portrait", 1080, 1920),
@@ -428,21 +428,21 @@ impl Studio {
                             egui::Grid::new("project.setup")
                                 .spacing([18., 12.])
                                 .show(ui, |ui| {
-                                    ui.label("Width");
+                                    ui.label(i18n::tr("Width"));
                                     ui.add(
                                         egui::DragValue::new(&mut self.manager.width)
                                             .range(1..=8192)
                                             .suffix(" px"),
                                     );
                                     ui.end_row();
-                                    ui.label("Height");
+                                    ui.label(i18n::tr("Height"));
                                     ui.add(
                                         egui::DragValue::new(&mut self.manager.height)
                                             .range(1..=8192)
                                             .suffix(" px"),
                                     );
                                     ui.end_row();
-                                    ui.label("Frame rate");
+                                    ui.label(i18n::tr("Frame rate"));
                                     ui.horizontal(|ui| {
                                         for fps in [12, 24, 30, 60] {
                                             ui.selectable_value(
@@ -457,19 +457,19 @@ impl Studio {
                                         );
                                     });
                                     ui.end_row();
-                                    ui.label("Duration");
+                                    ui.label(i18n::tr("Duration"));
                                     ui.add(
                                         egui::DragValue::new(&mut self.manager.seconds)
                                             .range(1..=600)
                                             .suffix(" seconds"),
                                     );
                                     ui.end_row();
-                                    ui.label("Background");
+                                    ui.label(i18n::tr("Background"));
                                     ui.color_edit_button_srgba(&mut self.manager.background);
                                     ui.end_row();
                                 });
                             ui.add_space(8.);
-                            ui.label("Project folder");
+                            ui.label(i18n::tr("Project folder"));
                             ui.horizontal(|ui| {
                                 ui.add(
                                     egui::Label::new(display_path(&self.manager.folder)).truncate(),
@@ -488,8 +488,7 @@ impl Studio {
                                     self.manager.folder = folder;
                                 }
                             });
-                            ui.small(
-                            "Each project gets its own folder. Linked media travels with Save As.",
+                            ui.small(i18n::tr("Each project gets its own folder. Linked media travels with Save As."),
                         );
                         });
                     ui.add_space(10.);
@@ -506,7 +505,7 @@ impl Studio {
                         {
                             create = true;
                         }
-                        if ui.button("Cancel").clicked() {
+                        if ui.button(i18n::tr("Cancel")).clicked() {
                             cancel = true;
                         }
                     });
@@ -530,10 +529,10 @@ impl Studio {
                 .unwrap_or_default();
             let modal = egui::Modal::new(egui::Id::unique("project.close")).show(ctx, |ui| {
                 ui.set_width(theme::dialog_size(ctx, Vec2::new(420., 400.)).x);
-                ui.heading("Save project changes?");
+                ui.heading(i18n::tr("Save project changes?"));
                 ui.label(format!("Save changes to {name} before closing?"));
                 ui.horizontal(|ui| {
-                    if ui.button("Save and close").clicked() {
+                    if ui.button(i18n::tr("Save and close")).clicked() {
                         self.switch_project(id);
                         self.save_project();
                         if self
@@ -544,10 +543,10 @@ impl Studio {
                             self.finish_close_project(id);
                         }
                     }
-                    if ui.button("Discard changes").clicked() {
+                    if ui.button(i18n::tr("Discard changes")).clicked() {
                         self.finish_close_project(id);
                     }
-                    if ui.button("Cancel").clicked() {
+                    if ui.button(i18n::tr("Cancel")).clicked() {
                         self.manager.close = None;
                     }
                 });
@@ -813,9 +812,9 @@ impl Studio {
         egui::Window::new(match action{1=>"Rename project",2=>"Move project to Trash",_=>"Recent changes"}).open(&mut open).collapsible(false).default_width(460.).max_size(theme::dialog_size(ctx,Vec2::new(560.,620.))).vscroll(true).show(ctx,|ui|{
             ui.label(RichText::new(&entry.name).strong());
             match action{
-                1=>{ui.add(egui::TextEdit::singleline(&mut self.manager.manage_name).desired_width(ui.available_width()));ui.small("Changes the project title and saves current edits. Filename and linked media stay unchanged.");if ui.add_enabled(!self.manager.manage_name.trim().is_empty(),egui::Button::new("Rename and save")).clicked(){commit=true;}},
-                2=>{ui.label("Save current edits, close this project and move its .astral file to Astral Trash. Linked media stays in place. Restore it from the library's Trash view.");if ui.button("Save and move to Trash").clicked(){commit=true;}},
-                _=>{ui.small("Last 200 local edits. This records changed sections, not complete snapshots or a line-by-line diff.");if self.manager.activity.is_empty(){ui.label("No recorded edits yet. New changes will appear here.");}for event in self.manager.activity.iter().rev(){egui::Frame::new().fill(theme::CONTROL).corner_radius(8).inner_margin(10.).show(ui,|ui|{ui.label(format!("{} · revision {} · {}",event.action,event.revision,relative_time(event.timestamp)));ui.label(event.changes.join(", "));});}},
+                1=>{ui.add(egui::TextEdit::singleline(&mut self.manager.manage_name).desired_width(ui.available_width()));ui.small(i18n::tr("Changes the project title and saves current edits. Filename and linked media stay unchanged."));if ui.add_enabled(!self.manager.manage_name.trim().is_empty(),egui::Button::new("Rename and save")).clicked(){commit=true;}},
+                2=>{ui.label(i18n::tr("Save current edits, close this project and move its .astral file to Astral Trash. Linked media stays in place. Restore it from the library's Trash view."));if ui.button(i18n::tr("Save and move to Trash")).clicked(){commit=true;}},
+                _=>{ui.small(i18n::tr("Last 200 local edits. This records changed sections, not complete snapshots or a line-by-line diff."));if self.manager.activity.is_empty(){ui.label(i18n::tr("No recorded edits yet. New changes will appear here."));}for event in self.manager.activity.iter().rev(){egui::Frame::new().fill(theme::CONTROL).corner_radius(8).inner_margin(10.).show(ui,|ui|{ui.label(format!("{} · revision {} · {}",event.action,event.revision,relative_time(event.timestamp)));ui.label(event.changes.join(", "));});}},
             }
         });
         if commit {

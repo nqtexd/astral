@@ -16,7 +16,7 @@ impl Studio {
             self.preferences.mode,
             WorkspaceMode::Animate | WorkspaceMode::Rig | WorkspaceMode::Draw
         ) {
-            ui.heading("Learn inbetweens");
+            ui.heading(i18n::tr("Learn inbetweens"));
             ui.label(
                 RichText::new("Offline learning from your example frames")
                     .size(11.)
@@ -31,7 +31,7 @@ impl Studio {
             if self.preferences.mode != WorkspaceMode::Draw {
                 if let Some(c) = self.selected.and_then(|id| p.character(id)) {
                     ui.label(format!("{} authored poses - need at least 3", c.keys.len()));
-                    if ui.button("Key current pose").clicked() {
+                    if ui.button(i18n::tr("Key current pose")).clicked() {
                         let pose = evaluate(p, self.frame)
                             .characters
                             .into_iter()
@@ -64,15 +64,15 @@ impl Studio {
                             VIOLET,
                             format!("Learning active - frames {}–{}", m.start, m.end),
                         );
-                        if ui.button("Bake to editable pose keys").clicked() {
+                        if ui.button(i18n::tr("Bake to editable pose keys")).clicked() {
                             self.apply(vec![Command::BakeMotion { motion: m.id }]);
                         }
                     }
                 } else {
-                    ui.label("Select a character. Pose it at three or more frames in Rig, then learn the motion.");
+                    ui.label(i18n::tr("Select a character. Pose it at three or more frames in Rig, then learn the motion."));
                 }
             } else {
-                ui.checkbox(&mut self.edit_stroke, "Edit stroke points");
+                ui.checkbox(&mut self.edit_stroke, i18n::tr("Edit stroke points"));
                 egui::ComboBox::from_id_salt("stroke.edit")
                     .selected_text(
                         self.selected_stroke
@@ -95,7 +95,7 @@ impl Studio {
                             }
                         }
                     });
-                ui.label("Draw the same outline at 3+ different frames. Select the corresponding strokes:");
+                ui.label(i18n::tr("Draw the same outline at 3+ different frames. Select the corresponding strokes:"));
                 for d in &p.drawings {
                     if p.drawing_motions.iter().any(|m| m.sources.contains(&d.id)) {
                         continue;
@@ -138,10 +138,10 @@ impl Studio {
             ui.separator();
         }
         if self.preferences.mode == WorkspaceMode::Dialogue {
-            ui.heading("Dialogue & captions");
-            ui.label("Speaker");
+            ui.heading(i18n::tr("Dialogue & captions"));
+            ui.label(i18n::tr("Speaker"));
             ui.text_edit_singleline(&mut self.dialogue_speaker);
-            ui.label("Text");
+            ui.label(i18n::tr("Text"));
             ui.add(
                 egui::TextEdit::multiline(&mut self.dialogue_text)
                     .desired_rows(4)
@@ -238,7 +238,10 @@ impl Studio {
             {
                 let mut next = d.clone();
                 let mut changed = false;
-                if ui.button("Fit text & suggest placement").clicked() {
+                if ui
+                    .button(i18n::tr("Fit text & suggest placement"))
+                    .clicked()
+                {
                     self.motion_plan(
                         p,
                         astral_core::studio::StudioOperation::LayoutDialogue { dialogue: d.id },
@@ -252,7 +255,7 @@ impl Studio {
                         ui.colored_label(Color32::from_rgb(242, 199, 116), &issue.message);
                     }
                 }
-                ui.label("Position / size");
+                ui.label(i18n::tr("Position / size"));
                 changed |= ui
                     .add(egui::DragValue::new(&mut next.position.x).prefix("X "))
                     .changed();
@@ -287,11 +290,11 @@ impl Studio {
                             .prefix("End "),
                     )
                     .changed();
-                ui.label("Bubble fill");
+                ui.label(i18n::tr("Bubble fill"));
                 changed |= ui
                     .color_edit_button_srgba_unmultiplied(&mut next.color)
                     .changed();
-                ui.label("Border");
+                ui.label(i18n::tr("Border"));
                 changed |= ui
                     .color_edit_button_srgba_unmultiplied(&mut next.appearance.border_color)
                     .changed();
@@ -309,11 +312,11 @@ impl Studio {
                             .prefix("Corners "),
                     )
                     .changed();
-                ui.label("Speaker color");
+                ui.label(i18n::tr("Speaker color"));
                 changed |= ui
                     .color_edit_button_srgba_unmultiplied(&mut next.appearance.speaker_color)
                     .changed();
-                if ui.button("Dark caption").clicked() {
+                if ui.button(i18n::tr("Dark caption")).clicked() {
                     next.appearance = DialogueAppearance::dark();
                     next.color = [24, 27, 33, 245];
                     next.text_color = [239, 242, 248, 255];
@@ -321,11 +324,11 @@ impl Studio {
                     self.dialogue_style = DialogueStyle::Caption;
                     changed = true;
                 }
-                ui.label("Text color");
+                ui.label(i18n::tr("Text color"));
                 changed |= ui
                     .color_edit_button_srgba_unmultiplied(&mut next.text_color)
                     .changed();
-                if ui.button("Update text & style").clicked() {
+                if ui.button(i18n::tr("Update text & style")).clicked() {
                     next.text = self.dialogue_text.clone();
                     next.speaker = self.dialogue_speaker.clone();
                     next.style = self.dialogue_style;
@@ -345,7 +348,7 @@ impl Studio {
             ui.separator();
         }
         if self.preferences.mode == WorkspaceMode::Graphics {
-            ui.heading("Motion graphics");
+            ui.heading(i18n::tr("Motion graphics"));
             egui::ComboBox::from_id_salt("graphic.kind")
                 .selected_text(format!("{:?}", self.graphic_kind))
                 .show_ui(ui, |ui| {
@@ -541,11 +544,13 @@ impl Studio {
                         changed |= theme::slider(ui, "Ease Y2", egui::Slider::new(y2, -2.0..=3.))
                             .changed();
                     }
-                    if changed || ui.button("Key this transform").clicked() {
+                    if changed || ui.button(i18n::tr("Key this transform")).clicked() {
                         self.apply(vec![Command::SetGraphicKey { graphic: g.id, key }]);
                     }
                 } else {
-                    ui.label("Move the playhead into this graphic to add transform keys.");
+                    ui.label(i18n::tr(
+                        "Move the playhead into this graphic to add transform keys.",
+                    ));
                 }
                 let mut next = g.clone();
                 let mut changed = false;
@@ -564,7 +569,10 @@ impl Studio {
                     )
                     .changed();
                 let mut foreground = next.layer == GraphicLayer::Foreground;
-                if ui.checkbox(&mut foreground, "Foreground layer").changed() {
+                if ui
+                    .checkbox(&mut foreground, i18n::tr("Foreground layer"))
+                    .changed()
+                {
                     next.layer = if foreground {
                         GraphicLayer::Foreground
                     } else {
@@ -575,7 +583,9 @@ impl Studio {
                 changed |= ui
                     .color_edit_button_srgba_unmultiplied(&mut next.color)
                     .changed();
-                changed |= ui.checkbox(&mut next.draw_on, "Draw-on outline").changed();
+                changed |= ui
+                    .checkbox(&mut next.draw_on, i18n::tr("Draw-on outline"))
+                    .changed();
                 if g.kind == GraphicKind::LowerThird {
                     changed |= ui.text_edit_singleline(&mut next.text).changed();
                 }
@@ -676,7 +686,7 @@ fn text_format_controls(ui: &mut egui::Ui, format: &mut TextFormatting) {
             }
         });
     ui.horizontal_wrapped(|ui| {
-        ui.label("Align");
+        ui.label(i18n::tr("Align"));
         for (align, label) in [
             (TextAlign::Left, "Left"),
             (TextAlign::Center, "Center"),

@@ -10,9 +10,9 @@
 
 **Draw it yourself, animate a rig, or ask an external agent to work through MCP. Everything stays editable.**
 
-[Download v0.13.0](https://github.com/nqtexd/astral/releases/tag/v0.13.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
+[Download v0.14.0](https://github.com/nqtexd/astral/releases/tag/v0.14.0) · [Quick start](#getting-started) · [MCP setup](#animate-with-mcp) · [Features](#features) · [Changelog](docs/ASTRAL-CHANGELOG.md) · [Licenses](THIRD_PARTY_NOTICES.md)
 
-> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Mac ARM/Intel and Apple simulator development builds have passed CI; physical device validation and production signing remain unfinished. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
+> **Early access · Windows 11 x64.** This is a native Windows release, not Moho Debut parity or a finished cross-platform product. Android has a development preview. Historical 0.13 Mac ARM/Intel and Apple simulator development builds passed CI; 0.14 Apple/Android builds, physical device validation and production signing are not verified. See [platform readiness](docs/ASTRAL-RELEASE-READINESS.md).
 
 ## Watch, open, make it yours
 
@@ -28,16 +28,27 @@ Actual Astral renders. The source projects stay editable—poses, raster pins, c
 
 GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes separate impact clips. These are tool demonstrations made with AI coding assistance; they do not promise automatic film-quality acting.
 
+## New in 0.14
+
+- **Draw and refine:** pressure samples, solid/marker/dashed/stipple brushes, closed fills, cubic smoothing and draggable vector points. Single-frame edits and undo remain explicit.
+- **Deform artwork:** choose soft pins or rotation/scale-preserving MLS pins, animate a cubic curver, and drive additive pin correctives from bone angles.
+- **Track an object:** follow a source texture point with a graphic/image layer; two points propose rotation and scale. Review the proposal before accepting it.
+- **Bring older work forward:** source-evaluated migration, editable native rig controls, image quads and separate audio clips. Original data stays available for original-file export.
+- **Choose a voice:** Settings → Voice supports ElevenLabs and a configurable compatible speech API, alongside installed offline Windows voices. Windows keys use Credential Manager and are never saved in projects.
+- **Make the workspace yours:** remap 18 shortcuts with conflict checks; select English, Spanish or French core controls. Advanced untranslated controls and diagnostics use English.
+
+[Voice setup, editing tools and migration details](docs/ASTRAL-0.14-WORKFLOW.md). New features use project schema 9; older versions reject these projects. Keep your original files and previous release available.
+
 ## Getting started
 
-1. Download **Astral-0.13.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.13.0).
+1. Download **Astral-0.14.0-windows-x64.zip** from [Releases](https://github.com/nqtexd/astral/releases/tag/v0.14.0).
 2. Extract the whole ZIP to a writable folder. Keep its executables, models and notices together.
 3. Run **Astral-Studio.exe**. `astral.exe` is the separate command-line/MCP executable.
 4. Choose **New project**, set the canvas, FPS and duration, then create it.
 5. Draw on frame 1, then select frame 2 for a different drawing. Independent single-frame drawing is the default; onion skins are previews, not copied ink. Use exposure controls for holds.
 6. Save your `.astral` project and reopen it from the library or file picker.
 
-An **Android touch preview** is also attached to this release as `Astral-0.13.0-android-preview.apk` (ARM64 and x86-64). It is a subset with a development test signature, not desktop parity or a store release. Mac/iPhone/iPad development-build evidence and remaining device/signing gates are listed in [platform checks](docs/ASTRAL-PLATFORM-CHECKS.md).
+The previous [v0.13.0 release](https://github.com/nqtexd/astral/releases/tag/v0.13.0) includes an **Android touch preview** as `Astral-0.13.0-android-preview.apk` (ARM64 and x86-64). It is a subset with a development test signature, not desktop parity or a store release. Mac/iPhone/iPad development-build evidence and remaining device/signing gates are listed in [platform checks](docs/ASTRAL-PLATFORM-CHECKS.md).
 
 Manual editing needs no account or paid generation service. An external AI client may have its own account, network and pricing requirements.
 
@@ -59,10 +70,10 @@ Get FFmpeg through the [official download page](https://ffmpeg.org/download.html
 | Storyboard | Cast, rig assignments, shot ranges, action intent, locations, entry/exit states, camera/audio intent and continuity notes. |
 | Dialogue & graphics | Editable captions and speech/thought bubbles, typewriter text, font styling, border/corner/color controls, clouds, shapes, vector contours and lower thirds. |
 | Effects & camera | Impact packs, flashes, trails, particles, dust/smoke/sparks, glow/blur, shake and camera keys. Presets vary in sophistication. |
-| Audio | WAV clips, waveforms, gain, trims, fades, loops/mixing and offline Windows text-to-speech, user-initiated microphone recording and editable sound-energy/text-guided mouth cues. |
+| Audio & voice | Native WAV/AIFF/MP3/M4A decoding, full-length import, waveforms, pitch/speed, gain, trims, fades and mixing. Offline Windows speech, optional ElevenLabs or compatible speech APIs, microphone capture and editable approximate mouth cues. |
 | Review | Contact/prop/doorway checks, torso spacing, continuity, layout warnings including raster bounds, shaped-text overflow detection, and fit/placement proposals. These are heuristics, not visual-quality guarantees. |
 | Export & finish | Instagram Reels/Stories/feed, YouTube/Shorts and TikTok presets; MP4, WebM, GIF, PNG, JPEG, PNG-sequence ZIP and WAV. Reuse exact held frames; choose CPU or physical wgpu GPU rendering; assemble shots with trims and synchronized audio. |
-| Customize | Accents, canvas surround, corners, compact controls, stronger contrast, scale, reduced motion, panels, grid, frame-card size and recovery/drawing defaults. |
+| Customize | Shortcut remapping with conflict checks, English/Spanish/French core controls, accents, canvas surround, corners, compact controls, stronger contrast, scale, reduced motion, panels, grid, frame-card size and recovery/drawing defaults. |
 | Agents | MCP over stdio, typed commands, revision checks, atomic batches, undo/redo, previews, jobs and cancellation. Live MCP and GUI share the document service. |
 
 [Measured render timings](docs/ASTRAL-RENDER-BENCHMARK.md) · [Artwork, recording and GPU workflow](docs/ASTRAL-ARTWORK.md) · [Project/customization guide](docs/ASTRAL-PROJECTS.md) · [Motion, composition and finishing](docs/ASTRAL-FEEDBACK-FIXES.md)
@@ -134,7 +145,7 @@ Automated checks do not replace human review, security review or artistic judgme
 
 ## Build from source
 
-Windows prerequisites: Rust **1.95+**, MSVC C++ tools and a graphics driver. Python 3.12+ supports packaging/temporary legacy codecs. Windows ZIP packaging uses PowerShell 7 (`pwsh`); the app itself does not need PowerShell. Node 24 runs agent acceptance scripts. Install FFmpeg separately for media checks.
+Windows prerequisites: Rust **1.95+**, MSVC C++ tools and a graphics driver. Python 3.12+ supports packaging/temporary legacy codecs. Windows ZIP packaging uses PowerShell 7 (`pwsh`); the app itself does not need PowerShell. Node 24 is used by native-container/Stick Nodes import helpers and agent acceptance scripts. Install FFmpeg separately for media checks.
 
 ```powershell
 git clone https://github.com/nqtexd/astral.git
@@ -157,8 +168,8 @@ Packages include dependency notices and omit encoder binaries by default. Caches
 ## Current limits
 
 - Windows early access. Mac ARM/Intel and Apple simulator development builds passed CI; physical Android/Apple checks and production signing remain unfinished.
-- Full Moho Debut parity remains unfinished. Basic raster/PSD, deformation pins, capture, mouth cues and local tracking are now available; advanced deformation, pressure brushes, correctives, localization and other gaps remain.
-- Legacy imports retain originals and convert supported authored lines/circles into editable drawing cels. Source rig semantics, tweens, custom shapes, camera, media and effects are not equivalent.
+- Moho Debut equivalence is not certified. MLS similarity pins, cubic curvers, bone-driven raster correctives, pressure/style brushes, point editing and core-control localization are now available. Broad PSD masks/blends/ZIP/PSB support, phoneme recognition, long-form video and complete localization remain unfinished. Tablet pressure depends on device/driver input and has not been physically certified.
+- Legacy migration now samples the established source evaluator at project FPS: native pose controls and skinned cels include supported joins, in-betweens, custom polygons/circles and embedded image quads. Camera translation/zoom and embedded audio become native tracks. Source solver rules, subframe curves, live hierarchies, text outlines, gradient/filter stacks and tiled drawings are not lossless native equivalents. Unsupported/oversized conversions fall back with warnings; complete originals and canonical metadata are retained in a shared archive.
 - Use Artwork import to render images/sequences. Registering an asset alone does not place it on stage. Video is extracted into bounded image sequences, with separate audio import; PSD masks, text, blend groups and unsupported compression are reported.
 - Auto reserves GPU rendering for longer exports with substantial raster coverage and uses CPU workers for short clips/small sprites. A failed GPU initialization falls back to CPU. Explicit GPU mode reports adapter/readback metrics. Hardware encoding remains separate. Speed depends on the scene and hardware.
 - Review tools cannot certify composition, continuity or realistic acting.

@@ -99,6 +99,8 @@ pub(crate) fn append(
         let Ok(bitmap) = decode_bitmap(source) else {
             continue;
         };
+        let resolved = r.resolve_correctives(s);
+        let r = &resolved;
         let key = r.at(frame);
         let (columns, rows) = r.mesh.as_ref().map_or((1, 1), |m| (m.columns, m.rows));
         let mut vertices = vec![];

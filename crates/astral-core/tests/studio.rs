@@ -16,6 +16,12 @@ fn scene() -> (Session, Id, Id, Id) {
             layer: id,
             frame,
             strokes: vec![InkStroke {
+                bitmap: None,
+                skin: None,
+                pressures: vec![],
+                style: BrushStyle::Solid,
+                filled: false,
+                curved: false,
                 points: vec![Point::new(x, 20.), Point::new(x + 20., 20.)],
                 width: 3.,
                 color: [10, 10, 10, 255],

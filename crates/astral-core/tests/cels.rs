@@ -26,6 +26,12 @@ fn fixture() -> (Session, Id) {
 }
 fn ink(x: f32) -> InkStroke {
     InkStroke {
+        bitmap: None,
+        skin: None,
+        pressures: vec![],
+        style: BrushStyle::Solid,
+        filled: false,
+        curved: false,
         points: vec![Point::new(10. + x, 10.), Point::new(30. + x, 20.)],
         color: [20, 20, 20, 255],
         width: 3.,

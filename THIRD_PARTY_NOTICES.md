@@ -28,3 +28,8 @@ The public v0.13.0 Windows package does not include FFmpeg. Obtain it separately
 ## Scope
 
 No ownership of user-imported media or generated productions is asserted. Users must have permission for media they distribute. Apple store terms, signing, privacy declarations and the full cross-platform publication audit remain outside this Windows early-access release.
+
+
+### Native voice and audio dependencies (0.14)
+
+The Rust build now includes reqwest (MIT OR Apache-2.0), rustls and related TLS dependencies, plus Symphonia (MPL-2.0) and its enabled native audio decoders. Exact versions, SPDX declarations, source links and available license files are collected from Cargo metadata in each Windows package. See Cargo.lock and the packaged dependency notices. ElevenLabs is an optional user-configured service; no ElevenLabs model weights, voices or API credentials are bundled.

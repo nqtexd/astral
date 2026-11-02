@@ -472,6 +472,7 @@ pub fn plan(p: &Project, operation: StudioOperation) -> Result<StudioPlan> {
                 );
                 out.commands.push(Command::AddAudio {
                     clip: AudioClip {
+                        speed: 1.,
                         id: Id::new_v4(),
                         name: "Impact cue".into(),
                         asset,

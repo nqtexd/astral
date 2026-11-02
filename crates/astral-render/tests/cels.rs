@@ -1,5 +1,44 @@
 use astral_core::*;
 #[test]
+fn pressure_tapers_across_a_long_segment_instead_of_using_average_width() {
+    let mut p = Project::new("Pressure", 64, 32, 24, 1);
+    p.schema = 9;
+    let layer = DrawingLayer::new("Ink");
+    let id = layer.id;
+    p.layers.push(layer);
+    p.cels.push(DrawingCel {
+        id: Id::new_v4(),
+        layer: id,
+        frame: 0,
+        strokes: vec![InkStroke {
+            bitmap: None,
+            skin: None,
+            pressures: vec![0.2, 1.],
+            style: BrushStyle::Solid,
+            filled: false,
+            curved: false,
+            points: vec![Point::new(10., 10.), Point::new(30., 10.)],
+            color: [0, 0, 0, 255],
+            width: 10.,
+        }],
+    });
+    p.validate().unwrap();
+    let list = astral_render::display_list(&p, 0.);
+    let contour = list
+        .primitives
+        .iter()
+        .find_map(|p| {
+            if let astral_render::Primitive::Path { contours, .. } = p {
+                Some(&contours[0])
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    assert!((contour[0].y - 11.).abs() < 0.001);
+    assert!((contour[1].y - 15.).abs() < 0.001);
+}
+#[test]
 fn layer_order_opacity_and_visibility_match_rendered_cels() {
     let mut p = Project::new("Layers", 50, 50, 24, 24);
     p.background = [255, 255, 255, 255];
@@ -10,6 +49,12 @@ fn layer_order_opacity_and_visibility_match_rendered_cels() {
     let bid = blue.id;
     let ink = |color| {
         vec![InkStroke {
+            bitmap: None,
+            skin: None,
+            pressures: vec![],
+            style: BrushStyle::Solid,
+            filled: false,
+            curved: false,
             points: vec![Point::new(5., 25.), Point::new(45., 25.)],
             color,
             width: 10.,

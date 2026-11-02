@@ -7,3 +7,6 @@ The app's small pose-completion model is separate from the coding agents used du
 An external MCP agent may use its own model/service. Account requirements, costs and handling of prompts/media depend on that client. Manual editing and local tools need no model account.
 
 Human review remains necessary for security, licensing, usability and animation quality. Suggestions stay editable; geometric checks do not establish artistic quality. Report reproducible problems through GitHub issues.
+
+
+The 0.14 voice-provider adapters, migration helper, deformation/brush extensions, shortcut editor and Spanish/French core-control catalogs were implemented with AI coding assistance. Provider contracts were checked against primary documentation. No proprietary Moho implementation or content was copied; the existing GPL source evaluator is retained as a transitional, read-only import helper. Feature equivalence and artistic quality are not inferred from generated code or passing tests.

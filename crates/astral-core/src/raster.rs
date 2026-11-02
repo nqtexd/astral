@@ -34,12 +34,39 @@ pub struct MeshPin {
     pub name: String,
     pub rest: Point,
     pub keys: Vec<PinKey>,
+    #[serde(default)]
+    pub driver: Option<PinDriver>,
+}
+/// An additive corrective driven by a bone's local rotation relative to its parent.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PinDriver {
+    pub character: Id,
+    pub joint: usize,
+    pub rest_angle: f32,
+    pub angle_range: f32,
+    pub offset: Point,
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DeformMode {
+    #[default]
+    Translation,
+    Similarity,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct CurveKey {
+    pub frame: u32,
+    pub controls: [Point; 4],
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DeformMesh {
     pub columns: u32,
     pub rows: u32,
     pub pins: Vec<MeshPin>,
+    #[serde(default)]
+    pub mode: DeformMode,
+    #[serde(default)]
+    pub curve: Vec<CurveKey>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct BitmapCel {
@@ -108,38 +135,12 @@ impl RasterLayer {
         out
     }
     pub fn local_point(&self, uv: Point, frame: f64) -> Point {
-        let mut point = Point::new((uv.x - 0.5) * self.size.x, (uv.y - 0.5) * self.size.y);
-        if let Some(mesh) = &self.mesh {
-            let mut sum = 0.;
-            let mut offset = Point::default();
-            for pin in &mesh.pins {
-                let i = pin
-                    .keys
-                    .partition_point(|k| k.frame as f64 <= frame)
-                    .saturating_sub(1);
-                let a = &pin.keys[i];
-                let mut value = a.offset;
-                if let Some(b) = pin.keys.get(i + 1) {
-                    let t = ((frame - a.frame as f64) / (b.frame - a.frame) as f64).clamp(0., 1.)
-                        as f32;
-                    value = a.offset.lerp(b.offset, ease(&Easing::Smooth, t));
-                }
-                let distance = uv.distance(pin.rest);
-                if distance < 0.00001 {
-                    return point + Point::new(value.x * self.size.x, value.y * self.size.y);
-                }
-                let weight = 1. / (distance * distance);
-                sum += weight;
-                offset.x += value.x * weight;
-                offset.y += value.y * weight;
-            }
-            if sum > 0. {
-                point =
-                    point + Point::new(offset.x / sum * self.size.x, offset.y / sum * self.size.y);
-            }
-        }
-        point
+        let q = self.mesh.as_ref().map_or(uv, |mesh| {
+            crate::deformation::deform_uv(mesh, uv, frame, self.size.x / self.size.y)
+        });
+        Point::new((q.x - 0.5) * self.size.x, (q.y - 0.5) * self.size.y)
     }
+
     pub fn world_point(&self, uv: Point, frame: f64) -> Point {
         let key = self.at(frame);
         let local = self.local_point(uv, frame);
@@ -221,8 +222,8 @@ pub fn validate(p: &Project) -> Result<()> {
                 && r.sources.iter().all(|id| bitmap(*id))
                 && (1..=240).contains(&r.source_fps)
                 && r.size.finite()
-                && r.size.x > 0.
-                && r.size.y > 0.
+                && r.size.x >= 0.001
+                && r.size.y >= 0.001
                 && r.size.x <= 16384.
                 && r.size.y <= 16384.,
             "Invalid raster track, dimensions or sources"
@@ -258,11 +259,43 @@ pub fn validate(p: &Project) -> Result<()> {
         }
         if let Some(m) = &r.mesh {
             ensure!(
+                p.schema >= 9
+                    || (m.mode == DeformMode::Translation
+                        && m.curve.is_empty()
+                        && m.pins.iter().all(|p| p.driver.is_none())),
+                "Advanced deformation requires schema 9"
+            );
+            ensure!(
                 (1..=32).contains(&m.columns) && (1..=32).contains(&m.rows) && m.pins.len() <= 64,
                 "Invalid deformation grid"
             );
+            ensure!(m.curve.len() <= 12000, "Too many curve keys");
+            for (i, k) in m.curve.iter().enumerate() {
+                ensure!(
+                    k.frame < p.duration
+                        && (i == 0 || k.frame > m.curve[i - 1].frame)
+                        && k.controls
+                            .iter()
+                            .all(|q| q.finite() && q.x.abs() <= 8. && q.y.abs() <= 8.),
+                    "Invalid curver keys"
+                );
+            }
             let mut ids = std::collections::BTreeSet::new();
             for pin in &m.pins {
+                if let Some(d) = &pin.driver {
+                    ensure!(
+                        p.character(d.character).is_some_and(
+                            |c| d.joint < c.joints.len() && c.joints[d.joint].parent.is_some()
+                        ) && d.rest_angle.is_finite()
+                            && d.angle_range.is_finite()
+                            && d.angle_range.abs() >= 0.001
+                            && d.angle_range.abs() <= std::f32::consts::TAU
+                            && d.offset.finite()
+                            && d.offset.x.abs() <= 4.
+                            && d.offset.y.abs() <= 4.,
+                        "Invalid corrective bone driver"
+                    );
+                }
                 ensure!(
                     ids.insert(pin.id)
                         && pin.name.len() <= 128

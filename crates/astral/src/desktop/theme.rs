@@ -169,6 +169,8 @@ impl<'a> IconButton<'a> {
 }
 impl egui::Widget for IconButton<'_> {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+        let translated = super::i18n::tr(self.label);
+        let label = translated.as_str();
         let size = if self.compact { 26. } else { 32. };
         let response = ui.add(
             egui::Button::new("")
@@ -177,16 +179,11 @@ impl egui::Widget for IconButton<'_> {
                 .selected(self.selected),
         );
         response.widget_info(|| {
-            egui::WidgetInfo::selected(
-                egui::Role::Button,
-                ui.is_enabled(),
-                self.selected,
-                self.label,
-            )
+            egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), self.selected, label)
         });
         let color = ui.style().interact(&response).fg_stroke.color;
         paint_icon(ui.painter(), self.icon, response.rect.center(), color);
-        response.on_hover_text(self.label)
+        response.on_hover_text(label)
     }
 }
 pub fn icon_button(ui: &mut egui::Ui, label: &str, icon: Icon, selected: bool) -> egui::Response {
@@ -203,6 +200,8 @@ pub fn icon_menu(
     response
 }
 pub fn button(ui: &mut egui::Ui, label: &str, icon: Icon, primary: bool) -> egui::Response {
+    let translated = super::i18n::tr(label);
+    let label = translated.as_str();
     let font = egui::TextStyle::Button.resolve(ui.style());
     let width = ui
         .painter()
@@ -237,6 +236,8 @@ pub fn button(ui: &mut egui::Ui, label: &str, icon: Icon, primary: bool) -> egui
     response
 }
 pub fn section(ui: &mut egui::Ui, label: &str) {
+    let translated = super::i18n::tr(label);
+    let label = translated.as_str();
     ui.add_space(8.);
     ui.label(RichText::new(label).size(11.).strong().color(MUTED));
     ui.add_space(2.);
@@ -244,6 +245,8 @@ pub fn section(ui: &mut egui::Ui, label: &str) {
 
 /// Keep slider captions and numeric editors inside narrow inspectors.
 pub fn slider(ui: &mut egui::Ui, label: &str, slider: egui::Slider<'_>) -> egui::Response {
+    let translated = super::i18n::tr(label);
+    let label = translated.as_str();
     let font = egui::TextStyle::Body.resolve(ui.style());
     let text_width = ui
         .painter()

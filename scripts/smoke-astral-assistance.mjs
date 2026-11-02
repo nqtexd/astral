@@ -24,7 +24,7 @@ export async function assistanceAcceptance(tool,workspace){
   revision=(await tool('set_drawing_frame',{project,expected_revision:revision,layer,frame:5,strokes:[strokes(123)[0]]})).revision;
   const completion=await tool('complete_frame',{project,expected_revision:revision,layer,sources:[0,10,20],frame:5});
   assert.equal((await inspect()).revision,revision);assert.equal(completion.commands[0].strokes.length,2);
-  assert.deepEqual(completion.commands[0].strokes[0],strokes(123)[0]);
+  assert.deepEqual(completion.commands[0].strokes[0],{...strokes(123)[0],bitmap:null,skin:null,style:'solid',filled:false,curved:false});
   async function wait(value){for(let i=0;i<2400;i++){const v=await tool('job_status',{job:value.job});if(['completed','failed','cancelled'].includes(v.state)){assert.equal(v.state,'completed',JSON.stringify(v));return v;}await new Promise(r=>setTimeout(r,25));}throw Error('Job timeout');}
   const generation=await wait(await tool('generate_inbetweens',{project,expected_revision:revision,layer,sources:[0,10,20],start:0,end:20}));revision=generation.revision;
   assert.equal(generation.generated_frames,17);
@@ -43,7 +43,7 @@ export async function assistanceAcceptance(tool,workspace){
   for(let i=0;i<2400;i++){staleState=await tool('job_status',{job:staleTraining.job});if(['completed','failed','cancelled'].includes(staleState.state))break;await new Promise(r=>setTimeout(r,25));}
   assert.equal(staleState.state,'failed');assert.equal((await inspect()).revision,revision);assert.equal((await inspect()).assets.filter(a=>a.kind==='model').length,1);
   const voices=await tool('list_voices');assert.ok(voices.voices.length>0);
-  const voiced=await wait(await tool('add_voice',{project,expected_revision:revision,text:'Astral creates editable animation, with offline speech and dialogue.',start:0,character:imported.character,dialogue:true,formatting:{font:'bold',align:'center',line_height:1.5,padding:16}}));revision=voiced.revision;
+  const voiced=await wait(await tool('add_voice',{options:{provider:'offline'},project,expected_revision:revision,text:'Astral creates editable animation, with offline speech and dialogue.',start:0,character:imported.character,dialogue:true,formatting:{font:'bold',align:'center',line_height:1.5,padding:16}}));revision=voiced.revision;
   const document=await inspect();assert.equal(document.audio.length,1);assert.equal(document.dialogues.length,1);assert.ok(document.schema>=4,"Rich dialogue requires schema 4 or newer; imported vector art may require schema 5+");assert.equal(document.dialogues[0].formatting.font,'bold');assert.equal(document.dialogues[0].formatting.line_height,1.5);
   await tool('save_project',{project,path:'Film.astral'});
   const preview=await tool('render_preview',{project,frame:10,width:512,height:640,path:'finished.png'});assert.ok(preview);

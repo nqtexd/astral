@@ -328,9 +328,8 @@ impl Service {
                     "WAV exceeds 64 MiB"
                 );
                 let bytes = std::fs::read(path)?;
-                Ok(
-                    json!({"asset":asset.id,"duration":astral_audio::wav_duration(&bytes)?,"peaks":astral_audio::waveform(&bytes,columns)?}),
-                )
+                let (duration, peaks) = astral_audio::analyze(&bytes, columns)?;
+                Ok(json!({"asset":asset.id,"duration":duration,"peaks":peaks}))
             }
             ProductionRequest::ExportLibrary {
                 project,

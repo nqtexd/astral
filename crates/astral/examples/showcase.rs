@@ -199,6 +199,7 @@ fn main() -> Result<()> {
     };
     for cue in staging::cues(&p)? {
         p.audio.push(AudioClip {
+            speed: 1.,
             id: Id::new_v4(),
             name: "Impact".into(),
             asset: asset.id,
@@ -246,6 +247,7 @@ fn main() -> Result<()> {
         .into_iter()
         .enumerate()
         .map(|(index, (x, y))| MeshPin {
+            driver: None,
             id: Id::new_v4(),
             name: format!("Pin {}", index + 1),
             rest: Point::new(x, y),
@@ -292,6 +294,8 @@ fn main() -> Result<()> {
             .collect(),
         cels: vec![],
         mesh: Some(DeformMesh {
+            mode: DeformMode::Translation,
+            curve: vec![],
             columns: 20,
             rows: 14,
             pins,
@@ -340,7 +344,13 @@ fn main() -> Result<()> {
     let character_id = character.id;
     p.characters.push(character);
     let spoken = "Welcome to Astral. Draw your first frame, shape the movement, and make it yours.";
-    let bytes = astral::voice::synthesize(spoken, &Default::default())?;
+    let bytes = astral::voice::synthesize(
+        spoken,
+        &astral::voice::VoiceOptions {
+            provider: Some(astral::voice_provider::Provider::Offline),
+            ..Default::default()
+        },
+    )?;
     let seconds = astral_audio::wav_duration(&bytes)?;
     p.duration = ((seconds + 0.5) * 24.).ceil() as u32;
     for d in &mut p.dialogues {
@@ -356,6 +366,7 @@ fn main() -> Result<()> {
         tags: vec!["synthetic_speech".into()],
     };
     let clip = AudioClip {
+        speed: 1.,
         id: Id::new_v4(),
         name: asset.name.clone(),
         asset: asset.id,

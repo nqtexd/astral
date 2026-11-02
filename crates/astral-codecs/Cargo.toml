@@ -7,7 +7,9 @@ license.workspace = true
 [dependencies]
 astral-core.workspace = true
 astral-storage.workspace = true
+astral-audio.workspace = true
 anyhow.workspace = true
 serde_json.workspace = true
 base64 = "0.22"
+image = { version="0.25", default-features=false, features=["png","jpeg","bmp","webp"] }
 

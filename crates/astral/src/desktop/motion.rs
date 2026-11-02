@@ -321,7 +321,7 @@ impl Studio {
     pub(super) fn motion_windows(&mut self, ctx: &egui::Context, p: &Project) {
         if self.motion.open && !self.manager.home {
             let mut open = true;
-            egui::Window::new("Motion studio")
+            egui::Window::new(i18n::tr("Motion studio"))
                 .id(egui::Id::unique("astral.motion.v1"))
                 .open(&mut open)
                 .default_size(theme::dialog_size(ctx, Vec2::new(740., 640.)))
@@ -405,7 +405,7 @@ impl Studio {
                     if self.motion.pending.is_some() {
                         ui.horizontal(|ui| {
                             ui.spinner();
-                            ui.label("Preparing preview…");
+                            ui.label(i18n::tr("Preparing preview…"));
                         });
                     }
                     ui.add(
@@ -427,7 +427,7 @@ impl Studio {
             let mut accept = false;
             let mut close = false;
             let mut open = true;
-            egui::Window::new("Review motion")
+            egui::Window::new(i18n::tr("Review motion"))
                 .id(egui::Id::unique("motion.review"))
                 .open(&mut open)
                 .default_size(theme::dialog_size(ctx, Vec2::new(640., 560.)))
@@ -530,7 +530,7 @@ impl Studio {
                                 );
                             }
                             if !proposed.plan.markers.is_empty() {
-                                ui.collapsing("Contact markers", |ui| {
+                                ui.collapsing(i18n::tr("Contact markers"), |ui| {
                                     for (name, frame) in &proposed.plan.markers {
                                         ui.label(format!("{name}: frame {}", frame + 1));
                                     }
@@ -542,7 +542,7 @@ impl Studio {
                         if theme::button(ui, "Accept", theme::Icon::Check, true).clicked() {
                             accept = true;
                         }
-                        if ui.button("Cancel").clicked() {
+                        if ui.button(i18n::tr("Cancel")).clicked() {
                             close = true;
                         }
                     });
@@ -605,9 +605,9 @@ impl Studio {
         self.motion.start = self.motion.start.min(p.duration - 1);
         self.motion.end = self.motion.end.clamp(self.motion.start, p.duration - 1);
         ui.horizontal_wrapped(|ui| {
-            ui.label("Frames");
+            ui.label(i18n::tr("Frames"));
             frame_field(ui, &mut self.motion.start, p.duration - 1);
-            ui.label("to");
+            ui.label(i18n::tr("to"));
             frame_field(ui, &mut self.motion.end, p.duration - 1);
             ui.small(format!(
                 "{:.2}s",
@@ -617,20 +617,25 @@ impl Studio {
     }
     fn motion_pose(&mut self, ui: &mut egui::Ui, p: &Project) {
         Self::motion_actor(ui, p, &mut self.selected, "motion.pose.actor", "Character");
-        ui.checkbox(&mut self.preferences.smart_pose, "Smart posing");
-        ui.small("Drag a hand or foot to guide the limb. Hold Alt to move a joint manually.");
+        ui.checkbox(&mut self.preferences.smart_pose, i18n::tr("Smart posing"));
+        ui.small(i18n::tr(
+            "Drag a hand or foot to guide the limb. Hold Alt to move a joint manually.",
+        ));
         style_picker(ui, &mut self.preferences.movement_style);
         ui.checkbox(
             &mut self.preferences.smart_onion,
             "Highlight changed joints",
         );
-        ui.checkbox(&mut self.preferences.ghost_path, "Show ghost path");
+        ui.checkbox(
+            &mut self.preferences.ghost_path,
+            i18n::tr("Show ghost path"),
+        );
         self.motion_range(ui, p);
         if let Some(character) = self.selected
-            && ui.button("Preview flowing motion").on_hover_text("Continuous joint arcs through existing pose keys; preserves authored key poses").clicked() {
+            && ui.button(i18n::tr("Preview flowing motion")).on_hover_text("Continuous joint arcs through existing pose keys; preserves authored key poses").clicked() {
                 self.motion_plan(p, StudioOperation::FlowMotion {character,start:self.motion.start,end:self.motion.end}, self.frame as u32);
             }
-        if let Some(character)=self.selected && ui.button("Preview motion polish").on_hover_text("Proposes planted feet and subtle body follow-through while preserving authored poses").clicked(){self.motion_plan(p,StudioOperation::PolishMotion{character,start:self.motion.start,end:self.motion.end,strength:0.6},self.frame as u32);}
+        if let Some(character)=self.selected && ui.button(i18n::tr("Preview motion polish")).on_hover_text("Proposes planted feet and subtle body follow-through while preserving authored poses").clicked(){self.motion_plan(p,StudioOperation::PolishMotion{character,start:self.motion.start,end:self.motion.end,strength:0.6},self.frame as u32);}
         if let Some(id) = self.selected {
             ui.horizontal_wrapped(|ui| {
                 if theme::button(ui, "Save pose", theme::Icon::Save, false).clicked() {
@@ -647,7 +652,7 @@ impl Studio {
                         self.frame as u32,
                     );
                 }
-                if ui.button("Mirror range").clicked() {
+                if ui.button(i18n::tr("Mirror range")).clicked() {
                     self.motion_plan(
                         p,
                         StudioOperation::Mirror {
@@ -663,7 +668,7 @@ impl Studio {
             for pose in &p.poses {
                 ui.horizontal_wrapped(|ui| {
                     ui.label(&pose.name);
-                    if ui.button("Apply").clicked() {
+                    if ui.button(i18n::tr("Apply")).clicked() {
                         self.motion_plan(
                             p,
                             StudioOperation::Commands {
@@ -684,11 +689,11 @@ impl Studio {
             }
             theme::section(ui, "PLANTED FEET");
             ui.horizontal_wrapped(|ui| {
-                ui.checkbox(&mut self.motion.foot_left, "Left");
-                ui.checkbox(&mut self.motion.foot_right, "Right");
-                ui.checkbox(&mut self.motion.auto_feet, "Detect stance ranges");
+                ui.checkbox(&mut self.motion.foot_left, i18n::tr("Left"));
+                ui.checkbox(&mut self.motion.foot_right, i18n::tr("Right"));
+                ui.checkbox(&mut self.motion.auto_feet, i18n::tr("Detect stance ranges"));
             });
-            if ui.button("Preview foot lock").clicked() {
+            if ui.button(i18n::tr("Preview foot lock")).clicked() {
                 let joints = [
                     (self.motion.foot_left, "left_foot"),
                     (self.motion.foot_right, "right_foot"),
@@ -710,7 +715,7 @@ impl Studio {
                 );
             }
             if p.character(id).is_some_and(|c| !c.contacts.is_empty())
-                && ui.button("Clear foot contacts").clicked()
+                && ui.button(i18n::tr("Clear foot contacts")).clicked()
             {
                 self.motion_plan(
                     p,
@@ -723,7 +728,7 @@ impl Studio {
             }
         }
         ui.separator();
-        if ui.button("Frame completion tools").clicked() {
+        if ui.button(i18n::tr("Frame completion tools")).clicked() {
             self.assist.panel_open = true;
         }
     }
@@ -747,7 +752,7 @@ impl Studio {
         self.motion_range(ui, p);
         curve_editor(ui, &mut self.motion.easing);
         ui.horizontal_wrapped(|ui| {
-            ui.label("Key poses");
+            ui.label(i18n::tr("Key poses"));
             ui.add(egui::DragValue::new(&mut self.motion.keys).range(2..=1201));
         });
         style_picker(ui, &mut self.motion.style);
@@ -765,7 +770,7 @@ impl Studio {
                 self.motion.open = false;
                 self.status = "Drag on the canvas to draw a path · Esc cancels".into();
             }
-            if ui.button("Clear path").clicked() {
+            if ui.button(i18n::tr("Clear path")).clicked() {
                 self.motion.path.clear();
             }
         });
@@ -793,9 +798,13 @@ impl Studio {
             );
         }
         theme::section(ui, "POSE CURVE");
-        ui.small("Change the timing between existing pose keys without redrawing them.");
+        ui.small(i18n::tr(
+            "Change the timing between existing pose keys without redrawing them.",
+        ));
         if let Some(character) = self.selected
-            && ui.button("Preview curve on selected range").clicked()
+            && ui
+                .button(i18n::tr("Preview curve on selected range"))
+                .clicked()
         {
             self.motion_plan(
                 p,
@@ -834,10 +843,13 @@ impl Studio {
         );
         style_picker(ui, &mut self.motion.style);
         ui.horizontal_wrapped(|ui| {
-            ui.label("Start");
+            ui.label(i18n::tr("Start"));
             frame_field(ui, &mut self.motion.start, p.duration - 1);
-            ui.checkbox(&mut self.motion.impact, "Impact accents");
-            ui.checkbox(&mut self.motion.overwrite, "Replace poses in range");
+            ui.checkbox(&mut self.motion.impact, i18n::tr("Impact accents"));
+            ui.checkbox(
+                &mut self.motion.overwrite,
+                i18n::tr("Replace poses in range"),
+            );
         });
         let mut remove = None;
         for i in 0..self.motion.beats.len() {
@@ -915,7 +927,7 @@ impl Studio {
                     strength: 1.,
                 });
             }
-            if ui.button("Starter combo").clicked()
+            if ui.button(i18n::tr("Starter combo")).clicked()
                 && let (Some(a), Some(b)) = (self.motion.first, self.motion.second)
             {
                 self.motion.beats = vec![
@@ -952,7 +964,9 @@ impl Studio {
                 ];
             }
         });
-        ui.small("Editable starting poses. Review spacing and contact for your characters.");
+        ui.small(i18n::tr(
+            "Editable starting poses. Review spacing and contact for your characters.",
+        ));
         if ui
             .add_enabled(
                 !self.motion.beats.is_empty() && self.motion.first != self.motion.second,
@@ -985,10 +999,10 @@ impl Studio {
             egui::Slider::new(&mut self.motion.tolerance, 0.03..=0.5)
                 .custom_formatter(|v, _| format!("{:.0}%", v * 100.)),
         );
-        ui.small(
+        ui.small(i18n::tr(
             "Flags are suggestions. Intentional stretch, skids and impact timing can be kept.",
-        );
-        if ui.button("Review motion").clicked() {
+        ));
+        if ui.button(i18n::tr("Review motion")).clicked() {
             self.motion_request(
                 ProductionRequest::Edit {
                     project: p.id,
@@ -1037,7 +1051,7 @@ impl Studio {
     }
     fn motion_frames(&mut self, ui: &mut egui::Ui, p: &Project) {
         self.motion_range(ui, p);
-        ui.small("Shift-click frame thumbnails to select a range.");
+        ui.small(i18n::tr("Shift-click frame thumbnails to select a range."));
         ui.horizontal_wrapped(|ui| {
             ui.selectable_value(&mut self.motion.pose_scope, false, "Drawing layer");
             ui.selectable_value(&mut self.motion.pose_scope, true, "Pose keys");
@@ -1061,14 +1075,17 @@ impl Studio {
                 }
             });
         ui.horizontal_wrapped(|ui| {
-            ui.label("Destination / new end");
+            ui.label(i18n::tr("Destination / new end"));
             frame_field(ui, &mut self.motion.target, 999999);
         });
         if self.motion.frame_action == FrameEdit::Translate {
             point_fields(ui, &mut self.motion.delta, "Offset");
         }
-        ui.checkbox(&mut self.motion.overwrite, "Replace destination keys");
-        if ui.button("Preview batch edit").clicked() {
+        ui.checkbox(
+            &mut self.motion.overwrite,
+            i18n::tr("Replace destination keys"),
+        );
+        if ui.button(i18n::tr("Preview batch edit")).clicked() {
             let tool = if self.motion.pose_scope {
                 self.selected.map(|character| StudioOperation::PoseBatch {
                     character,
@@ -1101,14 +1118,14 @@ impl Studio {
         }
         theme::section(ui, "TIMING");
         ui.horizontal_wrapped(|ui| {
-            ui.label("Selected scene duration");
+            ui.label(i18n::tr("Selected scene duration"));
             ui.add(
                 egui::DragValue::new(&mut self.motion.seconds)
                     .range(0.05..=120.)
                     .speed(0.05)
                     .suffix(" s"),
             );
-            if ui.button("Preview ripple retime").clicked() {
+            if ui.button(i18n::tr("Preview ripple retime")).clicked() {
                 self.motion_plan(
                     p,
                     StudioOperation::Timing {
@@ -1120,7 +1137,9 @@ impl Studio {
                 );
             }
         });
-        ui.small("Retime changes movement duration. FPS changes the playback/export rate.");
+        ui.small(i18n::tr(
+            "Retime changes movement duration. FPS changes the playback/export rate.",
+        ));
         ui.horizontal_wrapped(|ui| {
             for fps in [12, 24, 30, 60] {
                 if ui.button(format!("{fps} fps")).clicked() {
@@ -1137,7 +1156,7 @@ impl Studio {
         });
         ui.horizontal_wrapped(|ui| {
             ui.text_edit_singleline(&mut self.motion.marker);
-            if ui.button("Mark playhead").clicked() {
+            if ui.button(i18n::tr("Mark playhead")).clicked() {
                 self.motion_plan(
                     p,
                     StudioOperation::Marker {
@@ -1201,7 +1220,7 @@ impl Studio {
                     .range(20..=8000)
                     .suffix(" px"),
             );
-            if ui.button("Create rig").clicked() {
+            if ui.button(i18n::tr("Create rig")).clicked() {
                 self.motion_plan(
                     p,
                     StudioOperation::Rig {
@@ -1273,7 +1292,10 @@ impl Studio {
                 });
             }
         }
-        ui.checkbox(&mut self.motion.mirror_insert, "Mirror inserted motion");
+        ui.checkbox(
+            &mut self.motion.mirror_insert,
+            i18n::tr("Mirror inserted motion"),
+        );
         self.motion_range(ui, p);
         ui.text_edit_singleline(&mut self.motion.name);
         egui::ComboBox::from_id_salt("library.kind")
@@ -1289,7 +1311,7 @@ impl Studio {
                     ui.selectable_value(&mut self.motion.kind, kind, format!("{kind:?}"));
                 }
             });
-        if ui.button("Save selection to library").clicked() {
+        if ui.button(i18n::tr("Save selection to library")).clicked() {
             let characters = if self.motion.kind == LibraryKind::Combo {
                 [self.motion.first.or(self.selected), self.motion.second]
                     .into_iter()
@@ -1319,7 +1341,7 @@ impl Studio {
         ui.separator();
         ui.text_edit_singleline(&mut self.motion.library_path);
         ui.horizontal_wrapped(|ui| {
-            if ui.button("Export library").clicked() {
+            if ui.button(i18n::tr("Export library")).clicked() {
                 self.motion_request(
                     ProductionRequest::ExportLibrary {
                         project: p.id,
@@ -1329,7 +1351,7 @@ impl Studio {
                     false,
                 );
             }
-            if ui.button("Import library").clicked() {
+            if ui.button(i18n::tr("Import library")).clicked() {
                 self.motion_request(
                     ProductionRequest::ImportLibrary {
                         project: p.id,
@@ -1384,7 +1406,7 @@ impl Studio {
                 .suffix(" seconds"),
         );
         if let Some(character) = self.selected
-            && ui.button("Preview impact at contact").clicked()
+            && ui.button(i18n::tr("Preview impact at contact")).clicked()
         {
             self.motion_plan(
                 p,
@@ -1425,9 +1447,9 @@ impl Studio {
             });
         if let Some(mut effect) = self.motion.effect_edit.take() {
             ui.horizontal_wrapped(|ui| {
-                ui.label("Start");
+                ui.label(i18n::tr("Start"));
                 frame_field(ui, &mut effect.start, p.duration - 1);
-                ui.label("End");
+                ui.label(i18n::tr("End"));
                 frame_field(ui, &mut effect.end, p.duration - 1);
             });
             theme::slider(
@@ -1436,7 +1458,7 @@ impl Studio {
                 egui::Slider::new(&mut effect.intensity, 0.01..=5.),
             );
             ui.color_edit_button_srgba_unmultiplied(&mut effect.color);
-            if ui.button("Preview effect changes").clicked() {
+            if ui.button(i18n::tr("Preview effect changes")).clicked() {
                 self.motion_plan(
                     p,
                     StudioOperation::EditEffect {
@@ -1449,10 +1471,10 @@ impl Studio {
         }
         theme::section(ui, "SOUND");
         ui.horizontal_wrapped(|ui| {
-            if ui.button("Import WAV").clicked() {
+            if ui.button(i18n::tr("Import audio")).clicked() {
                 self.import_audio();
             }
-            if ui.button("Voice and dialogue").clicked() {
+            if ui.button(i18n::tr("Voice and dialogue")).clicked() {
                 self.assist.voice_open = true;
             }
         });
@@ -1484,16 +1506,16 @@ impl Studio {
                 ui.small(format!("Source {:.2}s", wave.duration));
             }
             ui.horizontal_wrapped(|ui| {
-                ui.label("Start");
+                ui.label(i18n::tr("Start"));
                 frame_field(ui, &mut clip.start, p.duration - 1);
-                ui.label("Trim");
+                ui.label(i18n::tr("Trim"));
                 ui.add(
                     egui::DragValue::new(&mut clip.offset_seconds)
                         .range(0.0..=600.)
                         .speed(0.02)
                         .suffix(" s"),
                 );
-                ui.label("Length");
+                ui.label(i18n::tr("Length"));
                 ui.add(
                     egui::DragValue::new(&mut clip.duration_seconds)
                         .range(0.01..=600.)
@@ -1501,23 +1523,28 @@ impl Studio {
                         .suffix(" s"),
                 );
             });
+            theme::slider(
+                ui,
+                "Pitch / speed",
+                egui::Slider::new(&mut clip.speed, 0.25..=4.0),
+            );
             theme::slider(ui, "Gain", egui::Slider::new(&mut clip.gain, 0.0..=4.));
             ui.horizontal_wrapped(|ui| {
-                ui.label("Fade in");
+                ui.label(i18n::tr("Fade in"));
                 ui.add(
                     egui::DragValue::new(&mut clip.fade_in)
                         .range(0.0..=10.)
                         .speed(0.01),
                 );
-                ui.label("Fade out");
+                ui.label(i18n::tr("Fade out"));
                 ui.add(
                     egui::DragValue::new(&mut clip.fade_out)
                         .range(0.0..=10.)
                         .speed(0.01),
                 );
-                ui.checkbox(&mut clip.looping, "Loop");
+                ui.checkbox(&mut clip.looping, i18n::tr("Loop"));
             });
-            if ui.button("Preview audio edit").clicked() {
+            if ui.button(i18n::tr("Preview audio edit")).clicked() {
                 self.motion_plan(
                     p,
                     StudioOperation::EditAudio { clip: clip.clone() },
@@ -1529,7 +1556,10 @@ impl Studio {
     }
     fn motion_camera(&mut self, ui: &mut egui::Ui, p: &Project) {
         self.motion_range(ui, p);
-        ui.checkbox(&mut self.motion.follow, "Track selected character");
+        ui.checkbox(
+            &mut self.motion.follow,
+            i18n::tr("Track selected character"),
+        );
         if self.motion.follow {
             Self::motion_actor(ui, p, &mut self.selected, "camera.actor", "Track");
         }
@@ -1561,7 +1591,7 @@ impl Studio {
             "Ending zoom",
             egui::Slider::new(&mut self.motion.zoom_end, 0.1..=5.),
         );
-        if ui.button("Preview camera move").clicked() {
+        if ui.button(i18n::tr("Preview camera move")).clicked() {
             self.motion_plan(
                 p,
                 StudioOperation::Camera {
@@ -1584,22 +1614,24 @@ impl Studio {
     pub(super) fn quick_motion_inspector(&mut self, ui: &mut egui::Ui, p: &Project) {
         match self.preferences.mode {
             WorkspaceMode::Audio => {
-                ui.heading("Sound");
-                if theme::button(ui, "Import WAV", theme::Icon::Plus, false).clicked() {
+                ui.heading(i18n::tr("Sound"));
+                if theme::button(ui, "Import audio", theme::Icon::Plus, false).clicked() {
                     self.import_audio();
                 }
-                if ui.button("Clips & waveforms").clicked() {
+                if ui.button(i18n::tr("Clips & waveforms")).clicked() {
                     self.motion.tab = Tab::Finish;
                     self.motion.open = true;
                 }
-                if ui.button("Voice & dialogue").clicked() {
+                if ui.button(i18n::tr("Voice & dialogue")).clicked() {
                     self.assist.voice_open = true;
                 }
                 ui.small(format!("{} editable audio clips", p.audio.len()));
-                ui.small("Click a waveform in the timeline to trim, fade or mix a clip.");
+                ui.small(i18n::tr(
+                    "Click a waveform in the timeline to trim, fade or mix a clip.",
+                ));
             }
             WorkspaceMode::Effects => {
-                ui.heading("Effects");
+                ui.heading(i18n::tr("Effects"));
                 for (tab, label) in [
                     (Tab::Finish, "Impact packs & effects"),
                     (Tab::Camera, "Camera director"),
@@ -1610,14 +1642,19 @@ impl Studio {
                     }
                 }
                 ui.small(format!("{} editable effect tracks", p.effects.len()));
-                ui.small("Click an effect on the detailed timeline to refine it.");
+                ui.small(i18n::tr(
+                    "Click an effect on the detailed timeline to refine it.",
+                ));
             }
             _ => {
-                ui.heading("Motion");
-                ui.checkbox(&mut self.preferences.smart_pose, "Smart posing");
+                ui.heading(i18n::tr("Motion"));
+                ui.checkbox(&mut self.preferences.smart_pose, i18n::tr("Smart posing"));
                 style_picker(ui, &mut self.preferences.movement_style);
-                ui.checkbox(&mut self.preferences.smart_onion, "Changed-joint ghosts");
-                ui.checkbox(&mut self.preferences.ghost_path, "Ghost path");
+                ui.checkbox(
+                    &mut self.preferences.smart_onion,
+                    i18n::tr("Changed-joint ghosts"),
+                );
+                ui.checkbox(&mut self.preferences.ghost_path, i18n::tr("Ghost path"));
                 for (tab, label) in [
                     (Tab::Pose, "Pose & foot locks"),
                     (Tab::Motion, "Motion brush & curves"),
@@ -1634,16 +1671,16 @@ impl Studio {
                     }
                 }
                 if self.selected.is_none() {
-                    ui.small("Select a character on the canvas to pose it.");
+                    ui.small(i18n::tr("Select a character on the canvas to pose it."));
                 }
-                if p.characters.is_empty() && ui.button("Create a rig").clicked() {
+                if p.characters.is_empty() && ui.button(i18n::tr("Create a rig")).clicked() {
                     self.motion.tab = Tab::Library;
                     self.motion.open = true;
                 }
             }
         }
         ui.separator();
-        ui.checkbox(&mut self.preferences.pro_mode, "Pro controls");
+        ui.checkbox(&mut self.preferences.pro_mode, i18n::tr("Pro controls"));
     }
     pub(super) fn finishing_tracks(
         &mut self,
@@ -2104,7 +2141,8 @@ pub(super) fn paint_wave(painter: &egui::Painter, rect: Rect, wave: &Wave, clip:
     }
     let n = rect.width().ceil().max(1.) as usize;
     for i in 0..n {
-        let second = clip.offset_seconds + i as f64 / n as f64 * clip.duration_seconds;
+        let second =
+            clip.offset_seconds + i as f64 / n as f64 * clip.duration_seconds * clip.speed as f64;
         let second = if clip.looping {
             second.rem_euclid(wave.duration)
         } else {

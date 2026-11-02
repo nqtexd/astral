@@ -9,4 +9,5 @@ astral-core.workspace = true
 astral-storage.workspace = true
 anyhow.workspace = true
 hound = "3.5"
+symphonia = { version="0.5", features=["mp3","aac","alac","isomp4","aiff","pcm"] }
 

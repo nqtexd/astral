@@ -28,6 +28,8 @@ jobs:
           python scripts/stage-video-encoder.py
       - name: Format
         run: cargo fmt --all -- --check
+      - name: Legacy source evaluation regression
+        run: node --test tests/astral-legacy-evaluation.test.mjs
       - name: Tests
         run: cargo test --workspace --locked
       - name: Build

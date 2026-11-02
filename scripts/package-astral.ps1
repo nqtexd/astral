@@ -38,7 +38,7 @@ try {
         }
     }
     New-Item -ItemType Directory -Force -Path (Join-Path $astralPackage 'scripts') | Out-Null
-    foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
+    foreach ($astralBridge in @('astral-codec.py','astral-sticknodes.mjs','astral-evaluate-legacy.mjs','astral-decode-container.mjs','astral-source-input.mjs')) { Copy-Item -LiteralPath (Join-Path $astralRoot "scripts/$astralBridge") -Destination (Join-Path $astralPackage 'scripts') }
 
     Get-ChildItem -LiteralPath (Join-Path $astralRoot 'docs') -Filter 'ASTRAL-*' -File | Where-Object Extension -In @('.md','.json') | Copy-Item -Destination (Join-Path $astralPackage 'docs')
     # Offline README gallery and editable studies, excluding runtime history and benchmark outputs.

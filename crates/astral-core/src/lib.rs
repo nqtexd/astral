@@ -28,3 +28,4 @@ pub mod composition;
 
 pub mod raster;
 pub use raster::*;
+pub mod deformation;

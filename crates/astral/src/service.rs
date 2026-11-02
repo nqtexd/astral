@@ -320,6 +320,15 @@ impl Service {
                 let p = self.snapshot(project)?;
                 ensure!(frame.is_none_or(f64::is_finite), "Frame must be finite");
                 let mut light = p.clone();
+                light.original_source = None;
+                if let Some(legacy) = light
+                    .metadata
+                    .get_mut("legacy")
+                    .and_then(|v| v.as_object_mut())
+                {
+                    legacy.remove("source_base64");
+                    legacy.remove("document");
+                }
                 for bitmap in &mut light.bitmaps {
                     bitmap.png = std::sync::Arc::from("");
                 }
@@ -468,14 +477,23 @@ impl Service {
                     .unwrap_or("")
                     .to_lowercase();
                 ensure!(
-                    ["wav", "png", "jpg", "jpeg"].contains(&extension.as_str()),
-                    "Supported assets: WAV, PNG, JPEG"
+                    [
+                        "wav", "aif", "aiff", "mp3", "m4a", "png", "jpg", "jpeg", "webp", "bmp",
+                        "gif"
+                    ]
+                    .contains(&extension.as_str()),
+                    "Supported assets: WAV, AIFF, MP3, M4A, PNG, JPEG, WebP, BMP, GIF"
                 );
                 let asset = Asset {
                     id: Id::new_v4(),
                     name,
                     path,
-                    kind: if extension == "wav" { "audio" } else { "image" }.into(),
+                    kind: if ["wav", "aif", "aiff", "mp3", "m4a"].contains(&extension.as_str()) {
+                        "audio"
+                    } else {
+                        "image"
+                    }
+                    .into(),
                     tags,
                 };
                 self.request(Request::ApplyCommands {
@@ -599,6 +617,7 @@ impl Service {
         };
         for frame in [104, 134, 224] {
             p.audio.push(AudioClip {
+                speed: 1.,
                 id: Id::new_v4(),
                 name: "Impact".into(),
                 asset: asset.id,
@@ -619,5 +638,5 @@ pub fn summary(p: &Project) -> Value {
     json!({"project":p.id,"revision":p.revision,"name":p.name,"width":p.width,"height":p.height,"fps":p.fps,"duration":p.duration})
 }
 pub fn capabilities() -> Value {
-    json!({"single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"archived_original_and_supported_authored_pose_cels","legacy_native_editing":"supported_lines_and_circles_as_drawing_cels","image_asset_rendering":true,"raster_artwork":"embedded_PNG_JPEG_PSD_layers_sequences_per_frame_paint_mesh_pins","lip_sync":"editable_envelope_text_guided_cues","tracking":"bounded_local_template_camera_proposals","microphone":"user_initiated_60_seconds","audio":"PCM_WAV","glow_blur":"stylized_overlays_not_filters","export":"CPU_or_physical_wgpu_GPU_rasterization_FFmpeg_hardware_encoding_optional"})
+    json!({"schema":9,"voice_providers":["offline","elevenlabs","compatible"],"vector_brushes":"pressure_cubic_nodes_fills_marker_dashed_stipple","deformation":"translation_or_MLS_similarity_cubic_curvers_bone_correctives","single_frame_drawing":true,"offline_director":"seeded_stickman_spar_inspect_bounded_length_repairs_grounded_continuation","embedded_creative_model":false,"native_rigs":true,"motion_tools":"constrained_pose_styles_fight_builder_motion_brush_heuristic_coach","library":"editable_characters_motions_symbols_combos","multi_frame_editing":true,"timeline_markers":true,"rig_templates":["human","quadruped","winged"],"editable_action_clips":true,"learned_inbetweens":"offline_RBF_kernel_ridge_from_3_to_64_authored_examples","drawing_inbetweens":"corresponding_vector_strokes","dialogues":"vector_text_speech_thought_caption_typewriter","motion_graphics":"keyed_position_scale_rotation_opacity_Bezier_draw_on","clouds":true,"contacts":"two_bone_ik","preview":"shared_display_list","legacy_import":"source_evaluated_native_cels_rigs_images_audio_with_archived_original_and_reported_fallback","legacy_native_editing":"sampled_source_tweens_joined_geometry_custom_shapes_native_skin_bindings","image_asset_rendering":true,"raster_artwork":"embedded_PNG_JPEG_PSD_layers_sequences_per_frame_paint_mesh_pins","lip_sync":"editable_envelope_text_guided_cues","tracking":"bounded_local_template_camera_or_object_translation_two_point_rotation_scale_proposals","microphone":"user_initiated_60_seconds","audio":"WAV_AIFF_MP3_M4A_native_decode_pitch_speed_WAV_mix","glow_blur":"stylized_overlays_not_filters","export":"CPU_or_physical_wgpu_GPU_rasterization_FFmpeg_hardware_encoding_optional"})
 }

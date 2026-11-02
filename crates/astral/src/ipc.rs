@@ -13,7 +13,11 @@ use tokio::io::{AsyncWriteExt, BufReader};
 pub fn pipe_name(root: &Path) -> String {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     root.to_string_lossy().to_lowercase().hash(&mut hasher);
-    format!(r"\\.\pipe\astral-{:016x}", hasher.finish())
+    format!(
+        r"\\.\pipe\astral-{}-{:016x}",
+        env!("CARGO_PKG_VERSION"),
+        hasher.finish()
+    )
 }
 
 #[cfg(windows)]
@@ -122,7 +126,11 @@ mod unix {
         );
         let mut hash = std::collections::hash_map::DefaultHasher::new();
         root.hash(&mut hash);
-        let path = directory.join(format!("{:016x}.sock", hash.finish()));
+        let path = directory.join(format!(
+            "{}-{:016x}.sock",
+            env!("CARGO_PKG_VERSION"),
+            hash.finish()
+        ));
         ensure!(path.as_os_str().len() < 104, "Unix socket path too long");
         Ok(path)
     }

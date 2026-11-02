@@ -11,6 +11,7 @@ pub struct Voice {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
 pub struct VoiceOptions {
+    pub provider: Option<crate::voice_provider::Provider>,
     pub voice: Option<String>,
     pub rate: f64,
     pub pitch: f64,
@@ -19,6 +20,7 @@ pub struct VoiceOptions {
 impl Default for VoiceOptions {
     fn default() -> Self {
         Self {
+            provider: None,
             voice: None,
             rate: 1.,
             pitch: 1.,
@@ -72,6 +74,15 @@ pub fn synthesize_cancellable(
     options: &VoiceOptions,
     cancelled: impl Fn() -> bool,
 ) -> Result<Vec<u8>> {
+    let config = crate::voice_provider::load();
+    synthesize_with_config(text, options, &config, cancelled)
+}
+pub fn synthesize_with_config(
+    text: &str,
+    options: &VoiceOptions,
+    config: &crate::voice_provider::Config,
+    cancelled: impl Fn() -> bool,
+) -> Result<Vec<u8>> {
     ensure!(
         !text.trim().is_empty() && text.chars().count() <= 5000,
         "Voice text must contain 1–5000 characters"
@@ -85,6 +96,9 @@ pub fn synthesize_cancellable(
             && (0.0..=1.).contains(&options.volume),
         "Invalid speech rate, pitch or volume"
     );
+    if options.provider.unwrap_or(config.provider) != crate::voice_provider::Provider::Offline {
+        return crate::voice_provider::synthesize(text, options, config, cancelled);
+    }
     #[cfg(windows)]
     {
         use windows::{

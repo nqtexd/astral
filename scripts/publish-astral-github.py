@@ -70,7 +70,7 @@ def main():
         asset = api('POST',upload,data=file.read_bytes(),content_type='application/octet-stream')
         print(json.dumps({'uploaded':asset['name'],'bytes':asset['size'],'sha256':digest}))
     api('PATCH',prefix,{'description':'AI-built native Rust animation studio: editable frames, rigs, storyboard, audio, VFX and MCP agent control. Windows early access.', 'homepage':'https://github.com/nqtexd/astral#readme'})
-    api('PUT',prefix+'/topics',{'names':['animation','animation-studio','stickman','rust','egui','wgpu','mcp','frame-by-frame','ai-built','ai-assisted','offline','windows','open-source']})
+    api('PUT',prefix+'/topics',{'names':['animation','animation-studio','stickman','rust','egui','wgpu','mcp','frame-by-frame','ai-built','ai-assisted','offline','windows','open-source','text-to-speech','elevenlabs','2d-animation']})
     if args.publish:
         release = api('PATCH',prefix+'/releases/'+str(release['id']),{'draft':False,'prerelease':True,'make_latest':'false'})
     print(json.dumps({'release':release['html_url'],'draft':release['draft'],'prerelease':release['prerelease'],'commit':head}))

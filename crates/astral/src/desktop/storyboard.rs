@@ -68,7 +68,7 @@ impl Studio {
             .show(ui, |ui| {
                 ui.horizontal_centered(|ui| {
                     ui.add_space(14.);
-                    ui.heading("Storyboard");
+                    ui.heading(i18n::tr("Storyboard"));
                     ui.add_space(12.);
                     if ui.selectable_label(!self.board.cast_tab, "Shots").clicked() {
                         self.board.cast_tab = false;
@@ -250,7 +250,7 @@ impl Studio {
                             });
                             ui.add_space(18.);
                             if theme::button(ui,"Remove character",theme::Icon::Delete,false).clicked(){let id=c.id;self.board.draft.characters.remove(index);for s in &mut self.board.draft.shots{s.cast.retain(|c|c.character!=id);}}
-                        } else {ui.heading("Define your cast");ui.label(RichText::new("Add a character, describe their appearance and goal, then assign a rig when you are ready.").color(MUTED));}
+                        } else {ui.heading(i18n::tr("Define your cast"));ui.label(RichText::new("Add a character, describe their appearance and goal, then assign a rig when you are ready.").color(MUTED));}
                     } else {
                         let cast=self.board.draft.characters.clone();
                         let index=self.board.selected;
@@ -275,13 +275,13 @@ impl Studio {
 
 
                             ui.horizontal(|ui|{
-                                ui.label("Frames");ui.add(egui::DragValue::new(&mut shot.start).range(0..=p.duration-1));ui.label("to");ui.add(egui::DragValue::new(&mut shot.end).range(0..=p.duration-1));
+                                ui.label(i18n::tr("Frames"));ui.add(egui::DragValue::new(&mut shot.start).range(0..=p.duration-1));ui.label(i18n::tr("to"));ui.add(egui::DragValue::new(&mut shot.end).range(0..=p.duration-1));
                                 ui.label(RichText::new(format!("{:.1}s",shot.end.saturating_sub(shot.start).saturating_add(1)as f32/p.fps as f32)).color(MUTED));
                             });
                             field(ui,"Location",&mut shot.location,false);field(ui,"Action · what changes in this shot?",&mut shot.action,true);
                             field(ui,"Camera",&mut shot.camera,false);field(ui,"Sound / dialogue",&mut shot.audio,true);
                             field(ui,"Transition · explain a new location, prop, injury or reversal",&mut shot.transition,true);
-                            ui.add_space(8.);ui.heading("Blocking & continuity");
+                            ui.add_space(8.);ui.heading(i18n::tr("Blocking & continuity"));
                             for c in &cast {
                                 ui.push_id(c.id,|ui|{
                                     let mut included=shot.cast.iter().any(|v|v.character==c.id);
@@ -290,7 +290,7 @@ impl Studio {
                                         egui::CollapsingHeader::new("Entry / exit state").show(ui,|ui|{
                                             for (label,state) in [("Entry",&mut actor.entry),("Exit",&mut actor.exit)]{
                                                 ui.label(RichText::new(label).strong());
-                                                ui.horizontal_wrapped(|ui|{ui.label("X");ui.add(egui::DragValue::new(&mut state.position.x));ui.label("Y");ui.add(egui::DragValue::new(&mut state.position.y));ui.selectable_value(&mut state.facing,-1,"Left");ui.selectable_value(&mut state.facing,1,"Right");});
+                                                ui.horizontal_wrapped(|ui|{ui.label(i18n::tr("X"));ui.add(egui::DragValue::new(&mut state.position.x));ui.label(i18n::tr("Y"));ui.add(egui::DragValue::new(&mut state.position.y));ui.selectable_value(&mut state.facing,-1,"Left");ui.selectable_value(&mut state.facing,1,"Right");});
                                                 field(ui,"Condition",&mut state.condition,false);
                                                 let mut props=state.props.join(", ");
                                                 ui.label(RichText::new("Props · comma separated").small().color(MUTED));
@@ -300,7 +300,7 @@ impl Studio {
                                     }
                                 });
                             }
-                        } else {ui.heading("Plan the film before animating");ui.label(RichText::new("Define your characters, then add shots with a clear action, location and continuity. Each shot opens at its exact timeline frame.").color(MUTED));}
+                        } else {ui.heading(i18n::tr("Plan the film before animating"));ui.label(RichText::new("Define your characters, then add shots with a clear action, location and continuity. Each shot opens at its exact timeline frame.").color(MUTED));}
                         if delete_shot {self.board.draft.shots.remove(index);}
                         if !self.board.review.is_empty(){ui.label(&self.board.review);}
                     }

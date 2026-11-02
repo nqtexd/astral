@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "product": "Astral",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "requested_release": "Moho Debut-equivalent features plus Astral tools on desktop, phones and tablets",
   "inventory_complete": false,
   "reference_scope": "Minimum confirmed requirements from the official Debut product page and the 14.5 announcement; an exhaustive edition-by-edition comparison remains required.",
@@ -18,16 +18,17 @@
     {
       "id": "editable_vector_points_curves",
       "status": "partial",
-      "gap": "Custom contours and strokes exist; a full editable Bezier/vector-point toolset is missing."
+      "gap": "Pressure-aware vector strokes, draggable point controls, closed fills and cubic smoothing exist; a full Bezier tangent-handle/Boolean toolset is not equivalent."
     },
     {
       "id": "vector_fills_brush_styles",
       "status": "partial",
-      "gap": "Basic filled graphics and stroke width/color exist; paint-bucket and brush-style equivalents are missing."
+      "gap": "Solid/marker/dashed/stipple strokes and closed fills exist; texture/scatter-brush packs and a general paint bucket remain."
     },
     {
       "id": "pen_pressure",
-      "status": "missing"
+      "status": "partial",
+      "gap": "Normalized device pressure is recorded and rendered per stroke sample; mouse fallback and engine tests exist. Physical tablet/driver certification remains."
     },
     {
       "id": "bitmap_layers",
@@ -52,13 +53,14 @@
     },
     {
       "id": "rig_driven_correctives",
-      "status": "missing"
+      "status": "partial",
+      "gap": "Bone-angle-driven additive raster-pin correctives are available; arbitrary vector corrective actions and full Smart Bone equivalence remain."
     },
     {
       "id": "mesh_curve_deformation",
       "status": "partial",
       "evidence": "crates/astral-core/src/raster.rs",
-      "gap": "Animated raster grid/pins exist; advanced curve cages, ARAP/rig-driven deformation parity is not implemented."
+      "gap": "MLS similarity pins and animated cubic curvers are available; ARAP/advanced cages and broad rig-deformation equivalence remain."
     },
     {
       "id": "keyframe_timeline",
@@ -84,8 +86,8 @@
     },
     {
       "id": "audio_formats_pitch_sequencing",
-      "status": "partial",
-      "gap": "WAV, gain, fades and cues exist; complete input-format and clip-pitch parity is unverified."
+      "status": "implemented",
+      "evidence": "Native WAV/AIFF/MP3/M4A decoder, full-length import, speed/pitch, waveforms and editable timeline clips; code/tests in crates/astral-audio."
     },
     {
       "id": "automatic_lipsync",
@@ -102,7 +104,7 @@
       "id": "video_import_tracking",
       "status": "partial",
       "evidence": "crates/astral/src/artwork.rs",
-      "gap": "Bounded video image-sequence import and local template tracking; long-form decoding, occlusion recovery and general object tracking remain."
+      "gap": "Bounded video sequences and reviewed camera/object tracking; two-point rotation/scale. Long-form streaming decoding and occlusion recovery remain."
     },
     {
       "id": "video_still_export_formats",
@@ -116,7 +118,8 @@
     },
     {
       "id": "shortcut_editor",
-      "status": "missing"
+      "status": "implemented",
+      "evidence": "18 actions, persistent bindings, conflict rejection and actual shortcut labels; crates/astral/src/desktop/keymap.rs."
     },
     {
       "id": "live_model_playback_streaming",
@@ -124,7 +127,8 @@
     },
     {
       "id": "localization",
-      "status": "missing"
+      "status": "partial",
+      "gap": "English/Spanish/French core controls; advanced diagnostics and full-language/RTL coverage remain."
     },
     {
       "id": "astral_storyboard",

@@ -87,6 +87,9 @@ pub struct Contact {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Character {
+    /// Rig controls remain editable while bound artwork supplies the visible character.
+    #[serde(default)]
+    pub artwork_only: bool,
     pub id: Id,
     pub name: String,
     pub color: Color,
@@ -204,6 +207,9 @@ pub struct CameraKey {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct AudioClip {
+    /// Playback-rate pitch control. Duration remains an explicit timeline edit.
+    #[serde(default = "normal_speed")]
+    pub speed: f32,
     pub id: Id,
     pub name: String,
     pub asset: Id,
@@ -214,6 +220,9 @@ pub struct AudioClip {
     pub fade_in: f32,
     pub fade_out: f32,
     pub looping: bool,
+}
+fn normal_speed() -> f32 {
+    1.
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -246,6 +255,9 @@ pub struct NamedPose {
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Project {
+    /// Immutable archived source shared by all revisions; never rendered or sent in inspection results.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original_source: Option<std::sync::Arc<OriginalSource>>,
     #[serde(default)]
     pub bitmaps: Vec<crate::Bitmap>,
     #[serde(default)]
@@ -288,10 +300,47 @@ pub struct Project {
     #[serde(default)]
     pub markers: BTreeMap<String, u32>,
 }
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct OriginalSource {
+    pub filename: String,
+    pub source_base64: std::sync::Arc<str>,
+    pub canonical_json: std::sync::Arc<str>,
+}
 
 impl Project {
+    pub fn upgrade_original_source(&mut self) -> Result<()> {
+        if self.original_source.is_none()
+            && let Some(legacy) = self
+                .metadata
+                .get_mut("legacy")
+                .and_then(|v| v.as_object_mut())
+            && legacy.get("source_base64").is_some_and(|v| v.is_string())
+        {
+            let source = legacy
+                .remove("source_base64")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                .to_string();
+            let canonical = serde_json::to_string(
+                &legacy.remove("document").unwrap_or(serde_json::Value::Null),
+            )?;
+            self.original_source = Some(std::sync::Arc::new(OriginalSource {
+                filename: legacy
+                    .get("filename")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Imported")
+                    .into(),
+                source_base64: source.into(),
+                canonical_json: canonical.into(),
+            }));
+            self.schema = self.schema.max(9);
+        }
+        Ok(())
+    }
     pub fn new(name: impl Into<String>, width: u32, height: u32, fps: u32, duration: u32) -> Self {
         Self {
+            original_source: None,
             schema: 2,
             bitmaps: vec![],
             rasters: vec![],
@@ -324,8 +373,17 @@ impl Project {
         }
     }
     pub fn validate(&self) -> Result<()> {
+        if let Some(source) = &self.original_source {
+            ensure!(
+                self.schema >= 9
+                    && source.filename.len() <= 4096
+                    && source.source_base64.len() <= 128 * 1024 * 1024
+                    && source.canonical_json.len() <= 128 * 1024 * 1024,
+                "Invalid or oversized original source archive"
+            );
+        }
         ensure!(
-            matches!(self.schema, 1..=8),
+            matches!(self.schema, 1..=9),
             "Unsupported Astral schema {}",
             self.schema
         );
@@ -414,6 +472,10 @@ impl Project {
         }
         let range = |a: u32, b: u32| a <= b && b < self.duration;
         for c in &self.characters {
+            ensure!(
+                !c.artwork_only || self.schema >= 9,
+                "Artwork-only rigs require schema 9"
+            );
             ensure!(
                 !c.joints.is_empty() && c.joints.len() <= 4096,
                 "Invalid rig size"
@@ -510,19 +572,25 @@ impl Project {
         }
         for a in &self.audio {
             ensure!(
+                a.speed == 1. || self.schema >= 9,
+                "Audio speed requires schema 9"
+            );
+            ensure!(
                 self.assets.iter().any(|v| v.id == a.asset) && a.start < self.duration,
                 "Audio asset missing or start outside project"
             );
             ensure!(
-                [
-                    a.offset_seconds,
-                    a.duration_seconds,
-                    a.gain as f64,
-                    a.fade_in as f64,
-                    a.fade_out as f64
-                ]
-                .iter()
-                .all(|v| v.is_finite())
+                a.speed.is_finite()
+                    && (0.25..=4.).contains(&a.speed)
+                    && [
+                        a.offset_seconds,
+                        a.duration_seconds,
+                        a.gain as f64,
+                        a.fade_in as f64,
+                        a.fade_out as f64
+                    ]
+                    .iter()
+                    .all(|v| v.is_finite())
                     && a.offset_seconds >= 0.
                     && a.duration_seconds > 0.
                     && a.duration_seconds <= 3600.
@@ -599,6 +667,7 @@ pub fn stick_character(name: String, root: Point, color: Color) -> Character {
         joints: joints.iter().map(|j| j.position).collect(),
     };
     Character {
+        artwork_only: false,
         id: Id::new_v4(),
         name,
         color,

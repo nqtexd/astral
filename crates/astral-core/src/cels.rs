@@ -24,9 +24,114 @@ impl DrawingLayer {
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct InkStroke {
+    /// Optional embedded bitmap; four vector points define its editable destination quad.
+    #[serde(default)]
+    pub bitmap: Option<Id>,
+    #[serde(default)]
+    pub skin: Option<StrokeSkin>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pressures: Vec<f32>,
+    #[serde(default)]
+    pub style: BrushStyle,
+    #[serde(default)]
+    pub filled: bool,
+    #[serde(default)]
+    pub curved: bool,
     pub points: Vec<Point>,
     pub color: Color,
     pub width: f32,
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BrushStyle {
+    #[default]
+    Solid,
+    Marker,
+    Dashed,
+    Stipple,
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct StrokeSkin {
+    pub character: Id,
+    pub joints: Vec<usize>,
+    pub rest: Vec<Point>,
+}
+impl InkStroke {
+    pub fn world_node_points(&self, scene: &EvaluatedScene) -> Vec<Point> {
+        let mut stroke = self.clone();
+        stroke.curved = false;
+        stroke.world_points(scene)
+    }
+    pub fn world_points(&self, scene: &EvaluatedScene) -> Vec<Point> {
+        let points = self.sampled_points();
+        let Some(skin) = &self.skin else {
+            return points;
+        };
+        let Some(character) = scene.characters.iter().find(|c| c.id == skin.character) else {
+            return vec![];
+        };
+        let pins: Vec<MeshPin> = skin
+            .joints
+            .iter()
+            .zip(&skin.rest)
+            .map(|(joint, rest)| MeshPin {
+                id: Id::nil(),
+                name: String::new(),
+                rest: *rest,
+                keys: vec![PinKey {
+                    frame: 0,
+                    offset: character.pose.root + character.pose.joints[*joint] - *rest,
+                }],
+                driver: None,
+            })
+            .collect();
+        points
+            .into_iter()
+            .map(|point| crate::deformation::similarity(point, &pins, 0.))
+            .collect()
+    }
+    pub fn sampled_points(&self) -> Vec<Point> {
+        if !self.curved || self.points.len() < 3 {
+            return self.points.clone();
+        }
+        let mut out = vec![self.points[0]];
+        for i in 0..self.points.len() - 1 {
+            let a = self.points[i.saturating_sub(1)];
+            let b = self.points[i];
+            let c = self.points[i + 1];
+            let d = self.points[(i + 2).min(self.points.len() - 1)];
+            for step in 1..=8 {
+                let t = step as f32 / 8.;
+                let t2 = t * t;
+                let t3 = t * t2;
+                out.push(Point::new(
+                    0.5 * ((2. * b.x)
+                        + (-a.x + c.x) * t
+                        + (2. * a.x - 5. * b.x + 4. * c.x - d.x) * t2
+                        + (-a.x + 3. * b.x - 3. * c.x + d.x) * t3),
+                    0.5 * ((2. * b.y)
+                        + (-a.y + c.y) * t
+                        + (2. * a.y - 5. * b.y + 4. * c.y - d.y) * t2
+                        + (-a.y + 3. * b.y - 3. * c.y + d.y) * t3),
+                ));
+            }
+        }
+        out
+    }
+    pub fn pressure_at(&self, index: usize) -> f32 {
+        if self.pressures.is_empty() {
+            return 1.;
+        }
+        let at = if self.curved && self.points.len() >= 3 {
+            index as f32 / 8.
+        } else {
+            index as f32
+        };
+        let at = at.clamp(0., (self.pressures.len() - 1) as f32);
+        let a = at.floor() as usize;
+        let b = (a + 1).min(self.pressures.len() - 1);
+        self.pressures[a] + (self.pressures[b] - self.pressures[a]) * (at - a as f32)
+    }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DrawingCel {
@@ -77,6 +182,57 @@ pub(crate) fn validate(p: &Project) -> Result<()> {
         );
         ensure!(cel.strokes.len() <= 100_000, "Too many strokes in one cel");
         for stroke in &cel.strokes {
+            ensure!(
+                !stroke.curved || stroke.points.len() <= 12500,
+                "Cubic strokes exceed the 100000-sample budget"
+            );
+            if matches!(stroke.style, BrushStyle::Dashed | BrushStyle::Stipple) {
+                let length: f32 = stroke.points.windows(2).map(|p| p[0].distance(p[1])).sum();
+                ensure!(
+                    length.is_finite() && length / (stroke.width * 1.5).max(1.) <= 50000.,
+                    "Pattern brush exceeds its 50000-mark budget"
+                );
+            }
+            ensure!(
+                p.schema >= 9
+                    || (stroke.pressures.is_empty()
+                        && stroke.bitmap.is_none()
+                        && stroke.skin.is_none()
+                        && !stroke.filled
+                        && !stroke.curved
+                        && stroke.style == BrushStyle::Solid),
+                "Advanced vector cels require schema 9"
+            );
+            if let Some(bitmap) = stroke.bitmap {
+                ensure!(
+                    stroke.points.len() == 4
+                        && !stroke.curved
+                        && !stroke.filled
+                        && stroke.pressures.is_empty()
+                        && stroke.style == BrushStyle::Solid
+                        && p.bitmaps.iter().any(|b| b.id == bitmap),
+                    "Image cel needs an embedded bitmap and four corners"
+                );
+            }
+            if let Some(skin) = &stroke.skin {
+                ensure!(
+                    !skin.joints.is_empty()
+                        && skin.joints.len() <= 64
+                        && skin.rest.len() == skin.joints.len()
+                        && skin.rest.iter().all(|q| q.finite())
+                        && p.character(skin.character)
+                            .is_some_and(|c| skin.joints.iter().all(|j| *j < c.joints.len())),
+                    "Invalid vector skin binding"
+                );
+            }
+            ensure!(
+                (stroke.pressures.is_empty() || stroke.pressures.len() == stroke.points.len())
+                    && stroke
+                        .pressures
+                        .iter()
+                        .all(|p| p.is_finite() && (0.0..=1.).contains(p)),
+                "Pressure samples must match the vector points and be within 0–1"
+            );
             ensure!(
                 (2..=100_000).contains(&stroke.points.len())
                     && stroke.points.iter().all(|q| q.finite())

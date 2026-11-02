@@ -137,6 +137,12 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                     if primitive == 0 {
                         if width <= 500. {
                             strokes.push(InkStroke {
+                                bitmap: None,
+                                skin: None,
+                                pressures: vec![],
+                                style: BrushStyle::Solid,
+                                filled: false,
+                                curved: false,
                                 points,
                                 color,
                                 width,
@@ -157,6 +163,12 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                         }
                         if filled {
                             strokes.push(InkStroke {
+                                bitmap: None,
+                                skin: None,
+                                pressures: vec![],
+                                style: BrushStyle::Solid,
+                                filled: false,
+                                curved: false,
                                 points: vec![center, center + Point::new(0.001, 0.)],
                                 color,
                                 width: (radius * 2.).max(0.1),
@@ -164,12 +176,24 @@ pub fn convert(p: &mut Project, report: &Value) -> Result<Vec<String>> {
                         } else {
                             if primitive == 1 {
                                 strokes.push(InkStroke {
+                                    bitmap: None,
+                                    skin: None,
+                                    pressures: vec![],
+                                    style: BrushStyle::Solid,
+                                    filled: false,
+                                    curved: false,
                                     points: vec![center, center + Point::new(0.001, 0.)],
                                     color: [255, 255, 255, color[3]],
                                     width: (radius * 2.).max(0.1),
                                 });
                             }
                             strokes.push(InkStroke {
+                                bitmap: None,
+                                skin: None,
+                                pressures: vec![],
+                                style: BrushStyle::Solid,
+                                filled: false,
+                                curved: false,
                                 points: (0..=64)
                                     .map(|n| {
                                         let a = n as f32 / 64. * std::f32::consts::TAU;

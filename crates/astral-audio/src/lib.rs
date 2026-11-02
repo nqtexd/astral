@@ -1,6 +1,8 @@
 //! Offline WAV mixing. Source clips stay independently editable in the document.
 use anyhow::{Context, Result, ensure};
 use astral_core::*;
+mod decode;
+pub use decode::{Pcm, decode, normalize_wav};
 pub fn wav_duration(bytes: &[u8]) -> Result<f64> {
     let reader = hound::WavReader::new(std::io::Cursor::new(bytes))?;
     let spec = reader.spec();
@@ -28,41 +30,19 @@ pub fn mix(project: &Project, workspace: &Workspace) -> Result<Vec<u8>> {
             .find(|a| a.id == clip.asset)
             .context("Audio asset missing")?;
         let bytes = workspace.read(&asset.path)?;
-        let mut reader = hound::WavReader::new(Cursor::new(bytes)).with_context(|| {
-            format!("{}: import PCM WAV audio for the native mixer", asset.name)
-        })?;
-        let spec = reader.spec();
-        ensure!(
-            (1..=2).contains(&spec.channels) && spec.sample_rate > 0,
-            "Only mono/stereo WAV is supported"
-        );
-        let samples: Vec<f32> = match spec.sample_format {
-            hound::SampleFormat::Float => reader
-                .samples::<f32>()
-                .collect::<std::result::Result<_, _>>()?,
-            hound::SampleFormat::Int => {
-                ensure!(
-                    (1..=32).contains(&spec.bits_per_sample),
-                    "Invalid WAV depth"
-                );
-                let scale = 2f32.powi(spec.bits_per_sample as i32 - 1);
-                reader
-                    .samples::<i32>()
-                    .map(|v| v.map(|v| v as f32 / scale))
-                    .collect::<std::result::Result<_, _>>()?
-            }
-        };
+        let pcm = decode(&bytes).with_context(|| format!("Decode {}", asset.name))?;
+        let samples = pcm.samples;
         ensure!(
             samples.iter().all(|v| v.is_finite()),
             "Non-finite audio samples"
         );
-        let source_frames = samples.len() / spec.channels as usize;
+        let source_frames = samples.len() / pcm.channels;
         ensure!(source_frames > 0, "Empty WAV file");
         let start = (clip.start as f64 / project.fps as f64 * SAMPLE_RATE as f64).round() as usize;
         let count = (clip.duration_seconds * SAMPLE_RATE as f64).round() as usize;
         for i in 0..count.min(mixed.len().saturating_sub(start)) {
             let time = i as f64 / SAMPLE_RATE as f64;
-            let source = (clip.offset_seconds + time) * spec.sample_rate as f64;
+            let source = (clip.offset_seconds + time * clip.speed as f64) * pcm.rate as f64;
             let source = if clip.looping {
                 source % source_frames as f64
             } else {
@@ -85,9 +65,9 @@ pub fn mix(project: &Project, workspace: &Workspace) -> Result<Vec<u8>> {
                 1.
             };
             for (channel, output) in mixed[start + i].iter_mut().enumerate() {
-                let ch = channel.min(spec.channels as usize - 1);
-                let a = samples[f * spec.channels as usize + ch];
-                let b = samples[next * spec.channels as usize + ch];
+                let ch = channel.min(pcm.channels - 1);
+                let a = samples[f * pcm.channels + ch];
+                let b = samples[next * pcm.channels + ch];
                 *output += (a + (b - a) * t) * clip.gain * fade_in * fade_out;
             }
         }
@@ -141,23 +121,17 @@ pub fn impact_wav() -> Result<Vec<u8>> {
 }
 pub fn waveform(bytes: &[u8], bins: usize) -> Result<Vec<f32>> {
     ensure!((1..=4096).contains(&bins), "Invalid waveform bins");
-    let mut reader = hound::WavReader::new(Cursor::new(bytes))?;
-    let spec = reader.spec();
-    let samples: Vec<f32> = if spec.sample_format == hound::SampleFormat::Float {
-        reader
-            .samples::<f32>()
-            .collect::<std::result::Result<_, _>>()?
-    } else {
-        let scale = 2f32.powi(spec.bits_per_sample as i32 - 1);
-        reader
-            .samples::<i32>()
-            .map(|v| v.map(|v| v as f32 / scale))
-            .collect::<std::result::Result<_, _>>()?
-    };
+    Ok(analyze(bytes, bins)?.1)
+}
+pub fn analyze(bytes: &[u8], bins: usize) -> Result<(f64, Vec<f32>)> {
+    ensure!((1..=4096).contains(&bins), "Invalid waveform bins");
+    let pcm = decode(bytes)?;
+    let duration = pcm.samples.len() as f64 / pcm.channels as f64 / pcm.rate as f64;
+    let samples = pcm.samples;
     let mut peaks = vec![0f32; bins];
     for (i, s) in samples.iter().enumerate() {
         let b = i * bins / samples.len().max(1);
         peaks[b] = peaks[b].max(s.abs());
     }
-    Ok(peaks)
+    Ok((duration, peaks))
 }

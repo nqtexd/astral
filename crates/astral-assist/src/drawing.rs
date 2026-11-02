@@ -12,7 +12,17 @@ pub struct StrokeSuggestion {
     pub score: f32,
 }
 pub fn suggest_stroke(stroke: &InkStroke, strength: f32) -> Option<StrokeSuggestion> {
-    if stroke.points.len() < 2 || !(0.1..=1.).contains(&strength) {
+    if stroke.bitmap.is_some()
+        || stroke.skin.is_some()
+        || stroke
+            .pressures
+            .windows(2)
+            .any(|p| (p[0] - p[1]).abs() > 0.001)
+        || stroke.filled
+        || stroke.curved
+        || stroke.points.len() < 2
+        || !(0.1..=1.).contains(&strength)
+    {
         return None;
     }
     let length: f32 = stroke.points.windows(2).map(|p| p[0].distance(p[1])).sum();
@@ -84,6 +94,12 @@ pub fn suggest_stroke(stroke: &InkStroke, strength: f32) -> Option<StrokeSuggest
                 completed.points.extend_from_slice(&tail[1..]);
                 let mut ghost = stroke.clone();
                 ghost.points = tail;
+                if let Some(pressure) = stroke.pressures.first() {
+                    completed
+                        .pressures
+                        .resize(completed.points.len(), *pressure);
+                    ghost.pressures = vec![*pressure; ghost.points.len()];
+                }
                 return Some(StrokeSuggestion {
                     stroke: completed,
                     ghost,
@@ -112,6 +128,12 @@ pub fn suggest_stroke(stroke: &InkStroke, strength: f32) -> Option<StrokeSuggest
     completed.points.push(end);
     let mut ghost = stroke.clone();
     ghost.points = vec![last, end];
+    if let Some(pressure) = stroke.pressures.first() {
+        completed
+            .pressures
+            .resize(completed.points.len(), *pressure);
+        ghost.pressures = vec![*pressure; ghost.points.len()];
+    }
     Some(StrokeSuggestion {
         stroke: completed,
         ghost,
@@ -122,6 +144,7 @@ pub fn suggest_stroke(stroke: &InkStroke, strength: f32) -> Option<StrokeSuggest
 pub struct CelLearner {
     models: Vec<DrawingMotion>,
     sources: Vec<u32>,
+    styles: Vec<InkStroke>,
 }
 impl CelLearner {
     pub fn train(p: &Project, layer: Id, frames: &[u32], smoothing: f64) -> Result<Self> {
@@ -155,6 +178,15 @@ impl CelLearner {
             let mut ids = vec![];
             for cel in &cels {
                 let s = &cel.strokes[index];
+                let first = &cels[0].strokes[index];
+                ensure!(
+                    s.skin.is_none() && s.bitmap.is_none(),
+                    "Learn unbound vector strokes; rigged artwork and images use their own animation tracks"
+                );
+                ensure!(
+                    s.style == first.style && s.filled == first.filled && s.curved == first.curved,
+                    "Corresponding strokes must use the same fill, curve and brush style"
+                );
                 let id = Id::new_v4();
                 ids.push(id);
                 temp.drawings.push(Drawing {
@@ -177,6 +209,7 @@ impl CelLearner {
         Ok(Self {
             models,
             sources: frames,
+            styles: cels[0].strokes.clone(),
         })
     }
     pub fn predict(&self, p: &Project, frame: u32) -> Result<Vec<InkStroke>> {
@@ -187,10 +220,26 @@ impl CelLearner {
         Ok(self
             .models
             .iter()
-            .map(|m| InkStroke {
-                points: sample_drawing(p, m, frame as f64),
-                color: m.color,
-                width: m.width,
+            .enumerate()
+            .map(|(index, m)| {
+                let mut stroke = self.styles[index].clone();
+                let points = sample_drawing(p, m, frame as f64);
+                if !stroke.pressures.is_empty() {
+                    let original = stroke.pressures.clone();
+                    stroke.pressures = (0..points.len())
+                        .map(|i| {
+                            let t =
+                                i as f32 / (points.len() - 1) as f32 * (original.len() - 1) as f32;
+                            let a = t.floor() as usize;
+                            let b = (a + 1).min(original.len() - 1);
+                            original[a] + (original[b] - original[a]) * (t - a as f32)
+                        })
+                        .collect();
+                }
+                stroke.points = points;
+                stroke.color = m.color;
+                stroke.width = m.width;
+                stroke
             })
             .collect())
     }

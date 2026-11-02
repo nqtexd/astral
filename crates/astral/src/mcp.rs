@@ -315,7 +315,7 @@ pub struct TrashArgs {
 #[tool_router]
 impl AstralMcp {
     #[tool(
-        description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera-key proposals (source-pixel seed, at most 120 frames). Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD text/masks/groups/blends are not native equivalents; warnings describe limits. Use apply_commands PutRasterLayer for transform and mesh-pin edits."
+        description = "Import bounded image sequences or layered 8-bit RGB PSD; paint independent bitmap cels; generate editable audio-envelope/text-guided mouth cues; convert short video clips to image sequences; track distinctive image patches into reviewed camera or graphic/raster object keys (source-pixel seed, at most 120 frames, optional second_point for rotation/scale and target object ID). Import audio normalizes bounded WAV/AIFF/MP3/M4A to editable full-length clips. Mutations require the current revision. Import/video return cancellable jobs. Paint points/radius are source pixels. PSD text/masks/groups/blends are not native equivalents; warnings describe limits. Use apply_commands PutRasterLayer for transforms, translation/MLS-similarity pins, cubic curve keys and bone-angle corrective drivers."
     )]
     async fn artwork_tools(
         &self,
@@ -793,7 +793,7 @@ impl AstralMcp {
         .await
     }
     #[tool(
-        description = "Synthesize offline speech into an editable WAV/audio track, optionally with matching editable dialogue. Select a voice ID from list_voices and rate/pitch/volume. Timeline extends when needed. Returns a cancellable job; stale revisions prevent partial document edits."
+        description = "Generate editable WAV speech and optional dialogue using the saved Voice settings. options.provider selects offline, elevenlabs or compatible; omit to use the configured provider. External services require explicit opt-in and local credentials from Settings or environment; they may charge credits. Never pass API keys in tool calls or projects. list_voices lists installed Windows voices only. External pitch must be 1.0. Returns a cancellable revision-checked job."
     )]
     async fn add_voice(&self, Parameters(a): Parameters<VoiceArgs>) -> CallToolResult {
         self.dispatch(Request::Assist {
@@ -975,7 +975,7 @@ impl AstralMcp {
         .await
     }
     #[tool(
-        description = "Import an existing workspace WAV/image file into the asset registry. WAV audio can be placed using add_audio; image rendering is not implemented yet."
+        description = "Register a workspace audio/image asset. Supported audio: WAV/AIFF/MP3/M4A. Registration alone does not place media on stage; use artwork_tools import for visible image layers or audio for full-length normalized clips, or add_audio for registered sounds."
     )]
     async fn import_asset(&self, Parameters(a): Parameters<AssetArgs>) -> CallToolResult {
         self.dispatch(Request::ImportAsset {
@@ -987,7 +987,7 @@ impl AstralMcp {
         .await
     }
     #[tool(
-        description = "Decode and archive an existing legacy file losslessly. Native geometry conversion is not implemented; returns explicit coverage warnings."
+        description = "Import a legacy file through the established source evaluator into sampled native cels, rig controls, supported skinned shapes and image quads, camera keys and embedded audio. Preserve the complete original and canonical metadata. Native source-solvers and filter/text/tiled-drawing semantics are not lossless equivalents; inspect returned conversion warnings and previews. Python/Node are transitional import dependencies."
     )]
     async fn import_legacy(&self, Parameters(a): Parameters<OpenArgs>) -> CallToolResult {
         self.dispatch(Request::ImportLegacy { path: a.path }).await

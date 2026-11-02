@@ -15,6 +15,8 @@ mod assist;
 mod export_panel;
 mod features;
 mod frame_editor;
+mod i18n;
+mod keymap;
 mod motion;
 mod project_manager;
 mod storyboard;
@@ -35,6 +37,8 @@ enum WorkspaceMode {
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 struct Preferences {
+    language: String,
+    shortcuts: BTreeMap<String, keymap::Binding>,
     accent: Color,
     canvas_surround: Color,
     compact_controls: bool,
@@ -66,6 +70,10 @@ struct Preferences {
     completion_strength: f32,
     suggestion_threshold: f32,
     pose_model_path: String,
+    pressure_brush: bool,
+    brush_style: BrushStyle,
+    curved_brush: bool,
+    filled_brush: bool,
     voice_id: String,
     voice_rate: f64,
     voice_pitch: f64,
@@ -77,6 +85,8 @@ struct Preferences {
 impl Default for Preferences {
     fn default() -> Self {
         Self {
+            language: "en".into(),
+            shortcuts: BTreeMap::new(),
             accent: [90, 153, 232, 255],
             canvas_surround: [13, 15, 23, 255],
             compact_controls: false,
@@ -108,6 +118,10 @@ impl Default for Preferences {
             completion_strength: 0.5,
             suggestion_threshold: 0.8,
             pose_model_path: String::new(),
+            pressure_brush: true,
+            brush_style: BrushStyle::Solid,
+            curved_brush: false,
+            filled_brush: false,
             voice_id: String::new(),
             voice_rate: 1.,
             voice_pitch: 1.,
@@ -162,6 +176,8 @@ pub struct Studio {
     search: String,
     palette: bool,
     stroke: Vec<Point>,
+    stroke_pressure: Vec<f32>,
+    node_drag: Option<(usize, usize)>,
     drag_pose: Option<Pose>,
     drag_joint: Option<usize>,
     drag_origin: Option<Pos2>,
@@ -251,6 +267,8 @@ impl Studio {
             search: String::new(),
             palette: false,
             stroke: vec![],
+            stroke_pressure: vec![],
+            node_drag: None,
             drag_pose: None,
             drag_joint: None,
             drag_origin: None,
@@ -583,52 +601,10 @@ impl Studio {
     }
     fn import_audio(&mut self) {
         if let Some(file) = rfd::FileDialog::new()
-            .add_filter("PCM WAV", &["wav"])
+            .add_filter("Audio", &["wav", "aiff", "aif", "mp3", "m4a"])
             .pick_file()
         {
-            let result = (|| -> anyhow::Result<()> {
-                let name = file.file_name().unwrap().to_string_lossy().to_string();
-                anyhow::ensure!(
-                    std::fs::metadata(&file)?.len() <= 64 * 1024 * 1024,
-                    "Audio file exceeds 64 MiB"
-                );
-                let bytes = std::fs::read(file)?;
-                let _ = astral_audio::waveform(&bytes, 16)?;
-                let path = format!("assets/{}-{name}", Id::new_v4());
-                self.service
-                    .project_workspace(self.project)
-                    .atomic_write(&path, &bytes)?;
-                let id = Id::new_v4();
-                self.apply(vec![
-                    Command::AddAsset {
-                        asset: Asset {
-                            id,
-                            name: name.clone(),
-                            path,
-                            kind: "audio".into(),
-                            tags: vec![],
-                        },
-                    },
-                    Command::AddAudio {
-                        clip: AudioClip {
-                            id: Id::new_v4(),
-                            name,
-                            asset: id,
-                            start: self.frame as u32,
-                            offset_seconds: 0.,
-                            duration_seconds: 1.,
-                            gain: 0.8,
-                            fade_in: 0.01,
-                            fade_out: 0.04,
-                            looping: false,
-                        },
-                    },
-                ]);
-                Ok(())
-            })();
-            if let Err(e) = result {
-                self.status = e.to_string()
-            }
+            self.import_audio_file(file);
         }
     }
     fn start_export(&mut self) {
@@ -665,7 +641,16 @@ impl Studio {
         }
     }
     fn shortcuts(&mut self, ctx: &egui::Context) {
-        let (save, undo, redo, palette, play) = shortcut_flags(ctx);
+        let text = ctx.egui_wants_keyboard_input();
+        let (save, undo, redo, palette, play) = ctx.input(|i| {
+            (
+                keymap::pressed(i, &self.preferences.shortcuts, "save"),
+                !text && keymap::pressed(i, &self.preferences.shortcuts, "undo"),
+                !text && keymap::pressed(i, &self.preferences.shortcuts, "redo"),
+                !text && keymap::pressed(i, &self.preferences.shortcuts, "search"),
+                !text && keymap::pressed(i, &self.preferences.shortcuts, "play"),
+            )
+        });
         if save {
             self.save_project()
         }
@@ -695,34 +680,34 @@ impl Studio {
                         self.manager.home = true;
                     }
                     theme::icon_menu(ui, "File", theme::Icon::More, |ui| {
-                        if ui.button("New project    Ctrl+N").clicked() {
+                        if ui.button(i18n::tr("New project")).clicked() {
                             self.new_project();
                             ui.close();
                         }
-                        if ui.button("Open project    Ctrl+O").clicked() {
+                        if ui.button(i18n::tr("Open project")).clicked() {
                             self.open_project();
                             ui.close();
                         }
                         ui.separator();
-                        if ui.button("Save    Ctrl+S").clicked() {
+                        if ui.button(i18n::tr("Save")).clicked() {
                             self.save_project();
                             ui.close();
                         }
-                        if ui.button("Save as    Ctrl+Shift+S").clicked() {
+                        if ui.button(i18n::tr("Save as")).clicked() {
                             self.save_project_as();
                             ui.close();
                         }
-                        if ui.button("Close project    Ctrl+W").clicked() {
+                        if ui.button(i18n::tr("Close project")).clicked() {
                             self.request_close_project(self.project);
                             ui.close();
                         }
                         ui.separator();
-                        if ui.button("Storyboard").clicked() {
+                        if ui.button(i18n::tr("Storyboard")).clicked() {
                             self.stop();
                             self.preferences.mode = WorkspaceMode::Storyboard;
                             ui.close();
                         }
-                        if ui.button("Project settings").clicked() {
+                        if ui.button(i18n::tr("Project settings")).clicked() {
                             self.open_project_settings(p);
                             ui.close();
                         }
@@ -761,8 +746,13 @@ impl Studio {
                         {
                             self.assist.settings_open = true;
                         }
-                        if theme::icon_button(ui, "Save · Ctrl+S", theme::Icon::Save, false)
-                            .clicked()
+                        if theme::icon_button(
+                            ui,
+                            &self.shortcut_label("save", "Save"),
+                            theme::Icon::Save,
+                            false,
+                        )
+                        .clicked()
                         {
                             self.save_project();
                         }
@@ -852,26 +842,27 @@ impl Studio {
                         for (tool, label, icon) in [
                             (
                                 frame_editor::DrawTool::Pencil,
-                                "Pencil · B",
+                                self.shortcut_label("pencil", "Pencil"),
                                 theme::Icon::Pencil,
                             ),
                             (
                                 frame_editor::DrawTool::Eraser,
-                                "Eraser · E",
+                                self.shortcut_label("eraser", "Eraser"),
                                 theme::Icon::Eraser,
                             ),
                             (
                                 frame_editor::DrawTool::Move,
-                                "Move drawing · G",
+                                self.shortcut_label("move", "Move drawing"),
                                 theme::Icon::Move,
                             ),
                             (
                                 frame_editor::DrawTool::Hand,
-                                "Pan canvas · H",
+                                self.shortcut_label("hand", "Pan canvas"),
                                 theme::Icon::Hand,
                             ),
                         ] {
-                            if theme::icon_button(ui, label, icon, self.draw_tool == tool).clicked()
+                            if theme::icon_button(ui, &label, icon, self.draw_tool == tool)
+                                .clicked()
                             {
                                 self.draw_tool = tool;
                                 self.stroke.clear();
@@ -885,23 +876,40 @@ impl Studio {
                         self.add_character();
                     }
                     ui.separator();
-                    if theme::icon_button(ui, "Undo · Ctrl+Z", theme::Icon::Undo, false).clicked()
+                    if theme::icon_button(
+                        ui,
+                        &self.shortcut_label("undo", "Undo"),
+                        theme::Icon::Undo,
+                        false,
+                    )
+                    .clicked()
                     {
                         self.history(false);
                     }
-                    if theme::icon_button(ui, "Redo · Ctrl+Shift+Z", theme::Icon::Redo, false)
-                        .clicked()
+                    if theme::icon_button(
+                        ui,
+                        &self.shortcut_label("redo", "Redo"),
+                        theme::Icon::Redo,
+                        false,
+                    )
+                    .clicked()
                     {
                         self.history(true);
                     }
                     theme::icon_menu(ui, "View options", theme::Icon::Sliders, |ui| {
-                        ui.checkbox(&mut self.preferences.left, "Layers and scene");
-                        ui.checkbox(&mut self.preferences.right, "Inspector");
-                        ui.checkbox(&mut self.preferences.timeline, "Timeline");
-                        ui.checkbox(&mut self.preferences.advanced_timeline, "Detailed timeline");
-                        ui.checkbox(&mut self.preferences.pro_mode, "Pro controls");
-                        ui.checkbox(&mut self.preferences.onion, "Onion skin");
-                        ui.checkbox(&mut self.preferences.reduced_motion, "Reduced motion");
+                        ui.checkbox(&mut self.preferences.left, i18n::tr("Layers and scene"));
+                        ui.checkbox(&mut self.preferences.right, i18n::tr("Inspector"));
+                        ui.checkbox(&mut self.preferences.timeline, i18n::tr("Timeline"));
+                        ui.checkbox(
+                            &mut self.preferences.advanced_timeline,
+                            i18n::tr("Detailed timeline"),
+                        );
+                        ui.checkbox(&mut self.preferences.pro_mode, i18n::tr("Pro controls"));
+                        ui.checkbox(&mut self.preferences.onion, i18n::tr("Onion skin"));
+                        ui.checkbox(
+                            &mut self.preferences.reduced_motion,
+                            i18n::tr("Reduced motion"),
+                        );
                         theme::slider(
                             ui,
                             "UI scale",
@@ -918,8 +926,13 @@ impl Studio {
                     {
                         self.motion.open = true;
                     }
-                    if theme::icon_button(ui, "Command search · Ctrl+P", theme::Icon::Search, false)
-                        .clicked()
+                    if theme::icon_button(
+                        ui,
+                        &self.shortcut_label("search", "Command search"),
+                        theme::Icon::Search,
+                        false,
+                    )
+                    .clicked()
                     {
                         self.palette = true;
                     }
@@ -939,7 +952,7 @@ impl Studio {
                     .id_salt("scene.panel")
                     .show(ui, |ui| {
                         ui.add_space(12.);
-                        ui.heading("Scene");
+                        ui.heading(i18n::tr("Scene"));
 
                         ui.add_space(10.);
                         let tabs: Vec<_> = self
@@ -979,7 +992,7 @@ impl Studio {
                                     }
                                     ui.horizontal(|ui| {
                                         let mut visible = c.visible;
-                                        if ui.checkbox(&mut visible, "").changed() {
+                                        if ui.checkbox(&mut visible, i18n::tr("")).changed() {
                                             self.apply(vec![Command::SetCharacter {
                                                 character: c.id,
                                                 name: None,
@@ -1008,7 +1021,7 @@ impl Studio {
                         ui.add_space(15.);
                         ui.separator();
                         ui.add_space(10.);
-                        ui.heading("Motion library");
+                        ui.heading(i18n::tr("Motion library"));
                         ui.label(
                             RichText::new("Editable actions, ready to direct.")
                                 .size(11.)
@@ -1037,7 +1050,7 @@ impl Studio {
                                 .range(2..=3000)
                                 .prefix("Frames  "),
                         );
-                        ui.checkbox(&mut self.natural_pace,"Natural pace").on_hover_text("Match walk/run travel to character size, duration and frame rate. Disable for manual travel.");
+                        ui.checkbox(&mut self.natural_pace,i18n::tr("Natural pace")).on_hover_text("Match walk/run travel to character size, duration and frame rate. Disable for manual travel.");
                         ui.add_enabled(!self.natural_pace,
                             egui::DragValue::new(&mut self.action_distance)
                                 .speed(1.)
@@ -1076,7 +1089,7 @@ impl Studio {
             .resizable(true)
             .show(ui, |ui| {
                 ui.add_space(12.);
-                ui.heading("Inspector");
+                ui.heading(i18n::tr("Inspector"));
                 ui.label(RichText::new("REFINE THE DETAILS").size(10.).color(MUTED));
                 ui.add_space(15.);
                 egui::ScrollArea::vertical().show(ui, |ui| {
@@ -1103,7 +1116,10 @@ impl Studio {
                     if let Some(c) = self.selected.and_then(|id| p.character(id)) {
                         ui.label(RichText::new(&c.name).size(19.).color(VIOLET));
                         let mut locked = c.locked;
-                        if ui.checkbox(&mut locked, "Lock character").changed() {
+                        if ui
+                            .checkbox(&mut locked, i18n::tr("Lock character"))
+                            .changed()
+                        {
                             self.apply(vec![Command::SetCharacter {
                                 character: c.id,
                                 name: None,
@@ -1154,8 +1170,8 @@ impl Studio {
                             }]);
                         }
                         if self.preferences.mode == WorkspaceMode::Rig {
-                            ui.label("Drag a joint on the stage to pose it.");
-                            if ui.button("Pin feet at current frame").clicked() {
+                            ui.label(i18n::tr("Drag a joint on the stage to pose it."));
+                            if ui.button(i18n::tr("Pin feet at current frame")).clicked() {
                                 let evaluated = evaluate(p, self.frame)
                                     .characters
                                     .into_iter()
@@ -1180,7 +1196,7 @@ impl Studio {
                                     self.apply(commands)
                                 }
                             }
-                            if ui.button("Release contacts").clicked() {
+                            if ui.button(i18n::tr("Release contacts")).clicked() {
                                 self.apply(vec![Command::ClearContacts { character: c.id }]);
                             }
                         }
@@ -1253,16 +1269,18 @@ impl Studio {
                     ui.separator();
                     ui.add_space(8.);
                     if self.preferences.mode == WorkspaceMode::Draw {
-                        ui.heading("Brush");
+                        ui.heading(i18n::tr("Brush"));
                         ui.color_edit_button_srgba(&mut self.draw_color);
                         theme::slider(
                             ui,
                             "Width",
                             egui::Slider::new(&mut self.draw_width, 1.0..=40.),
                         );
-                        ui.label("Draw directly on the stage. Each stroke is one undo step.");
+                        ui.label(i18n::tr(
+                            "Draw directly on the stage. Each stroke is one undo step.",
+                        ));
                     }
-                    ui.heading("Effects");
+                    ui.heading(i18n::tr("Effects"));
                     egui::ComboBox::from_id_salt("effects")
                         .selected_text(format!("{:?}", self.effect))
                         .show_ui(ui, |ui| {
@@ -1276,16 +1294,16 @@ impl Studio {
                         self.add_effect()
                     }
                     ui.add_space(12.);
-                    ui.heading("Audio");
-                    if ui.button("Import WAV").clicked() {
+                    ui.heading(i18n::tr("Audio"));
+                    if ui.button(i18n::tr("Import WAV")).clicked() {
                         self.import_audio()
                     }
                     for a in &p.audio {
                         ui.label(format!("♫ {} | frame {}", a.name, a.start));
                     }
                     ui.add_space(12.);
-                    ui.heading("Project");
-                    ui.label("Save path (inside workspace)");
+                    ui.heading(i18n::tr("Project"));
+                    ui.label(i18n::tr("Save path (inside workspace)"));
                     ui.text_edit_singleline(&mut self.save_path);
                     ui.label(
                         RichText::new(
@@ -1602,20 +1620,20 @@ impl Studio {
                 if response.drag_stopped(){if let (Some(pose),Some(character))=(self.drag_pose.take(),self.selected){self.apply(vec![Command::SetBoneConstraints{character,enabled:self.motion.last_drag_constrained},Command::SetPose{character,frame:self.frame as u32,pose,easing:Easing::Smooth}]);}self.drag_origin=None;self.drag_joint=None;}
             }
             if p.characters.is_empty()&&p.drawings.is_empty()&&p.rasters.is_empty()&&p.cels.is_empty()&&p.graphics.is_empty()&&p.dialogues.is_empty(){painter.text(rect.center(),egui::Align2::CENTER_CENTER,if p.metadata.contains_key("legacy"){ "Legacy source archived | Native conversion pending\nOpen the original in the legacy editor" }else{"Add a character to animate"},egui::FontId::proportional(18.),MUTED);}
-            ui.painter().text(Pos2::new(area.center().x,area.bottom()-1.),egui::Align2::CENTER_BOTTOM,"Space: play    Drag: move    Rig: pose",egui::FontId::proportional(10.),Color32::from_gray(100));
+            ui.painter().text(Pos2::new(area.center().x,area.bottom()-1.),egui::Align2::CENTER_BOTTOM,format!("{}: play    Drag: move    Rig: pose",keymap::label(keymap::binding(&self.preferences.shortcuts,"play"))),egui::FontId::proportional(10.),Color32::from_gray(100));
         });
     }
 }
 impl Studio {
     fn close_confirmation(&mut self, ctx: &egui::Context, p: &Project) {
         if self.confirm_close {
-            egui::Window::new("Save before closing?")
+            egui::Window::new(i18n::tr("Save before closing?"))
                 .collapsible(false)
                 .anchor(egui::Align2::CENTER_CENTER, [0., 0.])
                 .show(ctx, |ui| {
-                    ui.label("Open projects have unsaved changes.");
+                    ui.label(i18n::tr("Open projects have unsaved changes."));
                     ui.horizontal(|ui| {
-                        if ui.button("Save all & close").clicked() {
+                        if ui.button(i18n::tr("Save all & close")).clicked() {
                             match self.save_all() {
                                 Ok(()) => {
                                     self.exit_confirmed = true;
@@ -1625,10 +1643,10 @@ impl Studio {
                                 Err(e) => self.status = e.to_string(),
                             }
                         }
-                        if ui.button("Keep editing").clicked() {
+                        if ui.button(i18n::tr("Keep editing")).clicked() {
                             self.confirm_close = false;
                         }
-                        if ui.button("Close without saving").clicked() {
+                        if ui.button(i18n::tr("Close without saving")).clicked() {
                             self.dirty = false;
                             self.exit_confirmed = true;
                             self.saved_revision = Some(p.revision);
@@ -1640,6 +1658,7 @@ impl Studio {
         }
     }
 }
+#[cfg(test)]
 fn shortcut_flags(ctx: &egui::Context) -> (bool, bool, bool, bool, bool) {
     // Query focus before reading input: nested Context locks deadlock at startup.
     let text = ctx.egui_wants_keyboard_input();
@@ -1659,15 +1678,20 @@ impl eframe::App for Studio {
         if self.service.snapshot(self.project).is_err() {
             self.finish_close_project(self.project);
         }
+        i18n::install(&self.preferences.language);
         theme::customize(ctx, &self.preferences);
         self.assist_tick(ctx);
         self.motion_tick(ctx);
         let global = ctx.input(|i| {
             (
-                i.modifiers.command && i.key_pressed(egui::Key::N),
-                i.modifiers.command && i.key_pressed(egui::Key::O),
-                i.modifiers.command && i.modifiers.shift && i.key_pressed(egui::Key::S),
-                i.modifiers.command && i.key_pressed(egui::Key::W),
+                self.assist.capture_binding.is_none()
+                    && keymap::pressed(i, &self.preferences.shortcuts, "new"),
+                self.assist.capture_binding.is_none()
+                    && keymap::pressed(i, &self.preferences.shortcuts, "open"),
+                self.assist.capture_binding.is_none()
+                    && keymap::pressed(i, &self.preferences.shortcuts, "save_as"),
+                self.assist.capture_binding.is_none()
+                    && keymap::pressed(i, &self.preferences.shortcuts, "close"),
             )
         });
         if global.0 {
@@ -1880,7 +1904,7 @@ impl eframe::App for Studio {
         self.project_dialogs(&ctx);
         if self.palette {
             let mut open = true;
-            egui::Window::new("Commands")
+            egui::Window::new(i18n::tr("Commands"))
                 .open(&mut open)
                 .collapsible(false)
                 .resizable(false)
@@ -1948,7 +1972,7 @@ impl eframe::App for Studio {
         if let Some(job) = self.export_job
             && let Ok(value) = self.service.request(Request::JobStatus { job })
         {
-            egui::Window::new("Render queue")
+            egui::Window::new(i18n::tr("Render queue"))
                 .default_width(330.)
                 .show(&ctx, |ui| {
                     ui.label(value["state"].as_str().unwrap_or("queued"));
@@ -1973,11 +1997,11 @@ impl eframe::App for Studio {
                         value["state"].as_str(),
                         Some("completed" | "failed" | "cancelled")
                     ) {
-                        if ui.button("Close").clicked() {
+                        if ui.button(i18n::tr("Close")).clicked() {
                             self.export_job = None
                         }
                     } else {
-                        if ui.button("Cancel export").clicked() {
+                        if ui.button(i18n::tr("Cancel export")).clicked() {
                             let _ = self.service.request(Request::CancelJob { job });
                         }
                         ctx.request_repaint_after(Duration::from_millis(150));
@@ -2681,7 +2705,7 @@ mod tests {
         assert!(studio.service.snapshot(id).is_ok());
         studio.save_project();
         studio.request_close_project(id);
-        assert!(studio.manager.home);
+        assert!(studio.manager.home, "Close failed: {}", studio.status);
         assert!(studio.service.snapshot(id).is_err());
         assert!(!studio.documents.contains_key(&id));
         studio.open_project_path(file);

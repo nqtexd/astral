@@ -6,6 +6,9 @@ pub(super) struct ArtworkState {
     job: Option<Id>,
     tracking_seed: Point,
     tracking_frames: u32,
+    tracking_target: Option<Id>,
+    tracking_second: bool,
+    second_seed: Point,
     paint: bool,
     erase: bool,
     radius: f32,
@@ -17,6 +20,40 @@ pub(super) struct ArtworkState {
     text: String,
 }
 impl Studio {
+    pub(super) fn import_audio_file(&mut self, file: PathBuf) {
+        let Ok(p) = self.service.snapshot(self.project) else {
+            return;
+        };
+        if self.artwork.pending.is_some() {
+            self.status = "Another media import is running".into();
+            return;
+        }
+        let service = self.service.clone();
+        let start = self.frame as u32;
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.artwork.pending = Some(rx);
+        std::thread::spawn(move || {
+            let result = (|| -> anyhow::Result<serde_json::Value> {
+                anyhow::ensure!(
+                    std::fs::metadata(&file)?.len() <= 64 * 1024 * 1024,
+                    "Audio source exceeds 64 MiB"
+                );
+                let name = file.file_name().and_then(|s| s.to_str()).unwrap_or("audio");
+                let path = format!("assets/audio-sources/{}-{name}", Id::new_v4());
+                service
+                    .project_workspace(p.id)
+                    .atomic_write(&path, &std::fs::read(file)?)?;
+                service.artwork(ArtworkRequest::Audio {
+                    project: p.id,
+                    expected_revision: p.revision,
+                    path,
+                    start,
+                })
+            })();
+            let _ = tx.send(result);
+        });
+        self.status = "Importing audio in background".into();
+    }
     pub(super) fn artwork_browser(&mut self, ui: &mut egui::Ui, p: &Project) {
         if !self.preferences.left {
             return;
@@ -27,7 +64,7 @@ impl Studio {
             .resizable(true)
             .show(ui, |ui| {
                 ui.add_space(12.);
-                ui.heading("Layers");
+                ui.heading(i18n::tr("Layers"));
                 ui.add_space(10.);
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     for raster in p.rasters.iter().rev() {
@@ -124,6 +161,7 @@ impl Studio {
                     .and_then(|a| a.first())
                     .and_then(|v| v.as_str())
                     .and_then(|s| s.parse().ok())
+                    && value["project"] == serde_json::json!(self.project)
                 {
                     self.artwork.selected = Some(id);
                 }
@@ -153,7 +191,7 @@ impl Studio {
         }
     }
     pub(super) fn artwork_panel(&mut self, ui: &mut egui::Ui, p: &Project) {
-        ui.heading("Artwork");
+        ui.heading(i18n::tr("Artwork"));
         ui.label(RichText::new("Images, cels & deformation").color(MUTED));
         ui.add_space(10.);
         let busy = self.artwork.pending.is_some() || self.artwork.job.is_some();
@@ -276,7 +314,9 @@ impl Studio {
             let mut raster = source.clone();
             let mut changed = false;
             changed |= ui.text_edit_singleline(&mut raster.name).changed();
-            changed |= ui.checkbox(&mut raster.visible, "Visible").changed();
+            changed |= ui
+                .checkbox(&mut raster.visible, i18n::tr("Visible"))
+                .changed();
             changed |= ui
                 .checkbox(&mut raster.looping, "Loop source frames")
                 .changed();
@@ -292,9 +332,9 @@ impl Studio {
                 raster.sources.len(),
                 raster.cels.iter().filter(|c| c.bitmap.is_some()).count()
             ));
-            ui.checkbox(&mut self.artwork.paint,"Paint this frame").on_hover_text("Shows original image coordinates. A stroke changes only this frame; later sequence frames remain independent.");
+            ui.checkbox(&mut self.artwork.paint,i18n::tr("Paint this frame")).on_hover_text("Shows original image coordinates. A stroke changes only this frame; later sequence frames remain independent.");
             if self.artwork.paint {
-                ui.checkbox(&mut self.artwork.erase, "Eraser");
+                ui.checkbox(&mut self.artwork.erase, i18n::tr("Eraser"));
                 if self.artwork.radius < 0.5 {
                     self.artwork.radius = 8.;
                 }
@@ -303,7 +343,7 @@ impl Studio {
             }
             let mut key = raster.at(self.frame);
             key.frame = self.frame as u32;
-            ui.collapsing("Transform", |ui| {
+            ui.collapsing(i18n::tr("Transform"), |ui| {
                 let mut edit = false;
                 edit |= ui
                     .add(egui::DragValue::new(&mut key.position.x).prefix("X "))
@@ -346,23 +386,31 @@ impl Studio {
                     changed = true;
                 }
             });
-            ui.collapsing("Track camera",|ui|{
-                ui.label("Choose a distinctive source-image point. Preview local tracking before accepting camera keys.");
+            ui.collapsing("Motion tracking",|ui|{
+                egui::ComboBox::from_id_salt("track.target").selected_text(self.artwork.tracking_target.and_then(|id|p.graphics.iter().find(|g|g.id==id).map(|g|g.name.clone()).or_else(||p.rasters.iter().find(|r|r.id==id).map(|r|r.name.clone()))).unwrap_or_else(||"Camera".into())).show_ui(ui,|ui|{
+                    ui.selectable_value(&mut self.artwork.tracking_target,None,"Camera");for g in &p.graphics{ui.selectable_value(&mut self.artwork.tracking_target,Some(g.id),&g.name);}for r in p.rasters.iter().filter(|r|r.id!=source.id){ui.selectable_value(&mut self.artwork.tracking_target,Some(r.id),&r.name);}
+                });
+                if self.artwork.tracking_target.is_some(){ui.checkbox(&mut self.artwork.tracking_second,"Track rotation and scale with a second point");if self.artwork.tracking_second{ui.add(egui::DragValue::new(&mut self.artwork.second_seed.x).prefix("Second X "));ui.add(egui::DragValue::new(&mut self.artwork.second_seed.y).prefix("Second Y "));}}
+
+                ui.label(i18n::tr("Choose a distinctive source-image point. Preview local tracking before accepting camera keys."));
                 ui.add(egui::DragValue::new(&mut self.artwork.tracking_seed.x).prefix("Source X "));
                 ui.add(egui::DragValue::new(&mut self.artwork.tracking_seed.y).prefix("Source Y "));
                 self.artwork.tracking_frames=self.artwork.tracking_frames.clamp(1,120);
                 ui.add(egui::DragValue::new(&mut self.artwork.tracking_frames).range(1..=120).prefix("Frames "));
-                if ui.add_enabled(!busy&&self.artwork.job.is_none(),egui::Button::new("Preview tracking")).clicked(){self.artwork_request(ArtworkRequest::Track{project:p.id,expected_revision:p.revision,layer:source.id,start:self.frame as u32,end:(self.frame as u32+self.artwork.tracking_frames-1).min(source.end),point:self.artwork.tracking_seed,apply:false});}
+                if ui.add_enabled(!busy&&self.artwork.job.is_none(),egui::Button::new("Preview tracking")).clicked(){self.artwork_request(ArtworkRequest::Track{target:self.artwork.tracking_target,second_point:if self.artwork.tracking_target.is_some()&&self.artwork.tracking_second{Some(self.artwork.second_seed)}else{None},project:p.id,expected_revision:p.revision,layer:source.id,start:self.frame as u32,end:(self.frame as u32+self.artwork.tracking_frames-1).min(source.end),point:self.artwork.tracking_seed,apply:false});}
             });
-            ui.collapsing("Deformation", |ui| {
-                if raster.mesh.is_none() && ui.button("Create pin mesh").clicked() {
+            ui.collapsing(i18n::tr("Deformation"), |ui| {
+                if raster.mesh.is_none() && ui.button(i18n::tr("Create pin mesh")).clicked() {
                     raster.mesh = Some(DeformMesh {
+                        mode: DeformMode::Translation,
+                        curve: vec![],
                         columns: 12,
                         rows: 12,
                         pins: [(0., 0.), (1., 0.), (0., 1.), (1., 1.), (0.5, 0.5)]
                             .iter()
                             .enumerate()
                             .map(|(i, (x, y))| MeshPin {
+                                driver: None,
                                 id: Id::new_v4(),
                                 name: if i == 4 {
                                     "Center".into()
@@ -380,11 +428,166 @@ impl Studio {
                     changed = true;
                 }
                 if let Some(mesh) = raster.mesh.as_mut() {
-                    ui.label(
+                    let old_mode = mesh.mode;
+                    egui::ComboBox::from_id_salt("mesh.mode")
+                        .selected_text(format!("{:?}", mesh.mode))
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut mesh.mode,
+                                DeformMode::Translation,
+                                "Soft pins",
+                            );
+                            ui.selectable_value(
+                                &mut mesh.mode,
+                                DeformMode::Similarity,
+                                "Preserve rotation & scale",
+                            );
+                        });
+                    changed |= old_mode != mesh.mode;
+                    ui.collapsing(i18n::tr("Curver"), |ui| {
+                        if mesh.curve.is_empty() {
+                            if ui.button(i18n::tr("Add cubic curver")).clicked() {
+                                mesh.curve.push(CurveKey {
+                                    frame: 0,
+                                    controls: [
+                                        Point::new(0., 0.5),
+                                        Point::new(1. / 3., 0.5),
+                                        Point::new(2. / 3., 0.5),
+                                        Point::new(1., 0.5),
+                                    ],
+                                });
+                                changed = true;
+                            }
+                        } else {
+                            let i = mesh
+                                .curve
+                                .partition_point(|k| k.frame as f64 <= self.frame)
+                                .saturating_sub(1);
+                            let mut key = mesh.curve[i].clone();
+                            key.frame = self.frame as u32;
+                            let mut edit = false;
+                            for (i, point) in key.controls.iter_mut().enumerate() {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("Point {}", i + 1));
+                                    edit |= ui
+                                        .add(
+                                            egui::DragValue::new(&mut point.x)
+                                                .speed(0.01)
+                                                .range(-4.0..=4.0)
+                                                .prefix("X "),
+                                        )
+                                        .changed();
+                                    edit |= ui
+                                        .add(
+                                            egui::DragValue::new(&mut point.y)
+                                                .speed(0.01)
+                                                .range(-4.0..=4.0)
+                                                .prefix("Y "),
+                                        )
+                                        .changed();
+                                });
+                            }
+                            if edit {
+                                mesh.curve.retain(|k| k.frame != key.frame);
+                                mesh.curve.push(key);
+                                mesh.curve.sort_by_key(|k| k.frame);
+                                changed = true;
+                            }
+                            if ui.button(i18n::tr("Remove curver")).clicked() {
+                                mesh.curve.clear();
+                                changed = true;
+                            }
+                        }
+                    });
+
+                    ui.label(i18n::tr(
                         "Offsets are fractions of artwork size. Changes key the current frame.",
-                    );
+                    ));
                     for pin in &mut mesh.pins {
                         ui.label(&pin.name);
+                        ui.push_id(pin.id, |ui| {
+                            ui.collapsing(i18n::tr("Bone corrective"), |ui| {
+                                if pin.driver.is_none() {
+                                    if let Some(c) = self.selected.and_then(|id| p.character(id))
+                                        && let Some(joint) =
+                                            c.joints.iter().position(|j| j.parent.is_some())
+                                        && ui
+                                            .button(i18n::tr("Drive from selected character"))
+                                            .clicked()
+                                    {
+                                        pin.driver = Some(PinDriver {
+                                            character: c.id,
+                                            joint,
+                                            rest_angle: 0.,
+                                            angle_range: std::f32::consts::FRAC_PI_2,
+                                            offset: Point::new(0., -0.1),
+                                        });
+                                        changed = true;
+                                    } else {
+                                        ui.small(i18n::tr(
+                                            "Select a character to add a corrective.",
+                                        ));
+                                    }
+                                } else if let Some(driver) = &mut pin.driver {
+                                    if let Some(c) = p.character(driver.character) {
+                                        egui::ComboBox::from_id_salt("driver.joint")
+                                            .selected_text(&c.joints[driver.joint].name)
+                                            .show_ui(ui, |ui| {
+                                                for (i, j) in c
+                                                    .joints
+                                                    .iter()
+                                                    .enumerate()
+                                                    .filter(|(_, j)| j.parent.is_some())
+                                                {
+                                                    changed |= ui
+                                                        .selectable_value(
+                                                            &mut driver.joint,
+                                                            i,
+                                                            &j.name,
+                                                        )
+                                                        .changed();
+                                                }
+                                            });
+                                    }
+                                    changed |= ui
+                                        .add(
+                                            egui::DragValue::new(&mut driver.rest_angle)
+                                                .speed(0.01)
+                                                .prefix("Rest rad "),
+                                        )
+                                        .changed();
+                                    changed |= ui
+                                        .add(
+                                            egui::DragValue::new(&mut driver.angle_range)
+                                                .speed(0.01)
+                                                .range(
+                                                    -std::f32::consts::TAU..=std::f32::consts::TAU,
+                                                )
+                                                .prefix("Range rad "),
+                                        )
+                                        .changed();
+                                    if driver.angle_range.abs() < 0.01 {
+                                        driver.angle_range = 0.01;
+                                    }
+                                    changed |= ui
+                                        .add(
+                                            egui::Slider::new(&mut driver.offset.x, -1.0..=1.0)
+                                                .text("Correct X"),
+                                        )
+                                        .changed();
+                                    changed |= ui
+                                        .add(
+                                            egui::Slider::new(&mut driver.offset.y, -1.0..=1.0)
+                                                .text("Correct Y"),
+                                        )
+                                        .changed();
+                                    if ui.button(i18n::tr("Remove driver")).clicked() {
+                                        pin.driver = None;
+                                        changed = true;
+                                    }
+                                }
+                            });
+                        });
                         let mut offset = pin
                             .keys
                             .iter()
@@ -413,7 +616,7 @@ impl Studio {
             if changed {
                 self.apply(vec![Command::PutRasterLayer { layer: raster }]);
             }
-            if ui.button("Delete layer").clicked() {
+            if ui.button(i18n::tr("Delete layer")).clicked() {
                 self.apply(vec![Command::Remove { id: source.id }]);
                 self.artwork.selected = None;
             }
@@ -422,7 +625,7 @@ impl Studio {
         self.voice_artwork_panel(ui, p);
     }
     pub(super) fn voice_artwork_panel(&mut self, ui: &mut egui::Ui, p: &Project) {
-        ui.collapsing("Voice & mouth timing",|ui|{
+        ui.collapsing(i18n::tr("Voice & mouth timing"),|ui|{
             if let Some(recording)=self.artwork.recording.as_ref(){
                 ui.label(format!("Recording {:.1} / 60 s",recording.seconds()));
                 ui.ctx().request_repaint_after(Duration::from_millis(100));
@@ -493,6 +696,7 @@ impl Studio {
                     tags: vec!["recording".into()],
                 };
                 let audio = AudioClip {
+                    speed: 1.,
                     id: Id::new_v4(),
                     name: asset.name.clone(),
                     asset: asset.id,
@@ -541,7 +745,7 @@ impl Studio {
             let Ok(bitmap) = astral_render::decode_bitmap(b) else {
                 return;
             };
-            ui.label("Paint source • changes affect this frame only");
+            ui.label(i18n::tr("Paint source • changes affect this frame only"));
             let available = ui.available_size();
             let scale = (available.x / b.width as f32)
                 .min(available.y / b.height as f32)

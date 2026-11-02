@@ -45,6 +45,46 @@ pub struct DisplayList {
     pub primitives: Vec<Primitive>,
 }
 
+fn pressure_outline(points: &[Point], stroke: &InkStroke) -> Vec<Point> {
+    if points.len() < 2 {
+        return vec![];
+    }
+    let mut left = Vec::with_capacity(points.len());
+    let mut right = Vec::with_capacity(points.len());
+    let mut normals = vec![];
+    for (i, point) in points.iter().enumerate() {
+        let delta = points[(i + 1).min(points.len() - 1)] - points[i.saturating_sub(1)];
+        let length = delta.distance(Point::default());
+        let normal = if length > 0.00001 {
+            Point::new(-delta.y / length, delta.x / length)
+        } else {
+            Point::new(0., 1.)
+        };
+        let radius = stroke.width * stroke.pressure_at(i) * 0.5;
+        let offset = Point::new(normal.x * radius, normal.y * radius);
+        left.push(*point + offset);
+        right.push(*point - offset);
+        normals.push(normal);
+    }
+    let mut outline = left;
+    let end = *points.last().unwrap();
+    let normal = *normals.last().unwrap();
+    let angle = normal.y.atan2(normal.x);
+    let radius = stroke.width * stroke.pressure_at(points.len() - 1) * 0.5;
+    for i in 1..=8 {
+        let a = angle - std::f32::consts::PI * i as f32 / 8.;
+        outline.push(end + Point::new(a.cos() * radius, a.sin() * radius));
+    }
+    outline.extend(right.into_iter().rev().skip(1));
+    let angle = normals[0].y.atan2(normals[0].x) - std::f32::consts::PI;
+    let radius = stroke.width * stroke.pressure_at(0) * 0.5;
+    for i in 1..=8 {
+        let a = angle - std::f32::consts::PI * i as f32 / 8.;
+        outline.push(points[0] + Point::new(a.cos() * radius, a.sin() * radius));
+    }
+    outline
+}
+
 pub fn display_list(project: &Project, frame: f64) -> DisplayList {
     let scene = evaluate(project, frame);
     let mut out = DisplayList {
@@ -91,8 +131,126 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
             for stroke in &cel.strokes {
                 let mut color = stroke.color;
                 color[3] = (color[3] as f32 * layer.opacity).round() as u8;
+                if stroke.style == BrushStyle::Marker {
+                    color[3] = (color[3] as f32 * 0.45).round() as u8;
+                }
+                let points = stroke.world_points(&scene);
+                if let Some(id) = stroke.bitmap {
+                    if points.len() == 4
+                        && let Some(source) = project.bitmaps.iter().find(|b| b.id == id)
+                        && let Ok(bitmap) = decode_bitmap(source)
+                    {
+                        let uv = [
+                            Point::new(0., 0.),
+                            Point::new(1., 0.),
+                            Point::new(1., 1.),
+                            Point::new(0., 1.),
+                        ];
+                        out.primitives.push(Primitive::Image {
+                            bitmap,
+                            vertices: points
+                                .iter()
+                                .zip(uv)
+                                .map(|(p, uv)| TextureVertex {
+                                    position: transform(*p),
+                                    uv,
+                                })
+                                .collect(),
+                            indices: vec![0, 1, 2, 0, 2, 3],
+                            opacity: color[3] as f32 / 255.,
+                        });
+                    }
+                    continue;
+                }
+                if stroke.filled {
+                    out.primitives.push(Primitive::Path {
+                        contours: vec![points.iter().map(|p| transform(*p)).collect()],
+                        color,
+                    });
+                    continue;
+                }
+                if !stroke.pressures.is_empty()
+                    && !matches!(stroke.style, BrushStyle::Dashed | BrushStyle::Stipple)
+                {
+                    out.primitives.push(Primitive::Path {
+                        contours: vec![
+                            pressure_outline(&points, stroke)
+                                .into_iter()
+                                .map(transform)
+                                .collect(),
+                        ],
+                        color,
+                    });
+                    continue;
+                }
+                if !stroke.pressures.is_empty()
+                    || matches!(stroke.style, BrushStyle::Dashed | BrushStyle::Stipple)
+                {
+                    let mut distance = 0.;
+                    let step = (stroke.width
+                        * if stroke.style == BrushStyle::Stipple {
+                            1.5
+                        } else {
+                            3.
+                        })
+                    .max(1.);
+                    let mut next_dot = 0.;
+                    for (i, pair) in points.windows(2).enumerate() {
+                        let length = pair[0].distance(pair[1]);
+                        let width = stroke.width
+                            * ((stroke.pressure_at(i) + stroke.pressure_at(i + 1)) * 0.5).max(0.02)
+                            * scene.zoom;
+                        if stroke.style == BrushStyle::Stipple {
+                            while next_dot <= distance + length {
+                                let t = if length > 0. {
+                                    ((next_dot - distance) / length).clamp(0., 1.)
+                                } else {
+                                    0.
+                                };
+                                out.primitives.push(Primitive::Circle {
+                                    center: transform(pair[0].lerp(pair[1], t)),
+                                    radius: width * 0.5,
+                                    color,
+                                });
+                                next_dot += step;
+                            }
+                        } else if stroke.style == BrushStyle::Dashed {
+                            let mut used = 0.;
+                            while used < length {
+                                let phase = (distance + used).rem_euclid(step * 2.);
+                                let n = (if phase < step {
+                                    step - phase
+                                } else {
+                                    step * 2. - phase
+                                })
+                                .min(length - used)
+                                .max(0.0001);
+                                if phase < step {
+                                    out.primitives.push(Primitive::Line {
+                                        a: transform(pair[0].lerp(pair[1], used / length)),
+                                        b: transform(
+                                            pair[0].lerp(pair[1], ((used + n) / length).min(1.)),
+                                        ),
+                                        width,
+                                        color,
+                                    });
+                                }
+                                used += n;
+                            }
+                        } else {
+                            out.primitives.push(Primitive::Line {
+                                a: transform(pair[0]),
+                                b: transform(pair[1]),
+                                width,
+                                color,
+                            });
+                        }
+                        distance += length;
+                    }
+                    continue;
+                }
                 out.primitives.push(Primitive::Polyline {
-                    points: stroke.points.iter().map(|p| transform(*p)).collect(),
+                    points: points.iter().map(|p| transform(*p)).collect(),
                     width: stroke.width * scene.zoom,
                     color,
                 });
@@ -100,6 +258,9 @@ pub fn display_list(project: &Project, frame: f64) -> DisplayList {
         }
     }
     for c in &scene.characters {
+        if project.character(c.id).is_some_and(|def| def.artwork_only) {
+            continue;
+        }
         for (i, parent) in c.parents.iter().enumerate() {
             if let Some(p) = parent {
                 out.primitives.push(Primitive::Line {
