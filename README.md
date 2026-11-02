@@ -37,7 +37,7 @@ GIFs are silent, 24 FPS previews. The fight project runs at 60 FPS and includes 
 - **Choose a voice:** Settings → Voice supports ElevenLabs and a configurable compatible speech API, alongside installed offline Windows voices. Windows keys use Credential Manager and are never saved in projects.
 - **Make the workspace yours:** remap 18 shortcuts with conflict checks; select English, Spanish or French core controls. Advanced untranslated controls and diagnostics use English.
 
-[Voice setup, editing tools and migration details](docs/ASTRAL-0.14-WORKFLOW.md). New features use project schema 9; older versions reject these projects. Keep your original files and previous release available.
+[Voice setup, editing tools and migration details](docs/ASTRAL-0.14-WORKFLOW.md) · [Release checks and remaining work](docs/ASTRAL-0.14-RELEASE.md). New features use project schema 9; older versions reject these projects. Keep your original files and previous release available.
 
 ## Getting started
 

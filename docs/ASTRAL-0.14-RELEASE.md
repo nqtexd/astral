@@ -13,12 +13,17 @@ See [setup and detailed workflows](ASTRAL-0.14-WORKFLOW.md), [MCP guidance](ASTR
 
 ## Validation
 
+- Optimized Windows release build passed. Packaged executables passed real MCP artwork/migration and full agent-workflow acceptance; all 16 packaged export cases passed.
 - `cargo clippy --workspace --all-targets --locked -- -D warnings`: passed.
 - `cargo test --workspace --locked`: 174 passed, zero failures.
 - `node --test tests/*.test.mjs`: 3,775 passed, zero failures, 25 skipped. Includes two source-evaluation/snapshot regression tests.
 - Real stdio MCP checks passed for compressed legacy conversion, native skin pose editing, independent painted frames, stale-revision rollback and save/reopen. Project/animation profile discovery and headless file handoff passed.
 - Full headless agent acceptance passed: editable ten-second fight, targeted track-preserving revision, independent cels, example-based completion, training cancellation/stale-revision checks, offline speech, waveform analysis and undo/redo.
+- Sixteen real export regression cases passed, covering native images, video, sequences, audio and framing.
+- [Windows CI passed for the implementation commit](https://github.com/nqtexd/astral/actions/runs/41403505151) (`b632802d1ae5fd62de190aef32afa80c06051248`), including external MCP, artwork and profile checks.
 - Feedback acceptance passed project rename/activity/trash/restore, composition proposals, editable dialogue, pose flow, preview overwrite and trimmed-shot assembly with failure preservation.
+
+The optimized Studio launched and displayed the project manager. Further automated Settings navigation was blocked by the Windows automation helper reporting incorrect 14×14 window bounds; no full live UI sign-off is claimed.
 
 Live paid speech calls and physical input/device certification are not part of these automated checks.
 
